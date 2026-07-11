@@ -1,28 +1,37 @@
 """Processor composition core -- port of madmom.processors' inference-time
-call semantics: `Processor` (a one-method abstract callable) and
+call semantics: `Processor` (a one-method abstract callable),
 `SequentialProcessor` (a mutable-sequence-of-Processors whose own `.process()`
-is a plain left-to-right fold). Every `audio/*` stage in this package (and,
-eventually, `ml`/`features`) is designed to be an instance of `Processor` so
-pipelines compose exactly the way `all-in-one-infer`'s
-`SequentialProcessor([frames, stft, filt, spec])` already expects
-(`all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`).
+is a plain left-to-right fold), `ParallelProcessor` (fan the same input out to
+every processor, return a list -- Phase 2's `NeuralNetworkEnsemble` is a
+`ParallelProcessor` of per-model `NeuralNetwork`s), and `BufferProcessor` (a
+tiny stateful ring-buffer used by `SpectrogramDifferenceProcessor` to buffer
+context frames). Every `audio/*` stage in this package is designed to be an
+instance of `Processor` so pipelines compose exactly the way
+`all-in-one-infer`'s `SequentialProcessor([frames, stft, filt, spec])` already
+expects (`all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`).
 
-Deliberately NOT ported (phase-1 scope, see docs/DESIGN.md A.2 and CLAUDE.md):
-argparse plumbing (`Processor.add_arguments`/`io_arguments`), pickle-based
-`Processor.load`/`.dump` (madmom uses this to ship pickled trained models --
-out of scope, this project never bundles pretrained weights), the
-multiprocessing `ParallelProcessor`/`_process`'s pool-dispatch branch,
-`OnlineProcessor`/`OutputProcessor`/`IOProcessor`/`BufferProcessor`/`Stream`
--related online-mode machinery, and the `process_single`/`process_batch`/
-`process_online` CLI-batch-file helpers. None of these are exercised by the
-in-memory, offline `Signal -> FramedSignal -> STFT -> filterbank -> log`
-inference call path this project targets.
+Deliberately NOT ported (see docs/DESIGN.md A.2 and CLAUDE.md): argparse
+plumbing (`Processor.add_arguments`/`io_arguments`), pickle-based
+`Processor.load`/`.dump` (madmom uses this to ship pickled trained models
+directly via `pickle.load` with no restriction -- Phase 2 instead ships its
+own restricted, class-allowlisted unpickler, see `madmom_infer/ml/nn/
+unpickle.py`), `ParallelProcessor`'s `multiprocessing.Pool`-based
+`num_threads` dispatch (`madmom-upstream/madmom/processors.py:442-455` --
+ported as a plain sequential `map()`, since this project's goal is correct
+forward-pass results, not multiprocessing throughput; CLAUDE.md's "don't
+oversell perf" stance applies here too), `OnlineProcessor`/`OutputProcessor`/
+`IOProcessor`/`Stream`-related streaming-mode machinery (this project targets
+offline, whole-clip inference only), and the `process_single`/`process_batch`/
+`process_online` CLI-batch-file helpers.
 
 Reads: nothing (pure Python, stdlib `collections.abc.MutableSequence` only);
-read by: madmom_infer/audio/*.py (planned) to compose the DSP pipeline.
+read by: madmom_infer/audio/*.py, madmom_infer/ml/nn/*.py to compose the DSP
+and NN-ensemble pipelines.
 """
 
 from collections.abc import MutableSequence
+
+import numpy as np
 
 
 class Processor:
@@ -129,3 +138,101 @@ class SequentialProcessor(MutableSequence, Processor):
         for processor in self.processors:
             data = _process((processor, data, kwargs))
         return data
+
+
+class ParallelProcessor(SequentialProcessor):
+    """Processor for parallel processing of data.
+
+    Port of `madmom.processors.ParallelProcessor`
+    (`madmom-upstream/madmom/processors.py:423-479`): every processor in
+    `processors` is applied to the *same* input `data`, and the results are
+    returned as a list (in processor order). `NeuralNetworkEnsemble`
+    (`madmom_infer/ml/nn/__init__.py`) is exactly a `ParallelProcessor` over
+    per-model `NeuralNetwork`s, and `RNNDownBeatProcessor`
+    (`madmom_infer/features/downbeats.py`) uses one to run its three
+    frame-size branches (1024/2048/4096) over the same input signal.
+
+    `num_threads` is accepted for constructor-signature parity but always
+    runs sequentially (plain `map()`) -- see this module's header for why the
+    original's `multiprocessing.Pool` dispatch is out of scope.
+    """
+
+    def __init__(self, processors, num_threads=None):
+        # pylint: disable=unused-argument
+        super().__init__(processors)
+
+    def process(self, data, **kwargs):
+        """Process the data with every processor, using the same input.
+
+        Returns a list of each processor's output, same as
+        `madmom.processors.ParallelProcessor.process`
+        (`processors.py:457-479`), minus the `multiprocessing.Pool.map`
+        dispatch (see module header).
+        """
+        return [_process((p, data, kwargs)) for p in self.processors]
+
+
+class BufferProcessor(Processor):
+    """Buffer for processors which need context to do their processing.
+
+    Port of `madmom.processors.BufferProcessor`
+    (`madmom-upstream/madmom/processors.py:717-835`). Used by
+    `SpectrogramDifferenceProcessor` (`madmom_infer/audio/spectrogram.py`) to
+    hold the trailing `diff_frames` context needed to compute a temporal
+    difference across streaming calls. Every Phase-2 call site in this
+    project processes a whole clip in one shot with `reset=True` (the
+    default), so the *stateful* continuation path (calling `process()`
+    multiple times with `reset=False` to stream) is ported faithfully but not
+    exercised by this project's own tests -- only the single-call,
+    freshly-initialized-buffer path is golden-fixture verified.
+    """
+
+    def __init__(self, buffer_size=None, init=None, init_value=0):
+        # if init is given, infer buffer_size from it
+        if buffer_size is None and init is not None:
+            buffer_size = init.shape
+        elif isinstance(buffer_size, int):
+            buffer_size = (buffer_size,)
+        # init buffer if needed
+        if buffer_size is not None and init is None:
+            init = np.ones(buffer_size) * init_value
+        self.buffer_size = buffer_size
+        self.init = init
+        self.data = init
+
+    @property
+    def buffer_length(self):
+        """Length of the buffer (time steps)."""
+        return self.buffer_size[0]
+
+    def reset(self, init=None):
+        """Reset BufferProcessor to its initial state."""
+        self.data = init if init is not None else self.init
+
+    def process(self, data, **kwargs):
+        """Buffer the data.
+
+        Shifts the buffer by the length of `data` and appends `data` at the
+        end, returning the buffer's full (shifted) contents -- port of
+        `madmom.processors.BufferProcessor.process` (`processors.py:775-812`).
+        If `data`'s length is >= the buffer's length, the buffer is replaced
+        outright by `data`'s last `buffer_length` items.
+        """
+        # expected minimum number of dimensions
+        ndmin = len(self.buffer_size)
+        if data.ndim < ndmin:
+            data = np.array(data, ndmin=ndmin)
+        data_length = len(data)
+        if data_length >= self.buffer_length:
+            self.data = data[-self.buffer_length:]
+        else:
+            self.data = np.roll(self.data, -data_length, axis=0)
+            self.data[-data_length:] = data
+        return self.data
+
+    # alias for easier / more intuitive calling
+    buffer = process
+
+    def __getitem__(self, index):
+        """Direct access to the buffer data (any numpy indexing method)."""
+        return self.data[index]
