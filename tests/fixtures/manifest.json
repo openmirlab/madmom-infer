@@ -1,0 +1,54 @@
+{
+  "madmom_version": "0.17.dev0",
+  "madmom_commit": "27f032e8947204902c675e5e341a3faf5dc86dae",
+  "madmom_source": "https://github.com/CPJKU/madmom",
+  "numpy_version": "1.23.5",
+  "scipy_version": "1.15.3",
+  "python_version": "3.10.18",
+  "generation_command": "/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python tools/generate_fixtures.py",
+  "seeds": {
+    "wav_seed": 1234,
+    "hmm_toy_seed": 1235,
+    "dbn_activation_seed": 1236
+  },
+  "spectrogram_chain_params": {
+    "frame_size": 2048,
+    "fps": 100,
+    "num_bands": 12,
+    "fmin": 30,
+    "fmax": 17000,
+    "norm_filters": true,
+    "log_mul": 1,
+    "log_add": 1
+  },
+  "dbn_params": {
+    "beats_per_bar": [
+      3,
+      4
+    ],
+    "min_bpm": 55.0,
+    "max_bpm": 215.0,
+    "num_tempi": 60,
+    "transition_lambda": 100,
+    "observation_lambda": 16,
+    "fps": 100
+  },
+  "wav_duration_s": 1.5,
+  "known_error_cases": {
+    "stereo_full_chain": {
+      "error_type": "ValueError",
+      "error_message": "frames must be a 2D array or iterable, got <class 'madmom.audio.signal.FramedSignal'> with shape (150, 2048, 2)."
+    }
+  },
+  "fixture_files": {
+    "signal.npz": "Signal(path)/Signal(path,num_channels=1)/Signal(ndarray) outputs, per test wav",
+    "framing.npz": "FramedSignalProcessor(frame_size=2048,fps=100) frame0/frame1/last frame + all-frames hash, per raw test wav (incl. multi-channel)",
+    "stft.npz": "ShortTimeFourierTransformProcessor() complex STFT of mono-compatible signals + window-caching-gotcha demonstration",
+    "filterbank.npz": "FilteredSpectrogramProcessor filterbank matrix (per sample rate) + filtered spectrogram outputs",
+    "logspec.npz": "LogarithmicSpectrogramProcessor(mul=1,add=1) outputs",
+    "full_chain.npz": "SequentialProcessor([frames,stft,filt,spec]) end-to-end output per mono-compatible test wav",
+    "hmm_toy.npz": "hand-built 10-state TransitionModel/DiscreteObservationModel viterbi()/forward() outputs",
+    "beats_hmm.npz": "BarStateSpace/BarTransitionModel/RNNDownBeatTrackingObservationModel metadata + CSR ground truth, beats_per_bar in {3,4}",
+    "dbn_downbeat.npz": "DBNDownBeatTrackingProcessor(beats_per_bar=[3,4],fps=100) decode of a synthetic ~30s beat-activation array"
+  }
+}
