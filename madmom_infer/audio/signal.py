@@ -322,6 +322,43 @@ class Signal:
         return "Signal(%r, sample_rate=%r)" % (self.data, self.sample_rate)
 
 
+class SignalProcessor(Processor):
+    """Processor wrapper: load/convert a file or array into a `Signal`.
+
+    Port of `madmom.audio.signal.SignalProcessor`
+    (`madmom-upstream/madmom/audio/signal.py:714-796`). Phase 2 needs this
+    because `RNNDownBeatProcessor` (`madmom_infer/features/downbeats.py`)
+    starts its pipeline with `SignalProcessor(num_channels=1,
+    sample_rate=44100)` -- Phase 1 never needed a `Processor` wrapper around
+    `Signal` since its own golden-fixture tests constructed `Signal` directly.
+    """
+
+    def __init__(self, sample_rate=SAMPLE_RATE, num_channels=NUM_CHANNELS,
+                 start=START, stop=STOP, norm=NORM, gain=GAIN, dtype=DTYPE,
+                 **kwargs):
+        # pylint: disable=unused-argument
+        self.sample_rate = sample_rate
+        self.num_channels = num_channels
+        self.start = start
+        self.stop = stop
+        self.norm = norm
+        self.gain = gain
+        self.dtype = dtype
+
+    def process(self, data, **kwargs):
+        """Process the given audio file/array into a `Signal`.
+
+        Matches `madmom.audio.signal.SignalProcessor.process`
+        (`signal.py:771-796`).
+        """
+        args = dict(sample_rate=self.sample_rate,
+                    num_channels=self.num_channels, start=self.start,
+                    stop=self.stop, norm=self.norm, gain=self.gain,
+                    dtype=self.dtype)
+        args.update(kwargs)
+        return Signal(data, **args)
+
+
 # ---------------------------------------------------------------------------
 # frame splitting
 # ---------------------------------------------------------------------------

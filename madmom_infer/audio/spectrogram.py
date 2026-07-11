@@ -7,34 +7,41 @@ Phase-1 scope: `Spectrogram` (magnitude of the STFT), `FilteredSpectrogram` /
 `LogarithmicSpectrogram` / `LogarithmicSpectrogramProcessor` (log-compress) --
 exactly the stages `all-in-one-infer`'s `build_spec_processor()` composes via
 `SequentialProcessor([frames, stft, filt, spec])`
-(`all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`). Deliberately NOT
-ported (no phase-1 call site, `madmom-upstream/madmom/audio/spectrogram.py`):
-`SpectrogramDifference`/`SpectrogramDifferenceProcessor` (SuperFlux-style
-onset-detection differencing), `SuperFluxProcessor`, `MultiBandSpectrogram`/
+(`all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`).
+
+Phase-2 addition: `SpectrogramDifference`/`SpectrogramDifferenceProcessor`
+(SuperFlux-style temporal first-order difference), needed because
+`RNNDownBeatProcessor` (`madmom_infer/features/downbeats.py`) stacks a
+diff-of-log-spectrogram feature onto each of its 3 frame-size branches
+(`madmom-upstream/madmom/features/downbeats.py:84-87`). Still deliberately
+NOT ported (no phase-2 call site either, `madmom-upstream/madmom/audio/
+spectrogram.py`): `SuperFluxProcessor`, `MultiBandSpectrogram`/
 `MultiBandSpectrogramProcessor`, `SemitoneBandpassSpectrogram`,
 `LogarithmicFilteredSpectrogram`/`LogarithmicFilteredSpectrogramProcessor`
-(the fused filter+log convenience class -- phase-1 composes the same
+(the fused filter+log convenience class -- this project composes the same
 pipeline via two separate stages instead, exactly like `build_spec_processor()`
 already does), and `tuning_frequency()`/`Spectrogram.tuning_frequency()`.
 
 Composition, not `np.ndarray` subclassing (docs/DESIGN.md C.2): each class
 wraps a plain array in `.data`, and `FilteredSpectrogram`/
-`LogarithmicSpectrogram` are ordinary Python subclasses of `Spectrogram`
-(inheriting its array-interop dunders/properties for free) rather than
-`np.ndarray` subclasses relying on `__array_finalize__`.
+`LogarithmicSpectrogram`/`SpectrogramDifference` are ordinary Python
+subclasses of `Spectrogram` (inheriting its array-interop dunders/properties
+for free) rather than `np.ndarray` subclasses relying on
+`__array_finalize__`.
 
 Reads: madmom_infer/audio/stft.py (ShortTimeFourierTransform),
 madmom_infer/audio/filters.py (Filterbank, LogarithmicFilterbank),
-madmom_infer/processors.py (Processor); read by: nothing yet within this
-package (top-level `build_spec_processor()`-equivalent composition is
-all-in-one-infer's own responsibility).
+madmom_infer/processors.py (Processor, BufferProcessor), scipy.ndimage
+(maximum_filter); read by: madmom_infer/features/downbeats.py
+(RNNDownBeatProcessor's pre-processing cascade).
 """
 
 import inspect
 
 import numpy as np
+from scipy.ndimage import maximum_filter
 
-from ..processors import Processor
+from ..processors import BufferProcessor, Processor
 from .filters import (
     FMAX,
     FMIN,
@@ -308,3 +315,172 @@ class LogarithmicSpectrogramProcessor(Processor):
         args = dict(log=self.log, mul=self.mul, add=self.add)
         args.update(kwargs)
         return LogarithmicSpectrogram(data, **args)
+
+
+# ---------------------------------------------------------------------------
+# SpectrogramDifference -- Phase 2 addition (RNNDownBeatProcessor needs it)
+# ---------------------------------------------------------------------------
+DIFF_RATIO = 0.5
+DIFF_FRAMES = None
+DIFF_MAX_BINS = None
+POSITIVE_DIFFS = False
+
+
+def _diff_frames(diff_ratio, hop_size, frame_size, window=np.hanning):
+    """Compute the number of `diff_frames` for the given ratio of overlap.
+
+    Verbatim port of `madmom.audio.spectrogram._diff_frames`
+    (`madmom-upstream/madmom/audio/spectrogram.py:834-862`): first sample of
+    the window whose magnitude exceeds `diff_ratio` of the window's maximum,
+    translated from a sample offset to a (rounded, floor-1) number of frames.
+    """
+    if hasattr(window, "__call__"):
+        window = window(frame_size)
+    sample = np.argmax(window > float(diff_ratio) * max(window))
+    diff_samples = len(window) / 2 - sample
+    return int(max(1, round(diff_samples / hop_size)))
+
+
+class SpectrogramDifference(Spectrogram):
+    """The temporal first-order difference of a `Spectrogram`.
+
+    Composition port of `madmom.audio.spectrogram.SpectrogramDifference`
+    (`spectrogram.py:867-1021`). `diff_frames` (if not given explicitly) is
+    derived from `diff_ratio` via `_diff_frames`, using the underlying STFT's
+    `frames.hop_size`/`frames.frame_size`/`window` -- this is why
+    `spectrogram` must already carry a real `.stft` (i.e. be a `Spectrogram`/
+    `FilteredSpectrogram`/`LogarithmicSpectrogram` instance, not a bare
+    array). `diff_max_bins`, if set, widens the spectrogram this difference
+    is computed AGAINST (not the spectrogram being subtracted FROM) via a
+    frequency-axis `scipy.ndimage.maximum_filter` -- the "SuperFlux" vibrato-
+    suppression trick (see upstream docstring, `spectrogram.py:903-912`);
+    `RNNDownBeatProcessor` does not use this (leaves `diff_max_bins=None`),
+    so it is ported but not exercised by this project's own fixtures.
+
+    `keep_dims=True` (the default, for direct/API use) zero-pads the first
+    `diff_frames` rows so the output has the same shape as the input.
+    `keep_dims=False` (what `SpectrogramDifferenceProcessor` always uses,
+    see below) instead returns a `diff_frames`-shorter array with no padding
+    -- the processor buffers the missing context itself across calls.
+    """
+
+    def __init__(self, spectrogram, diff_ratio=DIFF_RATIO,
+                 diff_frames=DIFF_FRAMES, diff_max_bins=DIFF_MAX_BINS,
+                 positive_diffs=POSITIVE_DIFFS, keep_dims=True, **kwargs):
+        if not isinstance(spectrogram, Spectrogram):
+            spectrogram = Spectrogram(spectrogram, **kwargs)
+
+        if diff_frames is None:
+            diff_frames = _diff_frames(
+                diff_ratio, hop_size=spectrogram.stft.frames.hop_size,
+                frame_size=spectrogram.stft.frames.frame_size,
+                window=spectrogram.stft.window,
+            )
+
+        spec_arr = np.asarray(spectrogram)
+        if diff_max_bins is not None and diff_max_bins > 1:
+            size = (1, int(diff_max_bins))
+            diff_spec = maximum_filter(spec_arr, size=size)
+        else:
+            diff_spec = spec_arr
+
+        if keep_dims:
+            diff = np.zeros_like(spec_arr)
+            diff[diff_frames:] = spec_arr[diff_frames:] - diff_spec[:-diff_frames]
+        else:
+            diff = spec_arr[diff_frames:] - diff_spec[:-diff_frames]
+
+        if positive_diffs:
+            np.maximum(diff, 0, out=diff)
+
+        self.data = diff
+        self.spectrogram = spectrogram
+        self.stft = spectrogram.stft
+        self.diff_ratio = diff_ratio
+        self.diff_frames = diff_frames
+        self.diff_max_bins = diff_max_bins
+        self.positive_diffs = positive_diffs
+
+    @property
+    def bin_frequencies(self):
+        """Bin frequencies (forwarded from the underlying spectrogram)."""
+        return self.spectrogram.bin_frequencies
+
+
+class SpectrogramDifferenceProcessor(Processor):
+    """Processor wrapper: temporal difference of a `Spectrogram`, buffered
+    across calls so streaming callers don't need `keep_dims`-padding.
+
+    Port of `madmom.audio.spectrogram.SpectrogramDifferenceProcessor`
+    (`spectrogram.py:1025-1230`, minus `add_arguments` -- argparse plumbing,
+    out of scope per CLAUDE.md). `RNNDownBeatProcessor` uses this with
+    `diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack`
+    (`madmom-upstream/madmom/features/downbeats.py:84-85`): every call in
+    this project's own tests is a single whole-clip call with `reset=True`
+    (the default), which always takes the "(re-)init the buffer with
+    `diff_frames` `inf`-valued rows" branch below -- the multi-call streaming
+    continuation path (`reset=False`) is ported faithfully (via
+    `BufferProcessor`) but not exercised by this project's own golden
+    fixtures, see `processors.py`'s `BufferProcessor` docstring.
+    """
+
+    def __init__(self, diff_ratio=DIFF_RATIO, diff_frames=DIFF_FRAMES,
+                 diff_max_bins=DIFF_MAX_BINS, positive_diffs=POSITIVE_DIFFS,
+                 stack_diffs=None, **kwargs):
+        # pylint: disable=unused-argument
+        self.diff_ratio = diff_ratio
+        self.diff_frames = diff_frames
+        self.diff_max_bins = diff_max_bins
+        self.positive_diffs = positive_diffs
+        self.stack_diffs = stack_diffs
+        # attributes needed for stateful processing -- do not init the
+        # buffer here, since its size depends on the data (matches upstream)
+        self._buffer = None
+
+    def reset(self):
+        """Reset the SpectrogramDifferenceProcessor's buffer."""
+        self._buffer = None
+
+    def process(self, data, reset=True, **kwargs):
+        """Perform a temporal difference calculation on the given data.
+
+        Returns a `SpectrogramDifference` (if `stack_diffs` is `None`) or
+        the result of `stack_diffs((spectrogram, diff))` -- matching
+        `SpectrogramDifferenceProcessor.process` (`spectrogram.py:1085-1139`).
+        """
+        args = dict(diff_ratio=self.diff_ratio, diff_frames=self.diff_frames,
+                    diff_max_bins=self.diff_max_bins,
+                    positive_diffs=self.positive_diffs)
+        args.update(kwargs)
+        if self.diff_frames is None:
+            # Note: use diff_ratio from args, not self.diff_ratio
+            self.diff_frames = _diff_frames(
+                args["diff_ratio"], frame_size=data.stft.frames.frame_size,
+                hop_size=data.stft.frames.hop_size, window=data.stft.window,
+            )
+        data_arr = np.asarray(data)
+        if self._buffer is None or reset:
+            # put diff_frames infs before the data (will be replaced by 0s)
+            init = np.empty((self.diff_frames, data_arr.shape[1]))
+            init[:] = np.inf
+            buffered = np.insert(data_arr, 0, init, axis=0)
+            self._buffer = BufferProcessor(init=buffered)
+        else:
+            buffered = self._buffer(data_arr)
+        # compute difference based on the buffered data (reduce 1st dim);
+        # wrap in a plain Spectrogram-shaped stand-in so SpectrogramDifference
+        # can read .stft off of it (needed if diff_frames must be recomputed)
+        buffered_spec = Spectrogram.__new__(Spectrogram)
+        buffered_spec.data = buffered
+        buffered_spec.stft = data.stft
+        diff = SpectrogramDifference(buffered_spec, keep_dims=False, **args)
+        diff_arr = np.asarray(diff)
+        # set all inf-diffs to 0
+        diff_arr[np.isinf(diff_arr)] = 0
+        if self.stack_diffs is None:
+            return diff
+        # Note: don't use `data` directly (could be a str) -- use
+        # diff.spectrogram (i.e. the converted data), sliced by diff_frames
+        return self.stack_diffs(
+            (np.asarray(diff.spectrogram)[self.diff_frames:], diff_arr)
+        )
