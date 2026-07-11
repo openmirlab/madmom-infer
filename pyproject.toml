@@ -18,7 +18,7 @@ maintainers = [
 ]
 keywords = ["audio", "music", "mir", "madmom", "beat-tracking", "downbeat", "onset", "dsp", "inference"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
