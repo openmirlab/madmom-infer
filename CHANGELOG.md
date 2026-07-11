@@ -8,6 +8,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 2: NN runtime + restricted model unpickling + runtime weights
+  download + `RNNDownBeatProcessor` end-to-end**, proving one real madmom
+  model (`DOWNBEATS_BLSTM`, an 8-network BLSTM ensemble) end-to-end:
+  - `madmom_infer/ml/nn/{__init__,layers,activations}.py`: forward-pass-only
+    NN runtime port -- `NeuralNetwork`/`NeuralNetworkEnsemble`,
+    `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer`/`Gate`/`Cell`/
+    `LSTMLayer`, and `linear`/`tanh`/`sigmoid`/`relu`/`elu`/`softmax` --
+    exactly the layer/activation subset the target ensemble needs, ported
+    from `madmom.ml.nn.*` (already forward-inference-only, no Cython).
+  - `madmom_infer/ml/nn/unpickle.py`: a restricted, class-allowlisted
+    `SafeUnpickler` for madmom's own `.pkl` model files (never a bare
+    `pickle.load`), with a full `(madmom module, name) -> madmom_infer
+    object` mapping table derived by `pickletools`-inspecting all 8 target
+    pickles (not guessed from source).
+  - `madmom_infer/models.py`: runtime weights-download layer for madmom's
+    `DOWNBEATS_BLSTM` ensemble from the official `CPJKU/madmom_models`
+    GitHub repo, with an XDG-respecting local cache and sha256 verification
+    against a pinned known-good table (cross-checked against a real
+    pip-installed madmom 0.17.dev0 wheel's vendored copy -- identical).
+  - `madmom_infer/processors.py`: added `ParallelProcessor` (sequential,
+    not `multiprocessing.Pool`-backed -- see module header) and
+    `BufferProcessor`.
+  - `madmom_infer/audio/signal.py`: added `SignalProcessor`.
+  - `madmom_infer/audio/spectrogram.py`: added `SpectrogramDifference`/
+    `SpectrogramDifferenceProcessor` (the SuperFlux-style temporal
+    difference `RNNDownBeatProcessor` stacks onto each frame-size branch),
+    skipped in Phase 1.
+  - `madmom_infer/features/downbeats.py`: added `RNNDownBeatProcessor`,
+    chaining the multi-frame-size (1024/2048/4096) spectrogram+diff cascade
+    into the 8-network BLSTM ensemble into the already-ported
+    `DBNDownBeatTrackingProcessor`.
+  - 13 new tests (`test_ml_nn.py`, `test_downbeats_rnn.py`; 97 total, 84
+    pre-existing + 13 new, all green). Unpickled-model structural digest
+    (layer types/shapes/every weight-array sha256/activation names) matches
+    real madmom's own unpickling EXACTLY across all 8 ensemble networks.
+    Activations match real madmom to within a documented, empirically
+    measured ULP bound (up to 190 ULP, compounding Phase 1's proven BLAS
+    non-associativity across dozens of `np.dot` calls per ensemble member)
+    -- proven algorithm-exact (not just "close"), same technique as Phase
+    1: this project's own code, re-run under the original reference venv's
+    numpy/BLAS build, reproduces real madmom's recorded activations AND
+    decoded beat/downbeat times with ZERO differing elements. Decoded
+    beat/downbeat times are exact in every environment tested regardless of
+    activation-level ULP drift.
+  - Found and pinned a fourth caching gotcha (same shape as Phase 1's two
+    documented ones): reusing one `RNNDownBeatProcessor` instance across
+    differing-dtype input wavs silently keeps the first call's dtype-scaled
+    STFT window / sample-rate-scoped filterbank, now visible one level up
+    from where Phase 1 found it.
 - Initial project scaffold: package layout (`madmom_infer/audio`, `ml`,
   `features`), `pyproject.toml` (hatchling, dynamic version via
   `__about__.py`), `LICENSE` (BSD-2-Clause, dual-copyright), `NOTICE`,

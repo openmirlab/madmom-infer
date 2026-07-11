@@ -113,17 +113,55 @@ same-environment rerun (real madmom vs. itself) reproduced both the fields
 deterministic and isolating the spectrogram delta to the BLAS difference
 between environments.
 
-### Phase 2 (gated)
+### Phase 2 -- **NN runtime + `RNNDownBeatProcessor` end-to-end: complete**
 
-Onset/tempo/chord/key/note feature extraction, plus a numpy/torch
-forward-pass-only neural-net runtime (madmom's own NN layers are already
-forward-inference-only, no training code to port).
+The weights-bundling question is resolved as: **never bundle, always
+download at runtime** (see "What this project will NEVER bundle" below).
+Phase 2 ships:
 
-**This phase is gated** on resolving whether to bundle any of madmom's own
-pretrained weights: madmom's code is BSD-2-Clause, but its specific `.pkl`
-model files are separately licensed **CC BY-NC-SA 4.0 (non-commercial)**.
-Phase 2 work will proceed feature-extraction-first and defer any
-weights-bundling decision explicitly.
+- **A forward-pass-only NN runtime** (`madmom_infer/ml/nn/{__init__,layers,
+  activations}.py`), porting exactly the layer/activation types the target
+  ensemble needs: `NeuralNetwork`/`NeuralNetworkEnsemble`,
+  `FeedForwardLayer`, `RecurrentLayer`, `BidirectionalLayer`, `Gate`/`Cell`/
+  `LSTMLayer`, and the `linear`/`tanh`/`sigmoid`/`relu`/`elu`/`softmax`
+  activations. Everything in `madmom/ml/nn/*` is already forward-inference-
+  only (no `backward`/`train`/`fit`/`grad` anywhere, confirmed by grep) and
+  pure Python/NumPy (no Cython), so this was a near-mechanical port, same as
+  Phase 1's spectrogram chain.
+- **A restricted, class-allowlisted unpickler** (`madmom_infer/ml/nn/
+  unpickle.py`) for madmom's own `.pkl` model files -- deliberately NOT a
+  bare `pickle.load`, since unpickling is inherently code execution and a
+  downloaded model file is a lower-trust artifact than this project's own
+  source. Only the exact class/function paths the target models reference
+  are allowed (see `unpickle.py`'s mapping table); anything else raises
+  loudly.
+- **A runtime weights-download layer** (`madmom_infer/models.py`): fetches
+  madmom's `DOWNBEATS_BLSTM` ensemble (8 `downbeats_blstm_[1-8].pkl` files)
+  from the official `CPJKU/madmom_models` GitHub repository over HTTPS,
+  caches them under `$XDG_CACHE_HOME/madmom_infer/models/` (never inside
+  this project), and verifies each download's sha256 against a pinned
+  known-good table before use.
+- **`RNNDownBeatProcessor`** (`madmom_infer/features/downbeats.py`): the
+  multi-frame-size (1024/2048/4096) spectrogram + `SpectrogramDifference`
+  pre-processing cascade, feeding an 8-network BLSTM ensemble, chained into
+  the already-ported `DBNDownBeatTrackingProcessor` -- audio in, beat/
+  downbeat times out, matching real madmom exactly (see below).
+
+**Verification**: unpickled-model structural digest (layer types, shapes,
+every weight/bias/recurrent/peephole-weight array's sha256, activation
+function names) matches real madmom's own unpickling **exactly**, across
+all 8 ensemble networks (`tests/test_ml_nn.py`). Activations match to within
+a documented ULP bound (up to 190 ULP observed, compounding Phase 1's
+proven BLAS non-associativity across dozens of `np.dot` calls per ensemble
+member) -- proven algorithm-exact, not just "close", by the same technique
+Phase 1 established: this project's own code, re-run under the original
+reference venv's numpy/BLAS build, reproduces real madmom's recorded
+activations AND decoded beat/downbeat times with **zero** differing
+elements (`tests/test_downbeats_rnn.py::test_full_pipeline_is_exact_under_original_blas`).
+Decoded beat/downbeat times are **exact** in every environment tested
+(the DBN decode is an integer-domain argmax, which absorbs float32-ULP-scale
+input noise). Onset/tempo/chord/key/note feature extraction beyond
+`RNNDownBeatProcessor` remains out of scope for now (see roadmap below).
 
 ### Phase 3 (odds and ends)
 
@@ -139,6 +177,18 @@ permanent policy, not a phase-2-only caveat**: madmom-infer will never bundle,
 vendor, or redistribute any of madmom's own pretrained weights, in any phase,
 for any reason. See [NOTICE](./NOTICE) for the full statement.
 
+Instead (Phase 2, `madmom_infer/models.py`), weights are downloaded at
+**runtime**, on demand, directly from the official
+[CPJKU/madmom_models](https://github.com/CPJKU/madmom_models) GitHub
+repository, cached locally under `$XDG_CACHE_HOME/madmom_infer/models/`
+(never inside this project's own package or git history), with sha256
+verification against a pinned known-good table. **The downloaded weight
+bytes remain CC BY-NC-SA 4.0 -- non-commercial use only -- regardless of
+madmom-infer's own BSD-2-Clause license**, which covers only this project's
+source code, never the weights it fetches at runtime. See
+[NOTICE](./NOTICE) and `madmom_infer/models.py`'s module docstring for the
+full statement.
+
 ## Install
 
 ```bash
@@ -146,8 +196,10 @@ pip install madmom-infer
 ```
 
 *(Not yet published to PyPI. Phase 1 -- the DSP feature-extraction pipeline
-and numpy Viterbi/DBN downbeat decoder -- is complete and golden-fixture
-verified; Phase 2/3 are not yet started. See the Roadmap above.)*
+and numpy Viterbi/DBN downbeat decoder -- and Phase 2 -- the NN runtime,
+restricted model unpickling, runtime weights download, and
+`RNNDownBeatProcessor` end-to-end -- are complete and golden-fixture
+verified; Phase 3 is not yet started. See the Roadmap above.)*
 
 ## Attribution
 
