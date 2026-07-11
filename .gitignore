@@ -45,3 +45,14 @@ uv.lock
 
 # Claude Code
 .claude/
+
+# Downloaded pretrained-weights cache (madmom_infer/models.py) -- these are
+# madmom's own CC BY-NC-SA 4.0 (non-commercial) model files, downloaded at
+# runtime and cached locally. NEVER commit them -- see README.md "What this
+# project will NEVER bundle" / NOTICE. Covers the real default XDG cache
+# location if a dev points it inside the repo, plus any local override dirs
+# tests might use, plus the raw file extension as a belt-and-braces net.
+.cache/
+madmom_infer_models_cache/
+*.pkl
+

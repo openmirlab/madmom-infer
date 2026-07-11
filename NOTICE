@@ -18,3 +18,17 @@ authors, separately from madmom's BSD-2-Clause source code license. This
 project does not, and will not, bundle, vendor, or redistribute any of
 madmom's own pretrained weights, under any phase of its roadmap. See README.md
 for details.
+
+Phase 2 (`madmom_infer/models.py`) downloads these same `.pkl` weight files
+at RUNTIME, on demand, directly from the official upstream
+`CPJKU/madmom_models` GitHub repository, into a local cache
+(`$XDG_CACHE_HOME/madmom_infer/models/`, never inside this project's own
+package or git history -- see `.gitignore`). The downloaded bytes remain
+CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike) -- **non-commercial
+use only** -- regardless of madmom-infer's own BSD-2-Clause license, which
+covers only this project's source code (including `models.py`'s download
+logic itself), never the weight bytes it fetches. Anyone deploying
+`RNNDownBeatProcessor` (or any future processor that downloads a madmom
+model) in a commercial context is responsible for either obtaining a
+separate license from the original authors for the specific weights used,
+or supplying their own non-CC-BY-NC-SA-encumbered weights.
