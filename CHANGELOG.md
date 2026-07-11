@@ -5,7 +5,24 @@ All notable changes to madmom-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-07-11
+
+Initial public release. Phase 1 (spectrogram/STFT/filterbank chain plus the
+HMM/Viterbi decoder and DBN downbeat-tracking state space) and Phase 2 (NN
+runtime, restricted model unpickling, sha256-verified runtime download of
+madmom's own pretrained weights, and `RNNDownBeatProcessor` end-to-end) are
+both complete and bit-identical/BLAS-proven against a real madmom install,
+per this project's golden-fixture testing philosophy (see CLAUDE.md). 99
+tests, all green.
+
+### Changed
+- Release-prep: added a `pytest.mark.network` marker (deselected by default
+  via `pyproject.toml`'s `addopts`, matching the sibling maest-infer repo's
+  convention) for the tests that download real madmom pretrained weights,
+  and moved that download out of module-import-time code into a fixture so
+  collecting the test suite never touches the network regardless of marker
+  selection. Added `.github/workflows/publish.yml` (trusted-publishing
+  release pipeline, gated on the test suite passing first).
 
 ### Added
 - **Phase 2: NN runtime + restricted model unpickling + runtime weights
@@ -39,8 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     chaining the multi-frame-size (1024/2048/4096) spectrogram+diff cascade
     into the 8-network BLSTM ensemble into the already-ported
     `DBNDownBeatTrackingProcessor`.
-  - 13 new tests (`test_ml_nn.py`, `test_downbeats_rnn.py`; 97 total, 84
-    pre-existing + 13 new, all green). Unpickled-model structural digest
+  - 13 new tests (`test_ml_nn.py`, `test_downbeats_rnn.py`), all green (see
+    this release's top-level summary for the final 99-test count).
+    Unpickled-model structural digest
     (layer types/shapes/every weight-array sha256/activation names) matches
     real madmom's own unpickling EXACTLY across all 8 ensemble networks.
     Activations match real madmom to within a documented, empirically

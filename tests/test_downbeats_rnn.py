@@ -95,18 +95,21 @@ RNN_CASES = ("mono_44100", "stereo_44100", "float32_44100")
 # generous (~2.7x the worst observed, 190) but not unlimited -- see header
 MAX_ULP = 512
 
-_DOWNLOAD_ERROR = None
-try:
+
+@pytest.fixture(scope="module")
+def _downbeats_blstm_ready():
+    """Triggers the DOWNBEATS_BLSTM download/cache once per module, only
+    when a test that actually needs it runs. Deliberately NOT module-level
+    eager code: a network call at import time would run during test
+    COLLECTION regardless of any `-m 'not network'` deselection, since
+    pytest imports every test module before applying marker filters.
+    Failure is a clean `pytest.skip`, never a collection error."""
     from madmom_infer.models import downbeats_blstm
 
-    downbeats_blstm()  # trigger download/cache once, fail fast if unreachable
-except Exception as exc:  # pragma: no cover - network-dependent
-    _DOWNLOAD_ERROR = exc
-
-pytestmark = pytest.mark.skipif(
-    _DOWNLOAD_ERROR is not None,
-    reason=f"could not download DOWNBEATS_BLSTM weights: {_DOWNLOAD_ERROR}",
-)
+    try:
+        downbeats_blstm()
+    except Exception as exc:  # pragma: no cover - network-dependent
+        pytest.skip(f"could not download DOWNBEATS_BLSTM weights: {exc}")
 
 
 @pytest.fixture(scope="module")
@@ -114,7 +117,10 @@ def rnn_downbeat_fixture():
     return np.load(FIXTURES_DIR / "rnn_downbeat.npz")
 
 
-def test_rnn_downbeat_activations_match_fixture_within_ulp(rnn_downbeat_fixture):
+@pytest.mark.network
+def test_rnn_downbeat_activations_match_fixture_within_ulp(
+    rnn_downbeat_fixture, _downbeats_blstm_ready
+):
     """Deliberately ONE shared `RNNDownBeatProcessor` instance, processing
     all 3 cases IN ORDER -- see module header's "fourth caching gotcha":
     a fresh-instance-per-case version would silently compare against the
@@ -128,7 +134,8 @@ def test_rnn_downbeat_activations_match_fixture_within_ulp(rnn_downbeat_fixture)
         np.testing.assert_array_max_ulp(act, expected, maxulp=MAX_ULP)
 
 
-def test_end_to_end_beat_times_are_exact(rnn_downbeat_fixture):
+@pytest.mark.network
+def test_end_to_end_beat_times_are_exact(rnn_downbeat_fixture, _downbeats_blstm_ready):
     """Despite activation-level ULP drift (previous test), the DECODED
     beat/downbeat times must be EXACT -- an integer-domain argmax-over-
     frames operation absorbs float32-ULP-scale input noise. Same shared-

@@ -69,14 +69,18 @@ all-in-one-infer package's pure-Python NATTEN replacement:
 
 ## Phase-2 verification commands
 
-`tests/test_ml_nn.py` and `tests/test_downbeats_rnn.py` are network-
-dependent (they download real madmom weights via `madmom_infer.models.
-downbeats_blstm()`) and skip cleanly if the network/reference venv is
-unavailable -- don't be alarmed by skips in an offline sandbox, but do run
-them for real before considering a Phase-2 change "done":
+The network-dependent tests in `tests/test_ml_nn.py` and
+`tests/test_downbeats_rnn.py` (they download real madmom weights via
+`madmom_infer.models.downbeats_blstm()`) are marked `pytest.mark.network`
+and **deselected by default** (`pyproject.toml`'s `addopts = "-m 'not
+network'"`, same convention as the sibling maest-infer repo) so plain `uv
+run pytest` never needs network access -- CI runs exactly that. Run them
+explicitly with `-m network` for real before considering a Phase-2 change
+"done" (skips cleanly if the network is unavailable -- don't be alarmed by
+skips in an offline sandbox):
 
 ```bash
-uv run pytest tests/test_ml_nn.py tests/test_downbeats_rnn.py -v
+uv run pytest -m network tests/test_ml_nn.py tests/test_downbeats_rnn.py -v
 ```
 
 The strongest Phase-2 acceptance check is `test_downbeats_rnn.py`'s

@@ -25,7 +25,12 @@ Two independent things are verified here, both against
 
 Downloads real weights via `madmom_infer.models.downbeats_blstm()` --
 network-touching and NON-COMMERCIAL-licensed (CC BY-NC-SA 4.0), see that
-module's header. Skipped if no network access.
+module's header. The download itself only happens inside the
+`model_paths` fixture (never at import time) so that collecting this
+file never touches the network -- only tests actually marked
+`pytest.mark.network` (deselected by default, see pyproject.toml's
+`addopts`) trigger it, and even then a download failure is a clean
+`pytest.skip`, never a collection error.
 
 Reads: madmom_infer/ml/nn/*.py, madmom_infer/models.py,
 tests/fixtures/nn_structural_digest.json
@@ -44,19 +49,22 @@ from madmom_infer.ml.nn.unpickle import SafeUnpickler, load_model
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
-_DOWNLOAD_ERROR = None
-try:
+
+@pytest.fixture(scope="module")
+def model_paths():
+    """Downloads (or reuses the local cache for) the 8 DOWNBEATS_BLSTM
+    `.pkl` files. Deliberately NOT module-level eager code: a network call
+    at import time would run during test COLLECTION regardless of any
+    `-m 'not network'` deselection, since pytest imports every test module
+    before applying marker filters. Keeping it inside a fixture means it
+    only ever runs for tests that are both marked `network` and actually
+    selected to run."""
     from madmom_infer.models import downbeats_blstm
 
-    _MODEL_PATHS = downbeats_blstm()
-except Exception as exc:  # pragma: no cover - network-dependent
-    _DOWNLOAD_ERROR = exc
-    _MODEL_PATHS = None
-
-pytestmark = pytest.mark.skipif(
-    _MODEL_PATHS is None,
-    reason=f"could not download DOWNBEATS_BLSTM weights: {_DOWNLOAD_ERROR}",
-)
+    try:
+        return downbeats_blstm()
+    except Exception as exc:  # pragma: no cover - network-dependent
+        pytest.skip(f"could not download DOWNBEATS_BLSTM weights: {exc}")
 
 
 def _arr_digest(arr):
@@ -104,14 +112,15 @@ def structural_digest_fixture():
         return json.load(fh)
 
 
+@pytest.mark.network
 @pytest.mark.parametrize("index", range(1, 9))
 def test_unpickled_model_structurally_matches_real_madmom(
-    index, structural_digest_fixture
+    index, structural_digest_fixture, model_paths
 ):
     """Every layer type, weight/bias/recurrent/peephole shape+dtype+sha256,
     and activation-function name must match real madmom's own unpickling,
     exactly (no tolerance -- these are discrete metadata, not floats)."""
-    model_path = _MODEL_PATHS[index - 1]
+    model_path = model_paths[index - 1]
     nn = load_model(model_path)
     ours = [digest_layer(l) for l in nn.layers]
     expected = structural_digest_fixture[f"downbeats_blstm_{index}"]
@@ -131,13 +140,14 @@ def test_safe_unpickler_rejects_disallowed_globals():
         SafeUnpickler(io.BytesIO(payload)).load()
 
 
-def test_all_eight_ensemble_networks_have_expected_layer_shape():
+@pytest.mark.network
+def test_all_eight_ensemble_networks_have_expected_layer_shape(model_paths):
     """Sanity check independent of the fixture file: every ensemble member
     is `[BidirectionalLayer, BidirectionalLayer, BidirectionalLayer,
     FeedForwardLayer]` with a final 3-class softmax output (non-beat, beat,
     downbeat) -- this is the architecture `RNNDownBeatProcessor`'s
     `np.delete(obj=0, axis=1)` (drop non-beat) call site assumes."""
-    for model_path in _MODEL_PATHS:
+    for model_path in model_paths:
         nn = load_model(model_path)
         kinds = [type(l).__name__ for l in nn.layers]
         assert kinds == [

@@ -2,6 +2,7 @@
 
 **A from-scratch, modernized reimplementation of [madmom](https://github.com/CPJKU/madmom)'s inference-relevant algorithms**
 
+[![PyPI](https://img.shields.io/pypi/v/madmom-infer.svg)](https://pypi.org/project/madmom-infer/)
 [![License: BSD-2-Clause](https://img.shields.io/badge/License-BSD--2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
@@ -195,11 +196,11 @@ full statement.
 pip install madmom-infer
 ```
 
-*(Not yet published to PyPI. Phase 1 -- the DSP feature-extraction pipeline
-and numpy Viterbi/DBN downbeat decoder -- and Phase 2 -- the NN runtime,
-restricted model unpickling, runtime weights download, and
-`RNNDownBeatProcessor` end-to-end -- are complete and golden-fixture
-verified; Phase 3 is not yet started. See the Roadmap above.)*
+Phase 1 -- the DSP feature-extraction pipeline and numpy Viterbi/DBN
+downbeat decoder -- and Phase 2 -- the NN runtime, restricted model
+unpickling, runtime weights download, and `RNNDownBeatProcessor`
+end-to-end -- are complete and golden-fixture verified; Phase 3 is not yet
+started. See the Roadmap above.
 
 ## Attribution
 
@@ -217,8 +218,15 @@ This project uses [uv](https://docs.astral.sh/uv/):
 ```bash
 uv sync
 uv run python -c "import madmom_infer; print(madmom_infer.__version__)"
-uv run pytest tests/ -v
+uv run pytest -v
 ```
+
+The default `pytest` run above is fully offline (99 tests, network-marked
+tests deselected by `pyproject.toml`; this is what CI runs). To also
+exercise the network-dependent A/B tests against real, freshly-downloaded
+madmom weights, run `uv run pytest -m network -v`. See CLAUDE.md's
+"Phase-2 verification commands" for the full picture, including the
+reference-venv cross-BLAS proof.
 
 ## License
 

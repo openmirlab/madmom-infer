@@ -73,3 +73,9 @@ packages = ["madmom_infer"]
 dev = [
     "pytest>=8.3.5",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "network: hits real network endpoints (downloads madmom's own CC BY-NC-SA weight files; deselected by default, run with -m network)",
+]
+addopts = "-m 'not network'"

@@ -1,0 +1,62 @@
+name: Publish to PyPI
+
+# Publishes to PyPI when a GitHub Release is created. Uses PyPI's trusted
+# publishing feature (must be configured on PyPI for the openmirlab org /
+# madmom-infer repo). Per the org constitution's article-7 amendment
+# ("publishing gates on tests"), the `publish` job depends on `test` passing
+# first -- no publishing straight off `python -m build` with no test step in
+# between.
+#
+# The test suite is pure Python (numpy/scipy only, no torch) and fast. Two
+# categories of test are NOT run here, by design:
+#   - Tests marked `network` (pyproject.toml's `addopts = "-m 'not network'"`)
+#     download real madmom pretrained weights (CC BY-NC-SA 4.0, non-commercial)
+#     from CPJKU/madmom_models at collection/fixture time -- deselected here
+#     the same way the sibling maest-infer repo deselects its `network`-marked
+#     tests, so this job never needs network access to a third-party model
+#     mirror to go green.
+#   - Tests that A/B-compare against a REAL compiled madmom install (the
+#     `all-in-one-fix/.venv` reference environment used during development)
+#     guard themselves with `pytest.mark.skipif` on that venv's path existing,
+#     so they cleanly SKIP (not error) on any machine -- including this
+#     runner -- that doesn't have that reference environment.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv sync
+      - name: Run tests (network-marked tests deselected by pyproject.toml addopts)
+        run: uv run pytest -v
+
+  publish:
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for trusted publishing
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install build hatchling twine
+      - run: python -m build
+      - run: twine check dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
