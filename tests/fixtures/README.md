@@ -180,3 +180,44 @@ fractional-average cases, not just symmetric ones.
   in that specific fixture -- it surfaced only during fixture *design*, and
   is recorded here so the port's own test suite knows to add a dedicated
   test for it rather than assuming it can't happen.
+
+## Phase 2 fixtures (recorded by `tools/generate_phase2_fixtures.py`)
+
+Same provenance (real madmom 0.17.dev0, numpy 1.23.5, scipy 1.15.3,
+`all-in-one-fix/.venv`) plus real madmom `DOWNBEATS_BLSTM` pretrained
+weights (CC BY-NC-SA 4.0, see NOTICE -- read transiently from that venv's
+already-installed madmom wheel, never bundled here). Reuses the SAME test
+wavs above; only the 44.1kHz-native ones (`mono_44100`, `stereo_44100`,
+`float32_44100`) are usable -- `RNNDownBeatProcessor` hard-codes 44.1kHz and
+this project has no resampling, so `stereo_48000.wav` is skipped.
+
+- **`nn_structural_digest.json`** -- for each of the 8
+  `downbeats_blstm_[1-8].pkl` ensemble networks: every layer's type, weight/
+  bias/recurrent-weight/peephole-weight array shape+dtype+sha256, and
+  activation-function name, recursed through `BidirectionalLayer`'s
+  `fwd_layer`/`bwd_layer` and `LSTMLayer`'s `input_gate`/`forget_gate`/
+  `cell`/`output_gate`. This is the ground truth `tests/test_ml_nn.py`
+  compares this port's `SafeUnpickler`-based loading against.
+- **`rnn_downbeat.npz`** -- for each of the 3 usable cases:
+  `RNNDownBeatProcessor()(wav)` activations (`{case}_activations`, shape
+  `(num_frames, 2)`: beat, downbeat) and
+  `DBNDownBeatTrackingProcessor(beats_per_bar=[3,4], fps=100)(activations)`
+  decoded beat times (`{case}_beat_times`).
+
+### A fourth caching gotcha (same shape as the two above, found one level up)
+
+`RNNDownBeatProcessor.__init__` builds one `ShortTimeFourierTransformProcessor`
+and one `FilteredSpectrogramProcessor` PER FRAME-SIZE BRANCH (1024/2048/4096).
+The generation script (like real madmom's own typical usage) reuses ONE
+`RNNDownBeatProcessor` instance across all 3 cases, IN ORDER
+(`mono_44100` -> `stereo_44100` -> `float32_44100`) -- which means the
+SAME window-caching (`stft.npz`'s surprise, above) and filterbank-caching
+(`filterbank.npz`'s docstring) gotchas apply here too, now triggered by
+`RNNDownBeatProcessor` reuse instead of a bare processor reuse. Confirmed
+empirically: a FRESH `RNNDownBeatProcessor()` per wav gives a wildly
+different `float32_44100` activation (max abs diff ~0.14, nowhere near
+ULP-scale) than the shared-instance-in-order version this fixture actually
+records. **Any code (test or otherwise) reproducing these numbers MUST
+replicate the same instance-reuse/call-order** -- see
+`tests/test_downbeats_rnn.py`'s module header for the full write-up and its
+tests' explicit in-order loops (not independent per-case fixtures).

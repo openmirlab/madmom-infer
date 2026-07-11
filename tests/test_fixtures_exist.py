@@ -121,6 +121,14 @@ EXPECTED_KEYS = {
         )
     },
     "dbn_downbeat.npz": {"activations", "beat_times"},
+    # Phase 2 (tools/generate_phase2_fixtures.py) -- 44.1kHz-native cases
+    # only, RNNDownBeatProcessor has no resampling support (see that file's
+    # module header).
+    "rnn_downbeat.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("activations", "beat_times")
+    },
 }
 
 
@@ -133,6 +141,17 @@ def test_fixture_file_exists_and_loads(filename):
         expected_keys = EXPECTED_KEYS[filename]
         missing = expected_keys - actual_keys
         assert not missing, f"{filename} is missing expected keys: {sorted(missing)}"
+
+
+def test_nn_structural_digest_exists_and_loads():
+    """Phase 2 fixture (tools/generate_phase2_fixtures.py): the unpickled-
+    model structural digest for all 8 DOWNBEATS_BLSTM ensemble networks."""
+    path = FIXTURES_DIR / "nn_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {f"downbeats_blstm_{i}" for i in range(1, 9)}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"nn_structural_digest.json missing keys: {sorted(missing)}"
 
 
 def test_wav_fixtures_exist():

@@ -1,0 +1,6626 @@
+{
+  "downbeats_blstm_1": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "bd66b4ba5797e0f8af39f8c832dc97d2c830600f394c2a4bb9fb8990a99242b8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9c29811a2283259d662d8528c3823c5cdfbbbfec660e4d8d93e11fb72b33aa34",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b25bcc42a2d2529f55239ce82d168162bd7e8a6ca9a66a76fe65c2b309b44f94",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "588b60151561592c909179439ddfd55c313d858101739bbf7381c1066826cba1",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5f22a52719fd156a41dcc0688b2f12394a98a1e106e0e21c035ab07042bd034f",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b4d21febf6326f8eb48b32d7481f6ab5e80300bbe919fd89d5153eb3c726413d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9c0e959a4cf3f84fc2cdf14cecbb48385acc027428477820dcd0a6a73369bb1c",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "080c479b3b85a8d862c0749a24ceed0ce889b087f073f3be76078e8eb59a88db",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "45ec2e555a436b913d5287e0ceef640273c346938acec4dfb43f6169cdc7f0db",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "a52bd44f422af02d59fd47ba7ff7b9b9fab284c404f0710f76396de204dd0845",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "857160a424ae4c5041a1f1bd12403af1e2ef5a8025caf5a8f654e37183b30f85",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c96a0b80763056d643c493f21a3d1f406f1c8f809d0a59e118f94b3f4bc6a89c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "07c73741059e2c151b1ced05a6ffea445314735be37a5c1e1bc7623c43b77902",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "6073b2c63a4f948cc0a087f97125e05e67fd4f71c8de6bb8b01948c65710fcbf",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "de558da5ea8b203b1295aab49670c089a4cb00d95432306c03328360f56c2428",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e97c48bf3cbcf67f732dd9f723f2f1a9a52f08fde3ef6de8132565bfda7bd300",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "53770e8d1294003887edc5c69ba5f1d797febf725d0e599c87399c143e64069d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "2db51e44993cd721fcbc7fd25ef57ce2bc818d0bfcabf9b6d055712f0b4ed5ce",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9bcef01caf5fcd85a055734fb14485e2b6bc9c5be5c4efc83831f746ee4dc52d",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "acec244b34d7814db6678c8e83d6a7a12b305787333e87be31bb63beaf5cf7bd",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e81acf3aac07a78a2f90cda58fa77994bcb5f28f7083fc2d106bea71dfe87abf",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a00c45db073618ec80cabad842290b9a27fc9a5e36218f61de3c4d9db72850e7",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1c4c0e6b68ced62c52f92ef5041b81f7f9012a618e716ea090537b1423e39144",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a6cf93fef38b60bcbe338f2ac9e69b30e566fa1e3ba8ca6691c1f69734f19c0e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b2f38276414ad09b6cd3b2743ad9901fb15f67a3f2130cb57a6a3efb1e987206",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4d6a17edb389bfe00e59f199178fce091422dcbd786f147be2d72c46722658f9",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1afa33e92e13ac01865637268d1975358d1a0a5aee01c8a955044c42249edcd7",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "f2b8ed39ae869e6309cc11ae2d3dd9784bd39e08f9e2f07977e93ea484d55527",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "12ef1aca2cfd5db7cddb1ad74bb9bba10dec85d4d00a3b767241487f68e7f00d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "443f125407a3655b7ff5938984845b052ecc7724444a29465b1c6c89729b406c",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f878a56b51476041f06fbe065952947f02ad6400890617c13cfa31c8bc2cca59",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "2a2abffa7427689ffd7ddc6f570d0ada2672ce1c2242065df313e804db54e4f4",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "96b03c617c7339b215f7a662b11e82f31f698e701bc22798b8d9f5a0808b923f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "bab801c408052fd75ff6e88e48ae40eee14b9eeb6f9f49d4602abf611c61ad09",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "41b43e1c5a63d8267c86389490d4dc66dbb43261ea3692791c7fb88572934a4c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "424ec9ad37a3056753a74b22af3af5e24aceecc8d8a55c4dce3ea5befc7835c9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "26aeaac59e1ac98d39673d84bc29f8b318bf8763186ff5e18021ac10b58c710c",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2a01fa3e33265cd5cd469eeaa1fa299bc77353926b624bc1f9baf42864ce6a7f",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a2123cbacda03e0047f46937bda8bf00cf11e53aa8b69900f0e46334ac40d1bb",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "28373f71a7880ab9ecd50fc7fec16ec9a7bd036b514d31eba1beb50b88cadfe7",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3aa00f951b1b78941b7363b88ec0d527db87aa3a3eb760f3509a09fee364e183",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e3b8e4791240cb6264d72f730655b75e57344e57ca155e5bffa3c77985577fca",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "85a3a19ab4643824c4bfb791b9b96edfd98ac29e75b1899061aa1abb95933fec",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3e7a6092d03971e2e93d619f5ec862c10b0349444d745a508c7747db5cea5e27",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c4ed733ba23e8ed276e37d97e841b6dc499bac6ba5dc2b8213d5c8c22e742a7f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "7e4935ce97b2209832ad2475c361992c19d9fa1dfec54962f2541adb8dd3c4b5",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c96ed984ee1819ca724776dc0e198b55dcecc70bb09af820d7f02749f7be0121",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "563cb6b984ad563f327809441812b057dcfcd6ce1a7ffac2b99b7dc924c1ad10",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1b887a137403cd38d26a882561fa081733b2072f8c8547d7518c8b4edf8a62aa",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "b2d768faa67b6d3ec71128e3a4ffd667ebedbb6d2f413d5da7900e166fa36ba1",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "667f0a5d4908dd603215e71e633d0ec7b037ec12efe2f891c8ba813e0886b54d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6ac282ed00653c7178f895a8edf0ed7076965e12ba31695006e87e7f8caaac86",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "20e1d268bbf3b433091d2aef667c27babe00f9286d128dc80614ee613a6b9940",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "fde77abab893d767ed00a1b7ef2df5a0a3d4110abfbe1748dd5421d24e47c837",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "73b461b25bfcf5b91d54cfd33cbef9edd82e0273959de7c6003b57dfafec12f3",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e38e86fd025e125bf37decaa53f78058c0950930478e26500235a64b180716ec",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1edbf2d97967f67cf6db270d0e3f95cac967efa030c0a7bb7d4fd379ae704db5",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "22bfe4eeb704a5a7e890c766e18eeb2387040edee8914a6b7bc57ad01285d40e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "36d913194d2462997f7698b5b35900bfa003389d0561dac2b57d93fdbc2b60b3",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "73d5762b84ff97612c07ceab235f842afd14749b28597f310916e74a163219dd",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "121209ffe448310ad5920793354651648c39824dfb422f511ed6eb642beb6fb3",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4652744485446095c623e9a7ed38bac37b4d708a773e91d1b9a107198d75ab88",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "28c0ecbbbe930f18d765aef6670f2484772c607806797888da2335697097d986",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "489cf73ffcee503d1f64ad27855738a901ab3ae14076d4fe19fae1c9b6ecb95f",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "546369fecebd51912539ec0be59e7ca9a8dccb4b8e7baf668b61a854438345a0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e65e3bc8c940190e9a69f92f5f9c7166bb4b0e5902f30f31f9a8d3727b69b645",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b0264c987a16b90d145869eaaa5264334be9f4d23e4287aafc9aaaea84cf304e",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b327dd5354738a34306984dc8bfe141fec10db5caae5a15f788a116b91ecb77c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "2302a663fa7e2ab72e2287e99336db0a87d8f73ccb45c9e9ed4c866993815475",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4510ad43510ecb795ae2499bfa9333e1dd9cb5b013f213bb0e33a2ab2e87a0b2",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f9b80a4bebe7f773da6476e82d151816bdefe4c4b3cae8b6b832e57df594596a",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "29415e3d9541bcde7255a162fe7c84f3413e0ecdc839c051985eb5f192a0e4b5",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "bcb9cc07fdd8dd0e9816112d2c5186cc7bf9d71b39c915d48648ae819064125c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "6dea527e08da5850810538936720569b180109629f83e08cd070fbdfe57f175e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "7c087a61a20f8b1c02866c15ac6b7343c2629b1499b3aff16481993ac8338d31",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "dc1ad770bf41fc5a94e99932c430d08195169b666952d1fe1e287cce2eeb0c7e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "68f0d338762cad22dd23f69d4d1c6b6bca6df535dba93959e75b49a80fbf1076",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "eac08b0e567283fa3ba88641e18ef77b3478c353a7bd151351fbe669c6d3442b",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e7f2d35e72ee7f1655837031f82e8bd43e3584fbb729764add2b9682bf1ae916",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "794a9952c7befced15515627561059a8dd6007f852440b1c7898e62dcffef419",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "26591bc4f8e9619752ea999e5c8b22adf7a64b14870470e5c76c64962c6b67d2",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "5470ae482db98d3ef1821e5cb9794f2c5b8ff10570594e9cd24482ebc4d67e9b",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d081351bb1332c972452546e9ed22ead1ef890204df29fa86c45a1954e24f3ce",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "88670c53b3357834cf62223b51fe39420fb1de074960f461346468cf50e5d387",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "2e926323e4e83cc30a92eeb3e626c19e98e83d552175f81d9c878144d7ea512d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6cc955fc2cfc906b67a54cf49cf7be886c91c6b0e06edfa8da80c69371f2da4f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2db209006011967d2cf0c1bbddef26884db04684f4757d5b8db4a7346257d4f3",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "95ceb652655378d61f25821cf88bb360bb87ac5e558c57cc0082da71d2c7fd82",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ea6df8f0395155e03408f7b9f12785fa37d77038e23e9e46a22bf1b76707a3cb",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b64576bb34368984dd18a4c68fe2fc60806c0f4c36c302703c101923dd6819f3",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "44b6388377fb3c685f5addb394fad53f3d857844d384e6dd7dd0cef6fb4eee40",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "234fa5a6dde368016e8f914848542a678c0d2904a4cf1232989c41f44bf8e0d6",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_2": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c41e2f6f234fccc0d0a23f62417b9fb1b78d7dec6369d487238a868c52a81b20",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9a7492e2a06e2dc3c72d2b60ba4a8fbcbea5918728ded5e3540dbf4014de3e32",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "0071708b7c3f88e963b8894cb2b0db22525e777479c906467dd1a39ae90f1c1c",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9c08c8546186dbde2dd8ea2faaa2353dd411befa7a05e086f2667e1271cd4228",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5e889ba86057a96725f715f2ad04ecae9ae44c9fef6a522e2f51d70fd01c3c62",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "34921515da2a1de7cffbdfab4c7b53520e23257fa3e3fc86f7f27c972e3214ba",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "7dca55aeea75e9573d16ca42cc2b2e7adff605c1ce0145655018c0f8378ab706",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d7fd7aad480efd096ad2a0cdec769f31d63759ca1e137d3d7719d9e4bf23c88e",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "602daca208f8d9328bde56e39858dddf02940e5ee6b483d4e1171ed287134fcb",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d8ba5101963bc1e4319bdb7da35882d7af25ce6e4e4597d01e8858a11d88ef3d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "d8e7b44381dfe9a12741c6e2aeef10cb842a389d8db7a71e155c7ed613fed4ea",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "898675e8d6860857651d5d487840609a6d41307ced22c0a23bcd01fdc7a817c5",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "16c9d4011b7e336229fca9385fc810583ff2468dc8a3c658b8cd0ae90ead735f",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "436d0eb8a4267ac2d2edae3d1b64b9b585791aa48803e1812cce973cff476a97",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e61f15b3ea3c86b55cf970aadbb1aff0b0c94710fd79796a10d806e14afa8ad7",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c40c3855532f2bcfd1fe61d21bb7e464c2a8f96ca3a08db4cde17fc04db6b918",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "6f0f48cbfef719f240f97a3ccd9048a923a893c46c05cd427fdcdeb81e4b29dd",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "631d626eba5feaa1e71b485c001971fa6c9687645291330019aa9425a75039ee",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9adf4a0e494c9aa17ff26abc4b98f0084988d3ae0104db430fc18ba30cdbbb41",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "9f2792f77e75f52b54554fea95e4dea416ba0be88cab57e859f672de7f5e6a25",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c72c00f185ec23ed009a1fa707d596a8b17d5caf6842b6467486829006c14b96",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "dad4a8a2065ae1401692e267a269f2158c2092065003b30d76ea4d329b1d9095",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b1ae130b41184b2afc3d0cd3ac83dbf56ae93d7f6a842cb3d1d172044700ff48",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "57af9f5ecb4d461b66095f6d55e9b7d9da94256273f077d103a78a0a17d4a186",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d47d467c18e6e601d7da27b649c2c395c9aafee07402f14e530b65e2e362366b",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4486ecef45f5f25138e41012c04e1f8527d6b4ba656b87d86f4495d43e3e9b0d",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "6ce1526ca3e0000bd97db70fb833fe5921fa72bc508e24a9f58fc80573d52a8f",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e537473c2ef21555c9964db95f2b8b0e63094079cc9a686c0f34ac266f6471a1",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "eb4e0769e1f6fb771bd609c49e703c5991b536db69b1f384d1974e25b5c5203e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6f6954f29a5ccc9fc141828af601dce18029ad7d8c567c82e7de71f151a93c4b",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "48469261a610d93237a036231e2defd8e35aecccc8bd323ec2ae52d107337ab9",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e54ddf3474ec3b5fe51d6705389168c2a3ea5f37b655275925c35355c2e7cac5",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "ea485452c5d5f20c22da7b7681c8b330202f1d39c16245ea123703f25a09ca35",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b6099795e10c7345dc2e0146fa4d9a12d6f60206674c9065f3d47279dca29337",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "87f25a049db65ad5a596ea60b48c2ffe3366205c63778195feab6c24e46f65dc",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "14b6dcaa1418b5d31315f2ea48c27efb5cde986d945e14a25015ba561ed1ce57",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "bc8f9bf07175e81a93a75b612d1edd488f9619eb1c98bf00311d159fe9418ffd",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8fb758af377ebec10f143f992dca3ebf0a44088b34b8c2f59f93004c137cd328",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "b2994b484684f163ce9fa28c1f94b278208b99ad64d3cf33e63a30080a53ab3f",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "afcac6a938710a88c321b4b532772ca95a249849e910201d58670ebab8e7d200",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "14db8aceee1d39b44114028368ae1c809c52c0e37ecba6bc7b23ae99b8d7c370",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d5f35d6a5fca683d4e89dcb20cb6e46dce661553a5d4005c19934ba906df4707",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "c4278ebadf9c11ca4d0d691dc4be4bc03a40e5c06689c43c36c9ff8cdb1b0ee2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "2a062ee566851f54dd3623203ded12c97fe49e160652d6708f4711d121b0c134",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "57e69c20ef84c857c3f0002a6fb2b1a203bcfd894e12e595539d8f57a070ad42",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c1d176dc22bce59bb207e1fe126aa01354eba185967404ac6c8028b039904678",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c83010e07e5777022c9d6d34ece5e13d02093bb60cf5d0324f3acfc287317051",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "cf59ee68ce717002d363da0eff69fdf92f5d531e1ab037d1072717f77a7f3191",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f9d4a40c0c4fddccf96e66f47ef429b1a0715a5ed0fe6faf6ff3516cf53c30b3",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "ad61afb91e098f4566ba14bbff7898141152786bba16239bd7360430247c7f7c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8ff4846442991af3c3a4772f42879a4e61aec4a5da2b43b0cb012f8f49270e4e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9f94859eba581ae9da7d3a1b11650bc8cecc1ff4b733af7b9f3539a7d47a5f87",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "09b4783f5d69b25aaa605348d77400cc3d6ff168050f2a8e324b07254ed445b9",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "fc30125d10fcaee0c9750f4d77797b682d33155151bac0bebbb6867169653991",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "413038f0d53b305234888024fb9d468bcdaea60379deb0936a33042ae25eef10",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b3023ac85eaa5cfab5c5f9e680c975f53886f7d841286a66af1eb2a54e697800",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3175816238f263efefd4fcc82b66139da94b2bcd3c682c6344f94a39a7bd3de4",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "65c89798c2eee7d960e466298d00aac382d76a122c38397f060099450b2038f8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b3299b200971c49d074f823ecf716fbe82d6fdfb0939d5f2649dd5aed39e38b0",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "2249bdacacbd2c27379e7b40bda70adad6a685eb57b35606cdd0241335433cd0",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b66feeb41cf474c29303793e68cc827d5c4817c13c2a7554e3bea571993f9fca",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8eb00ef95d8007c7bdfbeebe5dd8e49502041f7be5a619d3c85435f5725aff77",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "056dd67496a16fe451b92572cb7cca9e1d1fcaceeddcf6f1cb3e0eca3601a5cc",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ca9f431515d8a12fd2cf53cb118d2de98def1c0de8d910fcd27ecc512b895b85",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "0877b2a7a8f5660766c615ea887512959de512a9dbd6b5e0e2c89cf7911f6a37",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "147f136f6df1aa26878476b195550a936e54e0579e16635df296891cbc158f74",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c69d65d035eabfa8260d53be62decb499ad119ab66357fc87d981bd20e3c9185",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ce94ab2bf97408405ed7c4f4d1960cd5f970ebdf0f9feb695e5f301080afc88b",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "87c27dcc1fccab45ed7ba57ca11c5d362545480bcf4bd77b93b005898de1752b",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "068447025862a3be1cfae195a5eafb8f73d940028320e67cb53a671415f9f157",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9e21a1b0934a362f0596160ad2f0125c3115fe43bcb1ef918f0dfac07d4000e0",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "364d99d8310c31d54018c5170cb40c49ee54dc93efa016504a376f7878cfd40c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "9b650d1f052790cf16de33b306cb0541779aaff2d2309ab0047887c23dcaeb34",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ff04e7a95dce9c0f1de017afddfd9fed53b1f78799a0fef4b7877615f5aecf81",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "7520f691f171c5341e17e529428467ca24ece918e29411e58aa9d627328b4082",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a0de3e97556e2edf89f9d42db0bacbf9d7ef3c02ae36981ebc59fc2ca9633aed",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f93fbea07de969d55d77ac41a692bc23ab4f3600920e63fbe78d5ce560e9b1e3",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "0a6856423437c395115d76db0ceec22b64fd8e9d3d2ce8d09d64e85582f326eb",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f4064f412721f24b87552cf9f193669437b43cdfeabd89a15e434d756da6ee42",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a0560d4ead24c6cac65ca38d1f0b753fa1ac2991183a461af8580d0f21fca0f8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "23259a4b58da2864433e0623b6cf2a3c1317e42ce84a84a099eaaafbfb730703",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "286715bddb88ce04aae061449d5ec078b83dc176f0adcb16d96b203abec66a66",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e0a09ce39fa9ddc266178e6b81c6024a95468798a6a4d1adcad636896be2e86f",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "93f69a77cb4972d7d4c2cd15510a9557d87c965f93b655659cd84b7e4b718023",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "54362d8c95e927f49dbaa8dffd2cfcc7b250c4905b9f5fa15c0851d888d28bac",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "76ab4e80483f26015e77e97ee824f4b27dff45d84b804f5696969f6a337aaf6a",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a20e19efa179d21773bdd6db3d7ddaaa84a5ff907cdcbc9a1b1653a91027451c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "77912bb45dc9972581c296cf44bec826798e62ae8c3a6d5e179c3754cd1279b2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "6c3ba93bb5ac02f636645e4af4ef4992cb65b5ab95940230f3541a89835c882a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "97f2cd6120999858753ab93c7c9a2533d409a94ebf736bd7beda69da912d96ac",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "115615d4e44888beba517042f9511473e836ee027cf0243a7d9110deb9c582c8",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "147f180c56606dea6926c63ecf5de134423f14f40b5d96a47c1aed5333dfa0e6",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_3": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c3fbc1db827f4476a36dded2d98e0106f96dcd531250d97fe2f1195e369ccaba",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ac08bb91ecde4bb0f3befc43ab055ad742a1f84cb018b4645eb44097c5490448",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "5a0fc3c9f5e417bcac9ae5f839c93744e6fa18014a3a193c5fcf0d7188c08bfb",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ed51f1d57178aa557b0e5615b7e82fd77596e2659cf8f71c0e835bd5642151fb",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "603c92472e5f40097258acb969009e76017beb0bcff476db91ec8d3510400266",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "5edc18d40744b7c7ad970d39acb8f54434957f2e8da12736d503a839411d64d5",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "323113a93d33af83e7de79d3ff28c7994c0fe4649c3d36f13f31d91c09771b81",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "73af4228cde55abcee3050879fa386ec641310cc9d61b1db70cb009679645cb8",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d65fe4dc97ff8bb07ea6d21f68a0c5b0354fab215d45ca4c4d32d8dd45100600",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1201b25515ce2ba76c88ea43c4c9a0e82fd614b9e01ad8175d4a6c6424637e10",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c218d43855606aa107b1bb7413a28118ee3b8ac0c03fe7e43e9b2627ca55b6ac",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "75553595518c9bf6f580787188d512cc454e5f94bdb07a1c6141570276f26e9c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a77d3ac2df70abad93ed2b0c8896d2f0387832d921ac7acc6dc42989fc310716",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f1e6b0d0e0a8c1f31cef4aaf56825bb4513b4eaf07dfc6cab3c70ec19083b971",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "dd8019e4454a55f978fa3b0e3e00e64237ec1af08cf254046c00b42943a066db",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "5b79039c31c504df006beb36cbda28463a8d30138dabbff32e129e8a71f7661c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b6050721e10ec6edf437dc6ed4b94e406539303b76bf36ca4114ea5422a90f84",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "942e4bfd50f413295a40d67c521be4c05248e3b117d1d03f3f8ba21bbc9064a8",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b30bdc0fb0ff2ebb2ea513804100715f0a567a6fb089b59cf07a900778d420cc",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "cf8b9d0d88b8be985816b2907ea25c3f7942df1c472db8e9f77de6779eb799f9",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ec4f6904e107f868a8b4a8a4b4b5a2afafcff3dcfffbcbc773dd837b078ea1d5",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "d9ffde4fad52b8f02143c23b492af11dc883630d9e15c8f4a5ee9c771eff9cd1",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "66748d2aaf8f3c05434b3c33b5ffb3b7e9b1536ebe3d8a042f4f2c4c28afdf14",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5c3374fd27af30b40c61e9e8d67700531ffdc53aabf8d76089be95a11765ed9d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "a9940ce6b02b2e6a9d6d143ffae3898368e9c517b48ec97be2f285263563f9b1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "0c1888ff302ab11730d3d904830722e9c596f47cf57aa9a885207785e0ce64b2",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3ad1206a09535063cde1ca2baa9b77ee9e40d9d834f05117c8b661b11db8c934",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "72c9bc5746bde0f8459a4710ee8b0c5fc6ad3c9a990587cc526f6b933d645daf",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c1c724d33f489dfb7d38a6dda029a8096222a17f47bdc46a8874e878d84dac27",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3ee5f3d272d8743e7f7816ebf358630f85117085d687b4acbdc45e5a2c001cae",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "640611ad0503be814de5eaf99e75535f61b783a75ccee9afb1bc0589fb69bfe9",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "80a5c2b9c7ccf19d1a297c1995e9194a920bbc338ee66542c0e55aee767cdba5",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "63e5600449ccfabb3b7601b431b20af97623bbd8905a3c723fd7f6ba57b9b5c3",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a74f2f962ca6c0c8c61b556d0ed6fc0b408c489574b2f4e1b0be0dd0c514ce78",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "7012118a497456000eccdff306d8e1cbcc7a2935931e91f9170c0f6ccee4fc96",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f966d4b453b41e9146195b1cad9f73c9100d9ada92ec86618eba3b8b3989ab66",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c5ab2792923c131a01629bbf8b706b3d7b4f8b00b7da2fc7b85d73f82bb16678",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f43129e74c2dcab2764251cab97e85c416ffc2c0f1881dd1c05ad0d65448673e",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "819740998cd5223db7c6c29ecb901138f0347d8972331c4736b035ef33eb5d0f",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d4a61636448eac27736d557ca874143b42f3e838389b9bd70625e106c8044530",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8aa52d754cb87eaeb14d80dec23c6327181d8a5a5a6ce3e2e5833c241ada7755",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "13f34c90c11d3a2cb8990936a6f90d5bf2ec59766550cf99789b3eb3d7085f99",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "ca9d2ac45a5a4f331be5b7e0a14d276c6c1c33b0f301d7523722bf023c52e31c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b5a10e234fb19fffccfad13eb1cda8e44fc54087d4d9d5242e003b530e56401a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a59aadc91239a2915ee52912c41626d027a5c3ff9d464f5de85eb9785b2fe448",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a5c76b263c0788a952249f23fee009a6ba737fff1f447f0a7c569b120905f368",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "0e94ff92bb6f57766e2c75e6799d576972713b8dcb631d643f6441202f96550a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "de794db548dae11de56e52e067692e204f8d59f4b4bf145bff4781ab13ea0f6f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c237ca47ac29b9184d45e73cf7c36fadc458ecab8b3d5bb81192ce59c821ba43",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "841ddbe86c3d0deaefe38694e2f30f996298046831a668829f62bf10cc563f68",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "65901cf8666c959286fd972b5c06649930ec0b2578edd7c1e6c3219eb572fe35",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8baadc768e0e7a67eea88fec08f4a32e781eb82d4474aade08aff68933d9157a",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "66ae7bbb13e743d698e84ba94851e5c0cab0f7b74c980e708a57ad8659e420b5",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5ce5c15ce03e796c89a7358ec25cf0d4e60595b7c1816d172c46f26d736e016f",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "687f088077f5aab0d4d3c7fe416c338dd818b29dfaffae4dbc0b1c952335cbed",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c2ffe45b4802c4b0c3f6424c4815b789bce1532bfe0b793ef88bf9e650e58d10",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c51dd5a5920da7ec07d3f6d4fd99d04481b89ebbf7f38a20c0512c1451ffe4e5",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a7ea2247cc8da3c32701ca19296ad8f68515d6d024a44edfd3b24e83e8dd7121",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "bcf22b125a87c67ad860dd38ab4a98fa13d577e2a8a164175174e87bd515c734",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "823895b24d8aa6459ccf2e7f2a8e2e6d5a9a7a1dd136a7a997968bce12a9b5d3",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "56f65d3a0cfedd883a26d7511cd0941c805a76b6b6e5cdc76da3b52074b18c4c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b62095a916b8b72c8e6d9be1caa77f7ea3416634a148d16901b32403dedcae82",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4763c2c747c6c14d0857df1349b5f1d45355a2e226621956fc94f5d894ae6988",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2beef3906997db660a65a664733c51c8dc6a961d07a57999b658deedafa3ea91",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "7791f89659083215cc5d1a813da88969fe7cbf239f96ab01d04f4c06ee5f8895",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "5f45b8804a94c571c4c2163bcadc0316a56b712f3dfbd2723e89bc523a84166d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "be2f6d4d89e3d2b5ca3eeb4f99759192530bbd6ec9f751373d96e9f4af7fac73",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ee959109259d8e81c01fb5f86ec7d67c8ef89bd031b734b4094ed36ae1757ee1",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "8df1899969b15164ba8a77ec5e34ce9373e175340e0f3966c1e2edb96f31c666",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "eee4d943858b0144892e619c335f2393c337d52978ee67899a0a5fc7b186429d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "2c930e4f426c1b7da54f7379d74bcf00e807e06c2f14122cfd86e8883c5e5f75",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8ad9f04bf52c77f818b1c867e850566cc704a80049a963764e420719e51ff8f0",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "dd54171b36a77b61fd0f19e41b0f4159ae95508fda604dfb608ebc814c2e606c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d007e6ae1ecf8207ea412879fbf07dea74e103fb95eb011404be582096026b5c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4527679b40c97e97ec55c55a6b36effa4e1522cac3cf40413617220cd36656cb",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "68d0fe67afdd0ae2f1f461f2ea3a42ee415abd546895a9f0a61ffc493b1bafb0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c990dfecf8222b8e7a5ed290898dbc63394fe54824eac145b08eaf3c9a91e2c2",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "07d96084c8858e963e941f761afd9a52fb4c117fdc7d5d4acce0e36fd25fd603",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "eac448b09178618959f5536f01e8916c08b3ef33ec16f69e78f7e75ec6b9fdd2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "f6d4a6d0916bf5addec901e21e6df3126c84f6c5c693100df2e534a82784058b",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f20964298df988523d514904c981135489be8a1b7b9d2ad2c8931587fe726e3c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "65a1714ff90f779b4ffc6fc4ca358eb517e8f594afa7485d52adeaf700fa9b12",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9dbf5a40299fc7285462487cc808980d279895afe22e6bfd413bbc109cd859c9",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "1d942b4034156ff4913ba577a07792db1f033672bd822ef1849314f2e7f50396",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3a38a0d9b71ac837986adc625b6191d55462d8bcc91bf9dfbcec4877ab755457",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4f77f4a694107765f1afc6c5cb460b37d8718e9aae32e19d299f154818402be0",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b8b17f1d2c539a0424af96017ac8e28f1f2742e962c77484c8401860bd5efea8",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "f359892a59b2c90aed33b9ae6a1e3830b692a8b43728de3a3ef2b9552ce8209e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "04f0a975c914f524818d55b3bd1e31252ed79e690a6186017ea8a4f1f123e415",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "de503d5f9a4116dcc81a23c32ce2cc9460e1d53f11d34c7ae504a7c4f2717245",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "65e218492e2c9b9b2982b445875e54bd91bd1123cbd99e08a01ae242ee4123c9",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "0f4985fcaf3cdb4e643d585337269aadf812f14439c560bd1f36a8af599f99e9",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_4": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "afa75d51b392345891208b20f2d746359304b09723292d891d22eb6d17a62d21",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "70e3192bae74db783ab804980330ed40ae4d8181c0068ec6161a9254b8405cb8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4446439033e63860f841e1862b9d644a529d7d161b9fc8b306bbfc94c3a66095",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "743e40db6eaf5d7cf173cae06ca1344548ef1a9598944724c7db41af1e62cf77",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "1c2ef2767d2e44f559782ed87f82365a2b0d14442031488722ca71c51fdccaf7",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b01f6cae152b610f3c99847ce10ce70b68a65b7fc8cae7f5240b2cb13094e405",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a524ad8f8d712fd5bd79f823735f9c4e7c82dafe3b1c0cb9511760123a9e3faa",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2d111c12b7a71556d6f03199d38d542f12e186b81e162b5aa88a41a20ddd65ed",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "2b570b86053c431f4f64a27f139610cd040ebb4c917c3e66dae63d816ecdf687",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "71aa4c22da735d787001ef89c8efe7f09e8fc79f468e5381519324a01e33a637",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "fd865c40c3541c93d91c4af2d7cd0a515f941f318a983c3996267883e61c8894",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "380761805d90d6914783bc484436492bc793dc3dfae007bfe6eaa7b5e03ffff2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e8142f295dc273ec29d29bdb07bdb9a36f843de93e5fd47f9608e56d6f990a5d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b6fc39e9799dd46b6350fa2e9927fe5880cb7ebec4fede6c9f74f9ba0e86e531",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "69d0ea2bc6084e4be6c03d121cb80e86bb7853ffa5a72812d133cb79b8eb6846",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a1b3b09b26e1e6ee76f36f55f90b8a0920e4c9ee3da856453bcee42d01c77d36",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "7a35b8e49ff876de0c8ba8cbe559a4cbfd085ff5663baa71d35fe7ef4cb46504",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "35d574899c401d74b653dac4565b7b349456c4f6814f8ea06a3c8e955e9e7f00",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "7d554231e23c4b0b15ca3d561f84b81b99886930974361880ec7e823307fe75d",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "cce92f205816402288560bf6447390f2ab0095baf25bdd02a888fdf1ca4979cf",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c0357a00fb299599f4ce6afa1fa999be1001c8c32d603dda75ca58fbc7341e29",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3ab1ceec87a06ff16c0ce03168d2f780a270cdac4b427b623ecb91225cf1a3c0",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "919242138878f4c0e9a1b9bec8e87520560862e991e774a5051cd1c70aca5b28",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5696bafbdfcd76b0c1b3da8f9028b429ee00b944fa4790cbfd504b29762b80b7",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ad22c8b0ecf53f9170f8864b7c4baa77bf2a5450d3b00626ddf437f7850311cd",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "be2bab57745d5347c7f23da4a7c0cf00c7e779eb64d3d4dc7502ee165055f361",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "07e39b2eb95dad0abd15525677aaee9f76d7615f3a982c531443d1a230acf7fd",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "b2df33d0f1e303dbd0f2974570f2644508c213fc5484d11eb54552011b3d5791",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ecdcadcf1cf80968a868467ce3064a465a8b70d3fa253acaffbb8cbd1029c69c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "01eec0ad35677c046e36bd990f4d8ead1351c3e0b6698f825f8a482ed1493844",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f8a430a3167f6b7751c6faf0ed5a46caba1c48859d143f93af51adfaeed1be02",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3216a0e82e96d34123797184da5a50b2f721b2e8ba8978078464ca589c36444b",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "550bc6173cf0c49badef8cdfbbbf44fefdc624798d9faafd708d9ca6ac6f34ea",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "db8bddb427f8b0074720375cfca5164724ce5ba6497f0688606cf0e7d9aaf199",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "22ca6af05ff3b5d5428d37cc2a7d3d4f6cf4845c49dcd85b1817b67d01996cfc",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "fb2b553ce8b69bd4d68218ebb806cc0adada2951df9efbdbbbfbcce3fe7c7520",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b2f8c1950d5a4920e2df08d31f375c739ae5eec2ffa8dc8a2833cff5b9759adb",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3df4fcc5ce93c54543be46c540f794d94f9ee0c94a82dcdb8426611fcaf1405d",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "374c9c1c988153e187da835c905c6330d5f2caff54297399840b239347830281",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "444bdbb54cb2d53210b358e7e12a8345b499e60ec7e9469fd1a0944daddb0e3d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e59654c38becc91aaeaa5288ec037a755aaf47f12c3c38b42bc5e1f99d76b356",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f9b693c2f625ed5ebba177e8a44b49aed8b26db8dd77de87016616fa85571efa",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d9904356d025816a56fb88d072a534b58ba5d7eaf4957bdaf3893535ecb9d92d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f5ddb31445eea828bc70fcc4255e1f6318a60afda53360555318d914e4a295ec",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "51fe9248d852f175302bc5c624b28a8ff680d6b51e12eafe2206d8b3341fa978",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "25d091a0ad0b06b0ef5751087468be472d892c634c6f6a17f2ff1447b9703ec8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8d5becafe9a589165957bcbc4e5a7a18266c816d072ca6fb9d0b5a02d2ad8067",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "1090809d82d0d585fcdc3727e841b81528f1171a3ff266a48ab80825cd7969d4",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "5d512012d602a66963013ab21b387685a9d8b32d4b90b40009d658fdc68f54c8",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "136573751b44bb5436c28b3411707f63d4c23a43b1f93c96c81dceb2dc1701c0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3f83586173d7291362f150c6c2d009fbadd6535a4c34adfc46834ff8b9d61659",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "70a33c976513e02e77a40ecc2e173b4f0f4adc7bcf87171fa4c0db421128c2ab",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d6919c81c6a8f6ef42b3dc950c24d2736ee513e2b46f17a26f66b26e877049bf",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "76bd93592c12a87496e4d75c77fd5949f89e0af93cda6d0c7c8df4e97fe65550",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "db0c4bb86f1124fade07783d85d7bb9facf00a1bb5aee350d2c0cdf29ea9d740",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b7e629528ccc6110772fece598ba44c605b97491d76a59b7ba428dc1f77406e6",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1991869bda3cb6c8f9049837f8c19254f08a3dd1e6fb2bd73637bab9697f7f41",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d0fb86c618d590fda68b51524709ae1588065936a9dfb2e3b51c95741b1b5003",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b501e08b36f46fe1b35f06277cf078c7d430965eb0d33a5396f55defbe8bf4da",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8f07bb652aa37099c5771c75753ec5f8980b10d3adbc55faea01087e9db18d9f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "065b2c0b0567d7e3bb49bc87b11d2109fc7df09c5d0d8d8b09450144be55f8d4",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d226bb3614092ceaab563853b4cd5a5fe8ba4f93a30dd6c8129bdf9225d5e9b8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "fc448f6137f710914317a0b6d7e94b556cba90051b20fb68ad17296d5689f061",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9420e2b7fe59ae2a5cd0a785983b66f91c6d200f89ec83989b4e118868c8d1bd",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d43c299b7fbea346e92f13eae26f2957275c3d415363273033d827680e4ffc3e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8bb428d3f28580d9ac9a41335f6aab3e61c314ed6e0a4da5d91c4a0088d43c6e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "2851c039e631c19d7107382b3351d9fcf0238a517e3738ddf920a1ace16fd06f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "30070f994b161c96867a9e09175030100a2d0d90e61ed3ad2d946a45f92a4a8a",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "970f8acf880632c71e523c9f7b9aa1328fc66531f98b3627d810ba5f69a13abe",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3572bb1a042d177de5ff2bcd2a0c97760ae37a29d69c53f99bd0eb25fa71bce1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e0b8c88ed93331b2899e4c9f2b10be61de3ab5ff0aad91614707126d3e1a01f4",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "eeb3724ff07fc8055e23ea3df6f103abc04ecba54441e88acf39df958e488a51",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d9a5911ac7d251cd90807269fff3885c3f4949ad899d1c794956f4771e0db343",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "521fbf366563fe5969dbea8321b1aa7be55a69882d79c0fe0181963456a75396",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3e44faf2c3cf4eb6f48af75c37698c941e98aa053a344f6323d859f1b7a2e618",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "dd27e2a7c6f567349f73785c6fe41aa613fad18e633426fed9fc11899e3a10f4",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1ca55afe26a620642845f39d0ad7e6b8e189d87f27490e83519ac672bad7e91b",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "fa428006427969f69f713832cf0283d9c8b513be66cd1f508e905fae74e0f830",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a8afa5f41a1957aecf847b859faa120a3166aaf4efc5def9525c1e20e6530842",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5bcaa96e8fe9f146be6b0cff75587bf27cb1391ffe668d73d79824370acef141",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4dd27fef3dbba26136edd09b0c09fcf9c9b4dcfca20d7a5eb29d366336de60c1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "445ee6c91f1e77785c5a2eb1d8dfbdf845631cf6712a36ead1fb81cdb7b680ee",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c3118e472fe350e02b94dd59a08822bfb11172c37b9535ce277b3f17a012a628",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d7df98b097f9980188af3e84efad057f651d74a1f26867e89655aa1e6e369e36",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "53a92aa62e11e4eac7a55adfa6f453722cfab9355bb26ca357aab3b26bba14a7",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a5686abf7587e44c36ee12045055f5392c196fa995c14e93ae3214239ae55f76",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9655960c747466a41b5b49a419b98d174ddf434430a98e53d670ba21d6de9c11",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "0ce22b350fa06c5016bd9a1c2a0a9653b777b318d7445d191c8a3b7742aa727c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "6a7cf40a29ca0e706c3c5f45f8d540990820457239801b7de62192e847ddf460",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "bfc62aabd489d5fd743d41775ac1bf947573adede9b7a5af07145dbe862bb058",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "8651570dfdf6ffd59f51b68be15e43844cdf3759ac940d7a58616f4ba6dc9497",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "7ab1456fd44ea4288587c8c4e19cbc2fcb18f0858eb64de914f451967d52a1f5",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_5": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9faaa5f47096ddcf52b1d60752f749d4b392cfe899909b0b0ce5ea0c675b1026",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "947dd8e72d8bb700a8dc06bc0c94c3a8e6f45dea43f26163a4ab38b017b13130",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "d54555d8f3e8a83fb359ff6fbb8033204c0d0260f88e2581e4fba925f7da2c76",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9a107b3f1c2f453b6e637b9e60070d973fba3154c4fd797f6910a915e45f3e87",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "c49909a6e5077f669ad7b64123bb22956285acb6b567de0fd4e6fde9f918b041",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "53ffcc9453accecf02882fa54c910666a2aefc6e755da08d5fcbb863e9884695",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "84a3b9074ac5463353b43f610a9b42ca3b778606997bdbb1e96bf9d7e197198f",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "172ae5965f9410ec50e2d6a8f778f3c369d3dd744becdf43e414494af2990bb4",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "861a506fed466334827b0e271f9f19f234ffa0a3cc9062a0478f5f4d7e7600d7",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "77f68ade0016c683471427512b30ed7058718402653a2285a5fec526607bd0f7",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "082ae8ae3b7d8ae639b206dafcfce4fdd58465f7d5e608108e1f9173483dfcc7",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e04dfc0c3e1585994793bf04aaa8841e96d2b70eaa40ba06033a2ac6474844e8",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e6052071a4d7e5acf607439e45b200f45796bba866aa4b736e8adeb0ca95f006",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "0c455e55c4fd7d2dc7ef42f4aafdba046a2f459778d6058b6e0080a7edf9fd1e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "09c18e443fd6b236264862fee9aaf747ca7054d557dbe92b6a2a42fea85cff11",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3525976e5b525dd0781a6a73fc688dde3fe60c8b5b3ceecea328bf75a7d4dcc1",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e4bfe48a5eddb09b74eb14e8bbe1c6c40dce48530259e807a9ef234e0e178fd8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "128add1a6e7eae5fa30a3777bbfc909c0f1d41b72cbea1a36d3676a58093c879",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "6313c242639e5b1a14226c2659a7c3e3cab6b6003a4c113a9cd8f7fe4148a673",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "467c0ed4669fd100f5de6c90373a7c7c7fa11fedaa59442ca5c3cec8912c44e8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b928f1670843a26325a60b4d29b46243dc79b2037f2293ccf93e43639ab48c09",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "72ec5da40de40f9f6e0302824da8a2a25b1a764b0438385cc90c2e3ba7d66bf3",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "5ef47f6f51e7a89c83131ea1552147fa92aa0d8a87dd84b2eaad644dd79ee057",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d3ec691934f27daf851a46fa206870398037a83961ab2b2512f74eadd7266503",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "15dc90642af98c38de2ba9de48d5a29f625d901e0f19abec641ec979075435d7",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9d06e10d49ca875a7b606c5adde1f0baa3792234a9db355720b1295b883eadbb",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2a9d2f19f0a3b15476d6881865bd1c0cf38bd0b024911932e2852f42fb8ab83c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "43bea1248c71a241ba53ea6cbea59c096abd5f781067eb8fa65e452cde2b6b60",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4c1708d5459b900e1986f902b454263c48aff6cc5a8d72f12516ce40bfb78f9d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "390dd535c371c3fde34376b64ce610d1db18021bf38359bf1aed5082bc64a048",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "cb4cbf0b83502bd4deb1dbf72b8c37a70bf6f3ab469c632b62814f3350208ede",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e6f5312998f3cace072e30792a1eb0473c8ae4951438a08d8917756fad5a0f3d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "ad1d1984cfc4d7958d2992adf2396919d7e9ea7ab3c3fffbe5de84e11d6c26df",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ec5819667fe771ed28f98fa08e2c9e359f59b142b0a24e60f5044f0d7d6a6d22",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "40da969d06d083c68e15572dc4be5ac3cc013239a55031f61463ac8a0e15e471",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f0c420f3468be6bba0671c32b69adad3585dd28dc5e87c8d6a1805d1178b58b9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "0fa506eb82063d826324c776b9e8406d0c5a1d57d76198c49f318c9c88087f33",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3967d32680f74253d3eb971f31d1997f6b1d782bc71542f684fa851a0d24bab8",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "8afeeb4c5320a1126c589f236610c20808895dcd150ba7ebbb135ff4eca0dc0c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1594354de49aaf61739400662ddcf167b6091a2fc57b1ad14378c9a13edbc40b",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6214c6bc35d763a4b063c8660a1ba82921ba163aa92da3104bdfa657278e81b0",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a7a76f3fa4c9dde30841fcb19b17b1ecceabd51402b7a39e6d32db581137ebec",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "f16f7857e94e4614e05ff7f838bc4b7ad095482836e42a7acc4997672e9c662a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9402bac812fda33b33374fd95bd428b10558af71b3f46cfb308434528f6379fb",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "92c8967c4d813cadc4cec0363f1df12dc4d105da1aac153d144e5481ed60f7ec",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "725c099821aa253254a484586ec62a69e54b502bfe1ce396f88e9b9c6d7a146a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "bf75c658c8362128ea6074fccbca609e8ece004cd800d72b418cd0e6b79059d9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "d89d02e828c8a323205208904ddcdf54432b3574b80abbb0cf2e46a4e059dfb5",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "89d6e76702abcd6fb282d2e5c0a50a45611cf0d0da6987a1da6fa9b44473b1e5",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "1b59e8d30bf992a1f93b778dadf564a191fa85426307fdbd159fea22c6e46bd5",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9e4cad2d6435d17d6df07748e570295c3d8e251edd85d5a5e5caeff372c87479",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "492dd8e3f447cdcb9479d604dff8f43bea0f5e6f96c6b4e124d1f326540bbf5d",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "076718781e037aa2c82b266bfa73185bfb362363799fdc5e124d62993111934d",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "36edbef611f76b6756e6ce287356902e4477fc855fbb0da2e890109985a181b5",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "80f49205a6da18002589e86c0e81be997a53068934b0fe9bef3bf7a443160ca8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3c0b27c4f0eb4f2cfa47b952db9d51dbf50b3ae017166f114d5cecaadfd364c0",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "0e98b4807c337b968cd62c68a9361a67ee7da72a81694d5f87cf544a76af9ca4",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "25e2ce570ff4765498569d7fe60d7dd4bfca88717b55e7c2f539d7e03c818a60",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9864d666cf52425137518081994410c8d0a0b944b9238473b96f8aa22bb978b1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c6b846d90f5744247dcd53a853e1de25fb3eb0e74e9e25c6f4930a473a6c5e9b",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "460ebc2177ac115f2a29c43531afe0f2015951f28c62746253d5d206313198d8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "701e87628f9d014d445bf07e7b0215ad34540d08fffcde4619a38077509da11e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "94400be677b9ff2f8558e3d35a13fda5080adf795177a8b666d3a223da37ec65",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8ff52bbf7c5b2b5cdda50ed69ad64181d1e0a887395ab3f84bee383be9b36488",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a08169a8ea3e3d598e5747969276d70eff3a71a0d8bc37c1499cf51f5f892650",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ffa74d3b42cf635c50d2c35932148a0e964358bbacae9870de427fda008d0290",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "780901c303d544326ec037012df322feca414e10b6f43e9bc02500688cab6861",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c29755fc7db166dad3b10e67646e3dba66be8ae2ae64adfed8fbe21aa9e2092f",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "26f09a2842774bdcaf89f8d74ef4c4194ca5a25642ecf628c232752998aeb515",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d10b216f0c753a04977e2cbade6b6af51e9b8cfc4b1d7d7cf08732f9290f13ef",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "dbab063381b65045fc86c419cd9aa2b5cb102819717b146eb0b454abdc2818d5",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f762b53959c294ec6c996c11f286815c037ffd50eda34b5ad3d974501b484916",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "ffc39427acaceb869884d922e310698484390e402cac6a2064e9d849fdcdd3e7",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b9709ba8c3280b846c1b811ee1d64dd145d9678b3500012f568ec9a9e292e1ba",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b9b39cf7368f37f90824dcf38b04a62bda7ec94fedefdb317aabda8192d82ac8",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "712e99a2ddd2f59cf7b9526b2126b1c7d340ac8fe76718bf01ede02120d5dcd1",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c93f3009aee461b603b6853b086cab1585fe9801fb85352eb08c570d8023d0fd",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8caeac884d0774211a1bd2cba2107b6f7067aacb0aae4f11b5ad8ffd7accb914",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9693c38bf6cf964de493718d855dbe73f61057c3eeaa5f2446969e9ecc65a3cd",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "0547492aa8876596ac9ef8d754da0f69394f77ecf39577fd33978a3f5737c02e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1342e30ae5c64375b124bf5ea3ba6ea84ccbf40868cc0d514fc1d5980918e2a3",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8c266e383bcee57dc36ea47c142b7d293cee02be04bf5b7d75c572c3e114f8f5",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "acc7ebdd9b58b382e65636438ffeb834ed358b7734d9e0214396ccb4c6e87767",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e33827f487ead725237be3aef404bf5d7f84f6f0c625f36553c3b2ee6a87f7da",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "191b194d3fb2cffd8d887562a3b0bce8c7c9273424de110e87409f7d350a6642",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e16e5c31693578958a933f28a5ed38eb39c0ed25ae23b598fddc04a3c3d7a456",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c66c104ebd2be8e69fe1b018e4c44f1b6851082e926912fca9c026ca8b68beb6",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "9d7f5f6a4116103ce2fadd7d93034d787cf10a6fe1822d53e20bb65919662705",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4d4ef883273c592dbf2f6fc8f2d5ad0f44243f3a2e9ae8402f70ea2172a19576",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9c4c4e753994c5ced29ce1cc3d7010c788aa63e708ce3ce692e3ce7b75c47e0b",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "20fa9a218728350f5b147ad2b11614ad58c530717f2200ca8b94fa2ce47cd5af",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "804a196977a98cad1a3103e11963cb42e52ed8b326f8ebc2f5458466190f4ab3",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_6": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2e4aedb59512960e7f990743413eba93b06d428ba8cb006be9d1943215ac1aff",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "31c7824f454c10ec2c87a1af96c1d4396d5a1decff805da107e3b068de43ae94",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "7fdf66e8fe61e5560f6be985151864e4ee8bc8bea177f2ad07a3b8ce1e5ab0b7",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a34d72a83f42d87326c0ead4bc603e361efc8a79a4539f563f42730112923edf",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5ed22d557ac3126a5efafb8bf7c55c5cbaf4298bcf08ac064de77a051b99a191",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "2f366557093f8e5ed2cc5cec6f41a1e21898f1cacb0eb68882cab289aa3e2d68",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "84f13ff2d2ddb87dff7a9fb812d0fff6b1376001bd92b77db94b8c85df7d4794",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8050352f32a124dabb69ac0da9a843d294e3318d01d8b070e89f99862c950fc6",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "b4a19561a52413793c5bba91fc9fedd7a85ccebaf4a4e4b43ad31abf146bda64",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8b1dd4127037c477d244e8b50d2f5e7925267e1b46d76d05e48ba6842484743b",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "535db8336269a94aaf7e083dcb399ad6b34dd5a4ee3691fd5e528fb229b863a9",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "787b82c2a1c16ac540d0928bcb6ca7a9b15fd112506919d55f6f628d672268cd",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "1ee7bd91356a4941a315786399c16cf16057e0f8802efb54a9ddf3b2c579ff91",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "fe7b6320a07722de1e5ac473f9afe31542b2852ad6bffedbed584cbcaa49e9bc",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "16eee7bd85326f56dd6280130a4969f4a7f20b953460eee4acbec5ca6e31c95c",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "18adff995e85748b86ed35fdacf1e976966ac26499925d34346f4fb3a8c3e5fa",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "230f6874006a90f90c93839f52fd4f7e9c4c17d2045d8c10fa902e986e2622da",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "41376abdc40b3a3ab331bb4da597235b13ffce2847367679b15d4cb9e08f80cd",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "6ab89785cbe779b42ecc1502f08e0733000620042e6736f3a68180fbdd2c5787",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "82d96f138ff2654924f85be3855e4cfb93f919d6a5b0a81d0f7962ca440ba50d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "49f39612fe21aeb1677311864865a77c3dd1ae179e790d07feff9925744727f8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f34903f3834ee38c8740c280cf328fc2ba9d33058498bd678d5d98d126e3725e",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "54703424b2e9be100739a316bff46da48f971cb48624e85c837b69b08127103b",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "b22a61e62fef70ad1db1acdb7d132d98cb07ee3bd0baffc5495bb3db525c2625",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "78d9327930d954a8b5a410a4605b32be36b1b2b824bb38f58b78c76533a49ae6",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b0536b5f0e6f8097ee7b0d9faf1684af51b2c3f53204a98682fe311e7ade06f9",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "946e1284af7568adbc645dc871986115ece3ba1f120e7648956e70dd208f4ae4",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5ae50661ca27257d5d23f61a752cc7915a27b6fe253ab2599e8d5e5681c7fce9",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e5953a266d296927e8894c5b2c91988c2893f8773d2fd6bec994aff8f75eca1a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a90ef40daaad8d2a18ae47637be8fa50034abb420d13a2e6b0dcb363410aa8af",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "0115e83d62a8ae145fccb879ea7118f5f62c37d12c4d447747029c9141ea1dcd",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9acf15e97180e9d6ad1815ab68899100e448e1d1559fa86a6d1453d781cd9417",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "026c1c4c3e42f31fa40e571758c00d94f06a6ab01a2b7bee2324fe8b6cfafaef",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "78ec8e6045d46e054047f25bcf0e74d4515c1a79ffe2cc4f3d5a1736adef3cd9",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e0251b81b69bd86556cde0a90f230d20ae1d92a79e99cc5e42e274fecc2ad362",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9c0fdd8aa0a61d74f9a5fa2e4d70a264cad5d0bf4378a2e3d9ab344e2e45fe0d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "15a2cd293e41e50d64292dc8e5ebc614019b88d82fa62facb0f7cb10aeab53ef",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b794805ab1495dd4825cbdbce8ce9fc25180a300b8d5ed667ad8c3878eaa49a1",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "cf865a987fc5b74731f020aaa6070630c4ec94cfb6ea84129334cbef99b21187",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "45952c49aace0f895228245f09383490b556bbc598a114b6d1cd4e17c30c0320",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "529eb545e827f96c200e7eaab21d6b73591dbd26a4459ec7da46e2a085c43451",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8b3028e439b175ade046cf2d97598878ec6f40c1dd92b7574f6f9d6438c5bc8b",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "ef0acd4ed3f391f66b962607901fff6ae7756fd569599a09eaabb851733fa575",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e2e4b838f6baa986521a5cc7ff01cd409b2666d717566ed10ce47ce77fe027f1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "90e143bcb851493d0da46ee7ba3c3528a7b26f9a016a9192e04f58b8a494cd81",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "5c29746e6cd582dda97fb725b4a06437b6569713445df391d99e22fcd3d68402",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "a01df08b49afc83e489e4d2b7860b81ddae1c8c641833c41dd194c0990087e38",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e0bf4d7dacbf19877fbb23638fc0e51a4b164aa874e40add3a1a139aef60d658",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "754aa54ba39dffc8fdf66b98ad7c5f3792573513be97c44ddcbf0a50335e04c1",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "94159a155a3b75813d974611ae1bedcd89c3293b65ca28e73cd57b132617755e",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8efe79aa53b68b92c1d47b783618c1d6cccffc8fad2c08df47eb6c252cfb27c0",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "ab55fc858abaacdd175a6a82971d189aad2e0e705f2b63a587655c58956efbe5",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "7607f743a41e0109645c788e293d46ca632715951a140c23477f20a376dec452",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "8375ac40cad3778d7dde78339d43c552d3a5685ca56bdb9504bc8a4fb906fd00",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3d6978579a15e4f664d162f1255ae2f5046c5adbe020642b56c1b1f6789e9b92",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9343906cdb08a48ac39bc1fbdaa35d17841626ac356c84392b3d47e10c9ba1aa",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "16dd84b7221b6af3c8f376447e44eebe0e4abb10b2451ef6716d337a62ba792c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "81e70c00f399a1bf0a59ad5ed3f441cb27bc64387927430db4c21aff53fd1be4",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "342cd3320debd283bf2e7fd26014bf842652b5291dba8dc31529f8e423046e25",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e54e831235532a9b5cf5d51943f1c32ae4a225da8734264fdc22193ff6f49bb7",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "da2bf970887cec6ab1aa6929cc93256d17bc0cdac32efda15594bfc1060414eb",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b7938a5810faab82e6b949caf1862c8b1465d7ea6647e818fedb0837f058e177",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a45d85096296ec0aaef53e3dd29578972b9d6081a35387dd58446c4d95429c23",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f06c4c976bda9a07440d15803b2ca5a535e7e2eaea66f6e1a5a565fac1b908ac",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "74f9219f1fa95dedd1d2cdcb3363396d4bd86e19f419d447345f42cdc322bedd",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "70d801526bf108fc2d7f1687eaa5c4a8944808160e03a54454d55d5676118362",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "98fa34abd58c50161bb5c94190d053f9be6f0455b45c0c8aaac71d7c5097d46f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9a8e470a2bdf5497bd07b8a8959a846082c3d60a5d8f1d065a53f589cd3052ac",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "59a31f5620f3199dd09ebef869b3b764707247404f8a8ad19e52d6ea1fcf2bc9",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3dc18e5f00b9f2b3c0d2a580d56fed1ca577ee468a5f95d0e3290ce15a17838b",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "580a00da341f416b6ba320aecfea584de0b84f460f54c692655e5301ce84a9b8",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "56274671c1e7ae4abf6dc17f3460bd3e1c181fb89750026abb94bb1c6e51578b",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "a7c87e3b7107f6ad7a0f6225a628bb1156d84dc04428471e43f66a447ccf7f13",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ed0c3a1de774c2e7a51cc2b16b7442b8a08c158d0acaded8a0cd23eb1df58f36",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "fa42b1d90973bb56074845b30d638917626a1d99adc78c9e24d2cfc04ecfe249",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "deb07c353546ee512b6067c1bb7b1332dfa01edf326c324c07cbff474ff0bdf4",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "cb4b4b2d8a6e73f50b4f79847ba4045b207df6ce46961f8bc1d905a270c9753f",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "644aab39090db7d0f01be11821b399ea62d911b6554d841619eb419390319015",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "178615184ca8d0055c5b0a08e056e2138e56b5c4e3f6a925f4f24fd04e8b77f2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5a82035860160564a7c756067f3347af567760ce7e3b7c2ba476bbd240fd99a6",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9a75f7cc384913258df1da605655581492453248ddf3a84f120c63e408569d10",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "dbbc1bef1609b40ca48640a57f27f30d1b6524f16b84a5204959cc383d504ebe",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f07bf3de442be0696ebb2484185c159423a04255a3f893e178356061a88be3a6",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "3d9addb39eb963bba900a4af03d7b7a94fe3a43b045b2e08279df2c5d5b74583",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "d7679890311978d5a07866e4dcca8b17c894c4dd4ddc32ddf276b3045efbd85d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "63c7d2b5a2b01c682bacb78be855cac4305757119ab8caa9371c5e9d8c2b0351",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e2b257f3d0d185095e14ca12cf116f91ed26c38046d706350797b9e50107faf6",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "3c7138d23099afd1cc8d545595765d6dfba9625030ba2ffee10c5680a7bb845a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ddedd1c44dde5c3206eb0ad41f22c7bc5928d94447b4bc0a5e41c9825e161326",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "d6f5c234ee0ca1cb51a38531d8d61cdec0a661d963b0885c2f026b56eb8f3bfe",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "dc21dee216e613ae1c09f1110e49cab3574bf81bba193d2742fbb4a38fae448b",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "da5d235440917c10def01a321c174b8a1e93b237e6465c011726ed25f06840c5",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_7": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "de6fe6989cc29094f91a49bb2be307f056ad3e887d414e4e805b6832b82e56c5",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9f5c67afab669ec75011c815133def1345a6d45cfe2cf6015f7ed5504b8d4420",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6b030258b79d4c5951535d0eac12da41a104035f80b86fa306fbc7828fe58dbc",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "989a5a12d4fbb7517eb4ef3399836d65276d58967652065187992d7c0c5d6efc",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "c15be131acf4e25a5ad4f3639c0e3b3cfaa3e29cdee66ba4998393132ee9d1b6",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c6813c49e43cb1f78a40fb0ef555615a18472ee5683316d48a58c60f79e0c0b9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "2aec52e6a68e7e61e0f11a2502054cb4e878a50b1001669b4e3ac688f37fb852",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d2b765decb0ed6b1e45f6248ae1bdda77e76c592e8c6a5746e1a4c4abcb3cc8c",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "8dc1a32ec34e130bed3ff04957599e3b2543fa5595507d6456f6750616d0f979",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "bf6ae897688b5d952584c7bd64ac741e90a6cb7afca8ccce3926a59e9482beef",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "eca0f84541a28e52f7e220f917f90a5ea02530e4038973ef27651ac6e3c955fc",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "0f7a7855ca81ff95dc796edd0521e17fc8c561a75b57313c525a88c3be7a93e2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "ba850582fb5199ad9b33c297cd187cdca44865a4af6e6fefa9cf080ffd6191b8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "aab333b92eae22e80c839da315d2eb716c8c49df9ba3d1508fa5da13a6c44d3c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "5f31fe57c20c04d46b6edee3ac5a0c83311d033afbb999347cf4ac41a61e1b81",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9086382718b1661a5ac583f044cd1f3e876d6b2c0a5164f8c5e6acc32ee5c265",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "6b29f9729c2923c7842a31aacf762f3bab52e8385045d5d8f5e44a3e06d4de28",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b833451df9c18db2cd36985a6ec91b1f68f20d94820540c91268c2603d6f37fc",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f24ea42afd18fcd91ad6cf38834bca8ef3eeb2c5951bfe3f80dd7fa86d1c03bf",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "59212512b5b617bb4eb59513fe0307b5108537839226a7e12f984e8c03a77818",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1224f88f9e9b8e980dfa7960e73b05c2161afb749b6641a0bbe857fc6d1e74d9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b5cacd6f79e7ef7b3bb9fee85c512904e044f8efd96035be2ecd5318762490ee",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e70d507ea0b5e15601730e5a7783645e40926885b9215770ba358e917d784041",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "fdee7781e9ab6a872e8ff370e130bf7f30b392057d26af7b0152cc46795e64ae",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "42df5f95b6bda704b83fe10736b0f00f0fb6ced12dfb6a5a2029684851d765f8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "7d8ccf3ff1bf823291571c144d6402017f69fce450ceab359feae439ed0f2b29",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "13f6c0e14d909c31b640894112b530141e4339ff85cec3f2be684ea01ef55593",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "736482def1b18f645fb02eb9706ab894fd607f136b95640eb9a984c4fcd315c8",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f0812c51bd70679aa2d958110aca88f936e960fd20563171072ad9538f665c5f",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a052799f01dfc2dbb115d8bd8584ed5881eb9bb9f1d6a34cfdafdeb7eb2e416b",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e96ecc7b07f3a6589176d645f0ee088b82a398a49c021446f7697ed275ff8c51",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ff0a4ff5d229a56c4d1b8386f3109da7b90947f16bf4f5376c5d7fc824a41c1d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "94ea0eb33871338ffe013d757cca9b9f9a3f99c1626c95b0e30ce8311a9dc294",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "e7080523cfd722c15cf4edf91f0ef2fcd750b024a413367fd667e57854e380cc",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "90d5be2b8b8d251c33d502ceed895407a4c672484e3ad554ee14a842e302f6d0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9997aa7a64e322c52dce8389ce4139a07fec5fcef26e755f7203887d9a01e5f0",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "ff4344a71422fd0e8bd60604ad3fd8afe11ac699bb1730a4adf17db5f1953743",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3470a196506954da1bd2de3d0194baeb3c62651d78818338434c79f9825c60e2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "3e2f2b718428490937097deb1f26cdcb768dc6ee54ced09ed0213a653c4bd62a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "0842e84461450f83438ce5d475f7e97386fe80a026e89ce35eb04c4ccccebe75",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "09ffe8647595c94ee46692888215bd1764d8e4611f0e46895acdb379d60c5e93",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "82428691d9f816a8c265f0383c315b25cb0ef0fe48922ab154ea902cd2537d8b",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e0661b983cbada9eb06095700b0ceded29c5ffc7860cc9bfd5d88729a5174d26",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "63334c4f4a844217bd41fd9e7eb691a28560567f7fc8584cda4ff3d0af31e146",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "115434c963ef083b1c1c4d77a2c780a66e981a2cad9802fa1f83c0cfe6ebe3af",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9abb333154276ff6c4230d14752a30b86b348d3300f14ea198359deadc1f9ce5",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c1feebaff62b4f48cf2593d674afee81be849cbfb62b29138f60fac4f122a673",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "4b11955cf1ded813d992714baad3f20e3ac106a31a68562466663917174c32d2",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c0224a3d7f92fd5fc8cfd769064a1c179a4e72f4eb2b6b31f2598accfd30a9d4",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "2948263dd7488a38a48f37a1dbec18b343cb9b56aca3ecb67d28161116a8ba37",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "df600bc83e936db451f3f35d0379c45b55abcc06848fa2798e12f75c6ced2013",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "598e8ac6064b54abb49ed271654b52f71589ba4151d2760f18560a899e557765",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "99b4fa9e29c9fffef1d30ceb04645487a80b0ff56280a5ed356d4074be3af6be",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "2f068722c47285f9a7a4105d567e9c17e890fa29ba96d5cb5deeee2151666a79",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "a9df74006c6d1fdb96c35e6b0b1cff67bef9d94435079412b8de9727ec3b1268",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "25223db3755bc13348fc65345f481b54b9ca6518b00c35276b39b8de6529e790",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2bd1e7e29620ba5d13257d0021e60acbb9fa0aea6105cd3e1af6adcc49f4f1bf",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "78f26a05787f5c2121f8670ffe8339f1efa9c818fc1d96c366b5b27bc5783c31",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c3927811c548cab0f1007683d5d32c83ef25f5f65fff7e7b097d1845398aaf6a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "898c100400474084ac6067342ae4e1a80c4a5a14cdafe20eb2aa0f9936fb38bf",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "21f0adc8ec9ebefc85c68fb9af7e2cfa6df8f0a2fe18f01dabb88f165a7bb98d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "dc8d862ed20d7c5b63b3367ffdc37c3c32081d0a5e64801808d198c7310b6f83",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b0d4b00ef1daf6f8c9afd92fc394409182aa90333911e5683e228fff3a963791",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "662db63ddacd4b5a348a0faa67e80da1fe6b02e23cadf6a11e01b6dc9c6e6108",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "48a0521bad7909e84ad16a00931760519f0b90576e14d37a080412887e2eed85",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b70e47f253a2e3385053a4a0485aa8080759290cb1a62b6427020dcc6014e547",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "15ad4cfef1baae1b9c1108b4ef10248f30f5c696b3807898a2207046ae6ccb14",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d012ce66c4201f502f17005e548cdca507376dcf2cf742fc9d7c98b790ca68d2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "e605f71422e5c633550a02056f6bd4f2f365861b93834c3123759e3e831f44c0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f63dd6d8e1cba397be30995062afec7c512a2467931893c5fe191d3e6569929d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c637fc23917dd08ff77bdb44366d7cfc3634a421c0a0ad712dd0b9780fd9aabe",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a742863c3c440877d6caadcafcfcb712c892d2fead64d43e6d815341e9aa07dd",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "364a12341d6bce6acc099c167acc3a3fbca6afdf18c0b13ad28f534d5d0fddda",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "5b6f71f79892978096713b3e7d368abc9fb9e8d496b4d62c04a1fe065ca38d37",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "829841d54b036fec042313b225de24b1d7b45139d65dd325d66d9d15ca679481",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "23cdf72dc0411351b1d3b46dc2d88ad79ae1ea2306897ca824325e7c5ce3f8ef",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1e855b7abad6dfa93182262da20feaecf34aceafd60e72bb31ab5b4877a8e72d",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c5904ed7aa66aa0a43ae2b1b426cc0b75eda1fbe152d08578e09e04a7fdf8a16",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "b645deb95aab4190765d699b1cdf7583fb61d413ca612c40fb5c895c4fc1db83",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5a47cff8c6a053ae3afb7cb12983325202563bcb7b70876632eae2f3a04b69c2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "3f40e03aeb5b0ed0432599248e47d5800c5e7cdbfaae9d6c0dcfd5399e30ec04",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8a16541340f75554740cabe9d8be849bcea5869fc8a6986b611214c01fa82547",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "dd3371d3f4259b1f4ba4fa478a99de4a0b155da799679b98deb4f81f7bf60ed1",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5af84136cfdd6cb6f6bffb8b31997456ccc1c95bfb9c412615beb4599d4b8b15",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "22deb4a07ffefd1cca876329926ed7acb50de23511f1a8f042b98eca595f2cfb",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "ba16f64c5d17e18b7eb1236c541b8ca0f8889c42642ea4fd0ad5f5ec711bfee4",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "0f5ef62283e309bb6c1c9342579287280344366b797a7521fae619e512ed67ab",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "7f5c02502702e646212c276f774e5ea60b69365350a0e1659d14878d58553d94",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b7da00b21d6b7f90565b27a814c0e321c1bbcd55984e7be4730cc784198222f1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "97111a2afa1b16d0f8528485e4414f55290fa0a798c5b826b38bd8ff48d8bab3",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "12d95f3e3e465d45cf881c950c3bcf067035d64caa523f999bc25a5d3b59ca66",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "377b5aa9bc7401ca674e56c562e9fd8a28ca3dfe042f05ff54e62b485ae1c6ca",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ],
+  "downbeats_blstm_8": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d5a8a66ab9fdf121d3b5475fa70fc29ee164f5dce55744013bb426f300e27c9d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1daa0c368a2a93d3359baf52c3f84b25e1e29e46b19c2304bcbdf0125bb38bb1",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "15b43e8844f13ce0e0914dbce80e419df81f7a222504e6fd1de5660f4fd38183",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "10248673d038757b5add73171758324f29854b4046814ba1636f1e8f78b84193",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "c2332e2ba3c3d9b417a65a73d70e2ad2d44d4c2674e2050e62d1c72d9cec1fa0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "7a69a7dc75afb4ac1edfebb1269511ecbc30d4c6ba4c7fe0e38be1327cad2295",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "5de7cb4f73c7a5fb7adbf22284e047813dce53129d991b80ef3ca95edc2b0abe",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "6a3572b7b8f4bd750c43b15eb98b34d2dcde4fc77551c9a435edeb7f8e1ceb0e",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "4976a4db7252e6a808daab246021477989f9e633d3da883463c65657634226a9",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "67ed4751d932b99c7121d25fc20a57972699568455d6c1cd02bdf72bb3ddb55c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f8612b5e0f5b20394cae683296889e8ef4f45738120c324cade88a3d2e29ae7c",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "80827edcb89ed13b3696c8f9dbd4f4af48f673d69c95b3482107313d88065811",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "3f14b4a8f21a2db40d21e5c40d01794bacdd635bf48649e19ecce5e6f81577c6",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8632dc5131ff631acddc5ce7cd4c5ca719b9290042f05570157ada6070cfe64e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "b9e80433dc605b914e70593aa99ba1865a2e2a0b2b736bd24963faf9635751df",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8750cb2ebe84cecf5a9ed9ce5ad2115f1a146fc94447c8bf39c2756f58f27612",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "7aa232069c699e32752f30ef28819205cd5bd72fd0d2fdadb4d2c4b8c8a0f29c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e4cad17a03dc6a0cdac28fad296e46ddc7540607e29f62a602e2e9f3808a08d2",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "46009848df735730f57e97ec9a8298abd601aba6fae5dbd6e3be7d331c833282",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d3c6c455bd0b10f96f72ae805f508af879c66bcc9241db398e0fafc4904af699",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "967db818ce886f55139b2f96dd07a5ec180e372f3db34275b0b93577b9926b34",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6d4fccbcc9dc249590011ef8e6c863efce3c8a6be0c66b53545a4b32d71806ca",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "dca848fd32e397675a0cd7bc16ae78581f917c245a8a1ceeff403d181c05afc1",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "5b1253066485c966d1d6e10b135411809c5da8085e186db00ede6e93c5d2dc1d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "fa57776edcf214f2e84af5e170d3aeb434fd779d10c38621593bd94e4a0b8c6a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8d9280d647da8521dba2357b0e5d6c1c4893ed24a25a68f7b7562bcb009b8bbd",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "7e8ea081a13c8653b9263c84aba4c39b28dc8f880bd14a6c2deb8185e2a9b12a",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "6baf3e7fe46c46d90d33f92fd8e223104e0f04b021b59bf9cdebaa72d19d31e2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "565323a68ae6b9c5aea019433762dbaafcc8798154d4426e2c5d91325c332ca2",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "a10e9cace5d431bbdd2b22901b423e3e509ea16967adcbe86d4cbd6cb8a205b7",
+            "shape": [
+              314,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2b4a173785cafe411014c7571f0dbf7b52d628ee3c201ffb15f748a9e4409a3b",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b9dff2db792f4e40ba46f7f212a02aeed48e779189eb19f7e2e0e4c6f41b7925",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "c1f32cb08d09243aef1b2ea1b3b88a2c8c54b35df00ea86a9863fac2540f266c",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "88f4c73d3296c770a2c6ad78aa740a3ae080f8f78217a0587812e70ac20f7335",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "834ac700b10d3f0fac00ebc31ca55aa1e528b96d0a9459f29d8b1f587acbcb5d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4f8e74d9e7a226ca0fdfb525478dd13d41ce447a78700b11f6d335e5bb91f715",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e20ee7d0cafc3f209df2afbfc9bb31fedb76a9f883356efe771467b52e515ae3",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2371af9402a141e7323c2ce0c18060fa0915f108038ff1d650eb8666fa46bdea",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "4039e24c59eb814d05b96f978aa471e9856455ab3af32bee87a83b02ffb20a65",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "38ffe50637ae8017daf46b42d110372c69927f8547f9451cb84c72c00f5e3d9a",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "75816682ef6016de570fbc34901974926052100ccfd928991284179b69db3218",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ece9631189a92b573f6357775c1dbc280f1a7fc0f3c0a8ca919964d53a45830b",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "ea77642851ff2b59b9c6f5cbccc75b07a89641fee605208a403d67ed61bff632",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "2b7de723ac9db946039c657fd56c9904ef1681e40eba0b74a555e4826c396e3f",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "229fccd3577fcd1ee5c21b6288093d1b922cb010b3335329bbc196cb7691ffc0",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ddba7565bfdd7adb8455e4e23833c28b7270b9c895efed976b7029bd0562cc92",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "aaf60e348620d3e9010b1abb3cff8835e36d05fae976f1ad54333fd81c2d18b4",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "618e6a52fd8dbc3c19ef5aa9bfd0a55fc066d5e8a43e52d75b6f2fd10a9cb53f",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "9b21f1d2600f7780126d94407b04ffa50a7c189a94477d2b15b725da73f974f3",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "12fdcf4aa2ff0b0fe9118998f44dd4f09f6f2b480459d3141e1999cb49205ba0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "b9e818546a5116de2c01ce2a019ce77edb9726b775c4c806126972ec9a5b3de4",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "00f197cf0ed702055212b2abbc848f71e7ecae8cd9b3f3c94ce6602e1f1e04af",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "6b6649d62070ca52af5a4bf801754400523250d32a07e907b7ed67a80c111384",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "d914e34a03a6bcf5267163b1c58e97933b6df9110ad79cd5c02269a6241d4ae3",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1738c3a4b12ce5d6cfeff05eb93175809e18bebcb20e6a3322540500f8912fd3",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "228f7d78464e1ba35b3dfb3e8eba1aa17574b3f9914951e4986fcbbfd8fba6c8",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "83bc00b3cdd98f35f95a680aa3f5d0ecd38af47f9efc41014e98b1cc30d9a7ff",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "357730b650ec127ec312a4c14a4cacd53a7db8e0cda141561bc02627bb88d182",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "cfc6a1c01907cfe44f6d26bf70b0b0092dc246a22bf45a64759898f5eb9a2cc2",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "7e259ce8ae83996691d66076542746c3bcb55d4b4777c2877587f5f64050b47d",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d457f37e69855dc8f6353a79b668dc95e9d5436bf7f490a476694c497477abf2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8587762dfd4f87ca060ffc927b048702ead8d27876b14d340037a58e32dafc40",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "01437cb8f8e2073c07ae7a6c2ac73ec249db3ad3e9d489845921f718acdb1f81",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "84096078648715190ec5db3e10c90429ebb17434d9df9fae5ce25c67dbc81b15",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "b14713d3409162df9f816d01665445f71d4569d3ad612dbe2181d54d6887c346",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "20082ed73dbc690f2e0a8eac352df11f740a137f593ffdac15c45c8a70f5e248",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "025e3374f040975cecf3af83d4c0e6607f19784520e3d5c0c66238d9d47b872d",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "ce5471089fe04d3f7d5122dc1c4f7ca2b30031237a56d034233a82ae4a1264d7",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "32cbd75c94448b28db19480460f7ef38a132449e217639fdcc17ae13a21897cf",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "02a6302435d8651efb2e1033dc62681f0daee33c2e212802d0262c27eb2e32b8",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "e1570f174862725b0b7ed44964bd658445c389d9697361eccd4e4187b3bebd5e",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a49ccf1aa0d00cbff4dd67e8327f1e1b206643bd1c1597ad928742b03932af75",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "30c13da1d83bd6c89a655a4eff7deb8af04a99134980a251fd7853ad159ff4c2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1e118d0e41364a4b4de2a753339c2e3b68b4cb7755ced3ea706a03a7a3b83438",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8cadfd146526cdd3a831f4da5a24c4fcdb5daf71b2a96c316f88929acef7010a",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c6addb9b463a4843edd03c4094c754827ac4642a54ea652c97082e61530ba88a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "838687d1710f3fc68dade7332d75bf2f7ab5c7e46cab87d6627717e939b04eae",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Cell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "33b4a55c0975c23aa71d0b5f5dcf6122aed83a19d6c2987136980f0634f5ec10",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "forget_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "09d2c7c3f95564fb2bce74a3e6ffa58eb1c2f129d32db46aa3790fa0772ca139",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "214d91352e8a8dd49e8dc4869811e8768870e7d198788f8f58d8448ab25479dd",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "5b339869a599166dd79cecb567247b31a9c42dcdb7687c34d092d1909c68fba4",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "44b63ccd69dfa0afb1b96729c366e8fb3662010303f272614be327906c69346b",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "input_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "14def003696052dced5a2ccef5c1766b94d6fc9d0866ac857c5402619010d80e",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "833d17e0b5dca9e229b9d0b81730f2cff8b1862dba5642007e41d1c4e1bd1de1",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "cd1a2bbbf3c3690fb0fb0deff767dc6e9515492be02579423b28213e82197869",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f0ae943a39ca80124b7b1dc3346473586a1260a510b547d87899a0bc7c95f06e",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "output_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "40322dbeeb7c51f7449992f97e26f59d3fd71366758330875af9f99e0a63e9c2",
+            "shape": [
+              25
+            ]
+          },
+          "peephole_weights": {
+            "dtype": "float32",
+            "sha256": "0f5cafb45d2b6e7a46b2d2da38cda0d9bbe4bca8e154b915025c4886a5280fff",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "0fa91a7120c4f6d7e9731349eefb8ae162330447c88c87befe6027de2001eaac",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "cad32b70b8cf59759bcc381b4d8a49888de2f3b0fdc692b970d54195d8be9788",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "LSTMLayer"
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "softmax",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "939ddbfbd22c566ecec43b8144e47a69dd37e7db4ca3d6be606d264fc96b4228",
+        "shape": [
+          3
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "1fca3ca9ff3bfac63bb10c633e722e90f1494d7699b141fbf200de597408cfaa",
+        "shape": [
+          50,
+          3
+        ]
+      }
+    }
+  ]
+}
