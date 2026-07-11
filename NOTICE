@@ -1,0 +1,20 @@
+madmom-infer -- NOTICE
+
+madmom-infer is an independent, from-scratch reimplementation of algorithms
+published by the CPJKU/madmom project:
+
+    https://github.com/CPJKU/madmom
+
+It is NOT an official fork, port, or release of madmom, and is not affiliated
+with or endorsed by the Department of Computational Perception at Johannes
+Kepler University, Linz, or the Austrian Research Institute for Artificial
+Intelligence (OFAI), Vienna. Attribution to the original authors is preserved
+in LICENSE and README.md because this project re-derives algorithms they
+designed and published, even though no original source code is reused.
+
+No pretrained weights are bundled. madmom's own trained model files (`.pkl`
+and similar) are licensed CC BY-NC-SA 4.0 (non-commercial) by the original
+authors, separately from madmom's BSD-2-Clause source code license. This
+project does not, and will not, bundle, vendor, or redistribute any of
+madmom's own pretrained weights, under any phase of its roadmap. See README.md
+for details.

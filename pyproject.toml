@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "madmom-infer"
+dynamic = ["version"]
+description = "Modernized, from-scratch reimplementation of madmom's inference-relevant audio-DSP and beat/downbeat-tracking algorithms"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "BSD-2-Clause"}
+# Note: license-files automatically includes LICENSE by default
+authors = [
+    {name = "Department of Computational Perception, Johannes Kepler University, Linz, Austria and Austrian Research Institute for Artificial Intelligence (OFAI), Vienna, Austria", email = "madmom-users@googlegroups.com"},
+]
+maintainers = [
+    {name = "Package Maintainers"},
+]
+keywords = ["audio", "music", "mir", "madmom", "beat-tracking", "downbeat", "onset", "dsp", "inference"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Core inference-only dependencies. Phase 1 (DSP pipeline + numpy Viterbi
+# decoder) needs nothing beyond numpy/scipy -- no torch requirement by default.
+dependencies = [
+    "numpy",
+    "scipy",
+]
+
+[project.optional-dependencies]
+# Optional GPU-accelerated backend, most valuable for the spectrogram/STFT
+# stage (batch processing). The Viterbi decoder is inherently sequential, so
+# GPU gains there are expected to be marginal.
+torch = [
+    "torch>=2.0.0",
+]
+# Development dependencies
+dev = [
+    "black",
+    "ruff",
+    "pytest>=8.3.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/openmirlab/madmom-infer"
+Repository = "https://github.com/openmirlab/madmom-infer"
+"Original madmom" = "https://github.com/CPJKU/madmom"
+"Bug Reports" = "https://github.com/openmirlab/madmom-infer/issues"
+Changelog = "https://github.com/openmirlab/madmom-infer/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "madmom_infer/__about__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["madmom_infer"]
+
+[tool.hatch.build.targets.sdist]
+packages = ["madmom_infer"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
