@@ -1,15 +1,26 @@
 """Reimplementation of madmom.features.downbeats --
 `DBNDownBeatTrackingProcessor`, the dynamic Bayesian network downbeat tracker
 that wires together beats_hmm.py's bar-length state space with ml/hmm.py's
-Viterbi decoder to turn a beat-activation function into downbeat positions.
-This is the top-level Phase-1 deliverable that the sibling all-in-one-infer
-package needs; signal/stft/spectrogram/filters + beats_hmm + hmm are all
-building blocks toward this one entry point.
+Viterbi decoder to turn a beat-activation function into downbeat positions,
+PLUS (Phase 2) `RNNDownBeatProcessor`, the RNN-ensemble pre-processing +
+inference chain that PRODUCES that beat-activation function from raw audio.
+Chained together (`RNNDownBeatProcessor()(wav_path)` ->
+`DBNDownBeatTrackingProcessor(...)`) these are the full audio-in,
+beat/downbeat-times-out Phase-2 acceptance target.
 
-Only `DBNDownBeatTrackingProcessor` (plus the one helper it needs,
-`threshold_activations` from madmom.features.beats) is ported -- the RNN
-activation-function classes (`RNNDownBeatProcessor` and friends) need the NN
-runtime (madmom.ml.nn), which is out of scope until phase 2 per docs/DESIGN.md.
+Phase-1 ported only `DBNDownBeatTrackingProcessor` (plus the one helper it
+needs, `threshold_activations` from madmom.features.beats) -- the RNN
+activation-function classes needed the NN runtime (madmom.ml.nn), out of
+scope until Phase 2. Phase 2 adds `RNNDownBeatProcessor`
+(`madmom-upstream/madmom/features/downbeats.py:30-95`): it builds a
+`ParallelProcessor` of 3 `SequentialProcessor`s (one per frame size
+1024/2048/4096, each `frames -> stft -> filt -> spec -> diff`), `hstack`s
+their outputs, feeds that through a `NeuralNetworkEnsemble` of madmom's 8
+`downbeats_blstm_[1-8].pkl` models (`madmom_infer/models.py`), and drops the
+"non-beat" column. `RNNBarProcessor`/`DOWNBEATS_BGRU` (madmom's alternative
+BGRU-based downbeat model + separate rhythmic/harmonic feature split) is
+explicitly OUT of Phase-2 scope -- `RNNDownBeatProcessor`/`DOWNBEATS_BLSTM`
+is the one target this phase proves end-to-end.
 
 madmom's `__init__` builds one `HiddenMarkovModel` per bar length and its
 `process()` decodes each with `self.map` -- `map` (builtin, sequential) unless
@@ -23,16 +34,80 @@ doesn't go looking for it and wonder if it was missed).
 
 Reads: madmom_infer/features/beats_hmm.py (BarStateSpace, BarTransitionModel,
 RNNDownBeatTrackingObservationModel), madmom_infer/ml/hmm.py
-(HiddenMarkovModel), madmom_infer/processors.py (Processor)
+(HiddenMarkovModel), madmom_infer/processors.py (Processor, ParallelProcessor,
+SequentialProcessor), madmom_infer/audio/{signal,stft,spectrogram}.py (the
+pre-processing cascade), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
+madmom_infer/models.py (DOWNBEATS_BLSTM download)
 """
 
 import numpy as np
 
+from madmom_infer.audio.signal import FramedSignalProcessor, SignalProcessor
+from madmom_infer.audio.spectrogram import (
+    FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
+    SpectrogramDifferenceProcessor,
+)
+from madmom_infer.audio.stft import ShortTimeFourierTransformProcessor
 from madmom_infer.features.beats_hmm import (
     BarStateSpace, BarTransitionModel, RNNDownBeatTrackingObservationModel,
 )
 from madmom_infer.ml.hmm import HiddenMarkovModel
-from madmom_infer.processors import Processor
+from madmom_infer.ml.nn import NeuralNetworkEnsemble
+from madmom_infer.processors import (
+    ParallelProcessor, Processor, SequentialProcessor,
+)
+
+
+class RNNDownBeatProcessor(SequentialProcessor):
+    """Joint beat/downbeat activation function from an ensemble of RNNs.
+
+    Port of `madmom.features.downbeats.RNNDownBeatProcessor`
+    (`madmom-upstream/madmom/features/downbeats.py:30-95`). Builds:
+
+    1. `SignalProcessor(num_channels=1, sample_rate=44100)` -- downmix and
+       (if needed) resample to 44.1kHz mono. **Resampling a differently-
+       rated input file is NOT implemented** (`madmom_infer.audio.signal`'s
+       `Signal` has no ffmpeg-backed `resample()`, see that module's
+       header) -- callers must supply 44.1kHz audio.
+    2. A `ParallelProcessor` of 3 `SequentialProcessor`s, one per frame size
+       in `[1024, 2048, 4096]` with `num_bands` in `[3, 6, 12]`: each is
+       `FramedSignalProcessor(frame_size, fps=100)` ->
+       `ShortTimeFourierTransformProcessor()` ->
+       `FilteredSpectrogramProcessor(num_bands, fmin=30, fmax=17000,
+       norm_filters=True)` -> `LogarithmicSpectrogramProcessor(mul=1, add=1)`
+       -> `SpectrogramDifferenceProcessor(diff_ratio=0.5,
+       positive_diffs=True, stack_diffs=np.hstack)`.
+    3. `np.hstack` the 3 branches' outputs into one per-frame feature vector.
+    4. `NeuralNetworkEnsemble.load(DOWNBEATS_BLSTM)` (`madmom_infer/models.py`)
+       -- averages 8 BLSTM networks' 3-class (`[non-beat, beat, downbeat]`)
+       softmax outputs.
+    5. `np.delete(..., obj=0, axis=1)` -- drop the "non-beat" column, leaving
+       the `(num_frames, 2)` `[beat, downbeat]` activation array
+       `DBNDownBeatTrackingProcessor` (below) expects.
+    """
+
+    def __init__(self, **kwargs):
+        from functools import partial
+
+        from madmom_infer.models import downbeats_blstm
+
+        sig = SignalProcessor(num_channels=1, sample_rate=44100)
+        multi = ParallelProcessor([])
+        frame_sizes = [1024, 2048, 4096]
+        num_bands = [3, 6, 12]
+        for frame_size, bands in zip(frame_sizes, num_bands):
+            frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
+            stft = ShortTimeFourierTransformProcessor()
+            filt = FilteredSpectrogramProcessor(
+                num_bands=bands, fmin=30, fmax=17000, norm_filters=True)
+            spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
+            diff = SpectrogramDifferenceProcessor(
+                diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
+            multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
+        pre_processor = SequentialProcessor((sig, multi, np.hstack))
+        nn = NeuralNetworkEnsemble.load(downbeats_blstm(), **kwargs)
+        act = partial(np.delete, obj=0, axis=1)
+        super().__init__((pre_processor, nn, act))
 
 
 def threshold_activations(activations, threshold):
