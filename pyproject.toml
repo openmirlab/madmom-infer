@@ -32,20 +32,15 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Core inference-only dependencies. Phase 1 (DSP pipeline + numpy Viterbi
-# decoder) needs nothing beyond numpy/scipy -- no torch requirement by default.
+# Core inference-only dependencies. numpy/scipy is the only backend that
+# exists today -- there is no torch dependency or extra anywhere in this
+# project (torch is a planned, not-yet-implemented Phase 3 item; see README.md).
 dependencies = [
     "numpy",
     "scipy",
 ]
 
 [project.optional-dependencies]
-# Optional GPU-accelerated backend, most valuable for the spectrogram/STFT
-# stage (batch processing). The Viterbi decoder is inherently sequential, so
-# GPU gains there are expected to be marginal.
-torch = [
-    "torch>=2.0.0",
-]
 # Development dependencies
 dev = [
     "black",

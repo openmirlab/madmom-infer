@@ -37,23 +37,25 @@ of the same shape -- don't pad it out artificially. Keep headers in sync as
 files change; this is what lets a future session (or the `/nav:sync` skill)
 grasp any file from its first ~12 lines without reading the whole thing.
 
-## Dual-backend + golden-fixture testing philosophy
+## Golden-fixture testing philosophy (numpy backend; torch is roadmap, not shipped)
 
 This project follows the same pattern established by the sibling
 all-in-one-infer package's pure-Python NATTEN replacement:
 
-- A **numpy backend** is the default and required implementation, treated as
-  the reference. It must be verified **bit-identical to original madmom**
-  using golden fixtures -- recorded input/output pairs captured from running
-  the real (compiled) madmom, checked against this port's output in tests.
-  Do not consider a Phase 1/2/3 module "done" until it has a golden-fixture
-  test, not just a hand-written unit test.
-- An **optional torch backend** exists for GPU-accelerated batch processing,
-  gated behind the `torch` extra. It is expected to help most at the
-  spectrogram/STFT stage (trivially batches across frames) and to help little
-  or not at all for the Viterbi decoder (inherently sequential). Don't
-  oversell torch-backend speedups for sequential algorithms in docs or
-  commit messages.
+- A **numpy backend** is the default, required, and *only* implementation
+  today, treated as the reference. It must be verified **bit-identical to
+  original madmom** using golden fixtures -- recorded input/output pairs
+  captured from running the real (compiled) madmom, checked against this
+  port's output in tests. Do not consider a Phase 1/2/3 module "done" until
+  it has a golden-fixture test, not just a hand-written unit test.
+- A **torch backend does not exist yet**: there is no `import torch`
+  anywhere in `madmom_infer/`, no `torch` extra in `pyproject.toml`. It is a
+  **planned Phase 3** item (see `docs/DESIGN.md` for the design proposal),
+  expected to help most at the spectrogram/STFT stage (trivially batches
+  across frames) and to help little or not at all for the Viterbi decoder
+  (inherently sequential). Don't write or imply present-tense torch-backend
+  claims in docs or commit messages until it's actually implemented; don't
+  oversell torch-backend speedups for sequential algorithms even when it is.
 - Never bundle madmom's own pretrained weights (CC BY-NC-SA 4.0) -- see
   README.md's "What this project will NEVER bundle" section. This is a
   permanent policy, not a phase-gate detail to relax later. Phase 2

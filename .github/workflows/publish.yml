@@ -20,6 +20,20 @@ name: Publish to PyPI
 #     guard themselves with `pytest.mark.skipif` on that venv's path existing,
 #     so they cleanly SKIP (not error) on any machine -- including this
 #     runner -- that doesn't have that reference environment.
+#
+# Matrix covers every classifiers-claimed Python version that is *currently
+# proven green* with default (unconstrained) dependency resolution: 3.9,
+# 3.10, 3.11. 3.12 and 3.13 are deliberately NOT in this matrix yet: with
+# default resolution both currently pull scipy==1.18.0 (the first scipy
+# release requiring Python>=3.12), whose `scipy.fft.fft` produces float32
+# output that is no longer bit-identical to this project's golden fixtures
+# on 2 of 4 STFT cases (`tests/test_stft.py`) -- confirmed to be a
+# scipy-version regression, not a Python-version one, by pinning
+# scipy==1.17.1 on a 3.12 interpreter (passes) vs scipy==1.18.0 on the same
+# interpreter (fails the same 3 tests). See the 0.1.1 CHANGELOG entry.
+# Do not add 3.12/3.13 to this matrix until that's resolved (e.g. an upper
+# pin on scipy, or ULP-tolerant STFT assertions like test_spectrogram.py's),
+# or CI will go red.
 
 on:
   release:
@@ -29,11 +43,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       - name: Install uv
         run: pip install uv
       - name: Install dependencies

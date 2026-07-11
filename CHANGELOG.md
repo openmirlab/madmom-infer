@@ -5,6 +5,68 @@ All notable changes to madmom-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-12
+
+### Fixed
+- **Doc-honesty fix: removed all "torch backend" present-tense claims.** There
+  is zero `import torch` anywhere in `madmom_infer/` -- the torch backend was
+  always a Phase 3 proposal (`docs/DESIGN.md`), never implemented, but
+  shipped docs described it as an existing, installable feature. Corrected:
+  - `README.md`'s "Dual backend design" section claimed a "torch backend
+    (optional, via the `torch` extra): GPU-accelerated batch..." and
+    instructed `pip install "madmom-infer[torch]"`. Rewritten as "Backend"
+    describing numpy as the only backend that exists today, torch as planned
+    Phase 3 (with a pointer to `docs/DESIGN.md`).
+  - `pyproject.toml` declared a `torch = ["torch>=2.0.0"]` optional-dependency
+    extra that nothing in the package imports or uses -- removed. Installing
+    it would have pulled a multi-gigabyte unused dependency.
+  - `CLAUDE.md`'s "Dual-backend + golden-fixture testing philosophy" section
+    asserted "An optional torch backend exists for GPU-accelerated batch
+    processing, gated behind the `torch` extra" -- rewritten to state plainly
+    that no torch backend exists yet and it's a planned, not-yet-implemented
+    Phase 3 item.
+  - `madmom_infer/__init__.py`'s module docstring described "current
+    numpy/scipy/torch" and a "dual numpy/torch backend design" -- corrected
+    to numpy/scipy only, with torch noted as planned but unimplemented.
+  - `docs/DESIGN.md` and `madmom_infer/audio/signal.py`'s module docstring
+    were left as-is: both already use honest proposal/roadmap language
+    ("we recommend", "a future `madmom_infer.torch.audio.signal.Signal`")
+    rather than claiming the torch backend currently exists.
+  - The `[0.1.0]` entry below is left unedited as a historical record of what
+    that release's docs said at the time, imperfections included.
+
+### Changed
+- **CI test matrix extended from Python 3.11-only to a matrix over 3.9,
+  3.10, 3.11** (`.github/workflows/publish.yml`'s `test` job, which gates
+  the `publish` job). All three verified green locally via fresh
+  `uv venv --python 3.X` + editable install + `pytest`: 68 passed, 20
+  skipped (env-guarded golden fixtures needing the real-madmom reference
+  venv or network access, expected outside the recording environment), 11
+  deselected (`network`-marked), 0 failed -- identical counts on all three
+  versions.
+- **Python 3.12 and 3.13 were also tested locally (not added to CI) and both
+  currently FAIL 3 of 68 tests** (`test_stft.py::test_stft_matches_fixture
+  [float32_44100]`, `[stereo_48000_mono]`, and
+  `test_window_caching_gotcha_reproduces_exact_bug`) under default
+  (unconstrained) dependency resolution. Root-caused, not just observed:
+  scipy 1.18.0 (the first scipy release requiring Python>=3.12, and what
+  `uv sync`/`pip install` resolve to by default on 3.12/3.13 today) changed
+  `scipy.fft.fft`'s float32 rounding on some frames relative to scipy
+  1.13.1-1.17.1 (all bit-identical to the golden fixtures). Confirmed by
+  pinning `scipy==1.17.1` on a Python-3.12 interpreter (all 8 STFT tests
+  pass) vs. `scipy==1.18.0` on the same interpreter (same 3 failures) --
+  this is a scipy-version regression, not a Python-3.12/3.13 language
+  incompatibility. `requires-python` and the `Programming Language :: Python
+  :: 3.1x` classifiers are left unchanged (still `>=3.9`, `3.9`-`3.12`; no
+  `3.13` classifier added) pending a maintainer decision on how to close
+  the gap (an upper pin on scipy, or ULP-tolerant STFT assertions matching
+  `test_spectrogram.py`'s already-established pattern for this exact class
+  of BLAS/library non-associativity) -- see `.github/workflows/publish.yml`
+  for the full note. Until then, the existing `3.12` classifier should be
+  read with this caveat: a plain `pip install madmom-infer` on Python 3.12+
+  today gets a numpy/scipy combination this project has not verified
+  bit-identical.
+
 ## [0.1.0] - 2026-07-11
 
 Initial public release. Phase 1 (spectrogram/STFT/filterbank chain plus the
