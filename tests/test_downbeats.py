@@ -1,7 +1,7 @@
 """A/B and behavioral tests for madmom_infer.features.downbeats
 (DBNDownBeatTrackingProcessor), the phase-1 top-level target.
 
-Golden-fixture test uses tests/fixtures/dbn_downbeat.npz, recorded by
+Golden-fixture test uses tests/fixtures/dbn_downbeat_decode.npz, recorded by
 tests/generate_fixtures.py against real madmom's compiled
 DBNDownBeatTrackingProcessor (all-in-one-infer's exact parameters:
 beats_per_bar=[3, 4], fps=100 -- see all-in-one-fix/src/allin1_infer/
@@ -13,7 +13,7 @@ meter at all), and DBNDownBeatTrackingProcessor.process() must tolerate this
 crashing, including the doubly-pathological case where *every* hypothesis
 fails.
 
-Reads: tests/fixtures/dbn_downbeat.npz; madmom_infer/features/downbeats.py
+Reads: tests/fixtures/dbn_downbeat_decode.npz; madmom_infer/features/downbeats.py
 """
 
 import os
@@ -28,7 +28,7 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
 def test_dbn_downbeat_exact_beat_times():
-    d = np.load(os.path.join(FIXTURES_DIR, "dbn_downbeat.npz"))
+    d = np.load(os.path.join(FIXTURES_DIR, "dbn_downbeat_decode.npz"))
     proc = DBNDownBeatTrackingProcessor(beats_per_bar=[3, 4], fps=100)
 
     result = proc(d["activations"])
@@ -53,7 +53,7 @@ def test_one_hypothesis_fails_other_succeeds_monkeypatched():
     # surviving (4/4) hypothesis and behave exactly as if only it existed.
     proc = DBNDownBeatTrackingProcessor(beats_per_bar=[3, 4], fps=100)
 
-    d = np.load(os.path.join(FIXTURES_DIR, "dbn_downbeat.npz"))
+    d = np.load(os.path.join(FIXTURES_DIR, "dbn_downbeat_decode.npz"))
     activations = d["activations"]
 
     baseline = DBNDownBeatTrackingProcessor(beats_per_bar=[4], fps=100)

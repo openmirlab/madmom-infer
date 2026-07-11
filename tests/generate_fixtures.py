@@ -176,11 +176,11 @@ def generate_dbn_downbeat():
     result = proc.process(activations)
 
     np.savez(
-        os.path.join(FIXTURES_DIR, "dbn_downbeat.npz"),
+        os.path.join(FIXTURES_DIR, "dbn_downbeat_decode.npz"),
         activations=activations,
         result=result,
     )
-    print("wrote dbn_downbeat.npz, result shape", result.shape)
+    print("wrote dbn_downbeat_decode.npz, result shape", result.shape)
 
 
 def generate_perf_activation():
