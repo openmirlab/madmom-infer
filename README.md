@@ -62,10 +62,10 @@ pip install "madmom-infer[torch]"
 
 ## Roadmap
 
-### Phase 1 (near-term priority)
+### Phase 1 -- **complete**
 
 Driven by the sibling all-in-one-infer package's needs. All of the original
-madmom code in this phase is pure numpy/scipy (no Cython), so most of it is a
+madmom code in this phase is pure numpy/scipy (no Cython), so most of it was a
 near-mechanical port, verified against madmom via golden fixtures:
 
 - `Signal`, `FramedSignalProcessor` (`madmom_infer/audio/signal.py`)
@@ -84,6 +84,34 @@ near-mechanical port, verified against madmom via golden fixtures:
   small (~11k-15k states per bar-length HMM), transitions are sparse (~1-2
   incoming edges per state), and the recursion is log-domain -- well within
   numpy vectorization territory, no Cython/C/GPU required.
+
+Every stage above has a golden-fixture test (`tests/test_*.py`, 84 tests
+total) proving bit-identical output against a real, compiled madmom 0.17.dev0
+install -- except the one stage where bit-identity is bounded by BLAS library
+non-associativity rather than achievable in principle: the filterbank
+matrix-multiply (`np.dot(spectrogram, filterbank)`) rounds differently by a
+handful of float32 ULPs depending on which OpenBLAS build numpy resolves to.
+This is proven, not assumed -- `tests/test_spectrogram.py`'s
+`test_filtered_spectrogram_algorithm_is_exact_under_original_blas` exports
+this port's own computed arrays and re-runs the same matmul through the
+original reference venv's numpy/BLAS build, reproducing the golden fixture
+with zero differing elements. Everything downstream of the STFT and
+filterbank-matrix stages (which ARE bit-identical) is verified to within 64
+ULPs (worst case observed: 12, on the committed fixtures).
+
+**End-to-end acceptance**: run against the sibling all-in-one-infer package
+(3 stems separated once, shared between two isolated environments -- one with
+real madmom, one with madmom-infer via a thin `import madmom` compatibility
+shim) on a 90-second real-music excerpt, `harmonix-all` model, CUDA: **bpm,
+beats, downbeats, beat_positions, and segments (boundaries + labels) came out
+byte-for-byte IDENTICAL**. The intermediate spectrogram `.npy` arrays differed
+by up to ~1778 float32 ULPs (max abs diff ~2.4e-7) on this longer, more
+complex real track -- the same proven BLAS-non-associativity source as
+above, confirmed to have zero effect on the final decoded output. A
+same-environment rerun (real madmom vs. itself) reproduced both the fields
+*and* the spectrogram bit-for-bit, confirming the pipeline itself is fully
+deterministic and isolating the spectrogram delta to the BLAS difference
+between environments.
 
 ### Phase 2 (gated)
 
@@ -117,8 +145,9 @@ for any reason. See [NOTICE](./NOTICE) for the full statement.
 pip install madmom-infer
 ```
 
-*(Not yet published to PyPI -- this repository is currently a project
-skeleton. See the Roadmap above.)*
+*(Not yet published to PyPI. Phase 1 -- the DSP feature-extraction pipeline
+and numpy Viterbi/DBN downbeat decoder -- is complete and golden-fixture
+verified; Phase 2/3 are not yet started. See the Roadmap above.)*
 
 ## Attribution
 
