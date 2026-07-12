@@ -122,6 +122,17 @@ processor this project ports ever loads it (upstream's own
 `NOTES_CNN_MIREX`, confirmed by reading `madmom-upstream/madmom/features/
 notes.py:298-310` directly), so it has no registry entry here.
 
+4f addition: `PATTERNS_BALLROOM` (`patterns/2013/ballroom_pattern_{3,4}_4.pkl`,
+2 files -- NOT NN weights, each a plain dict of `{'gmms': [...], 'num_beats':
+int}` unpickled via `madmom_infer.ml.nn.unpickle.load_model`, see that
+module's header -- `madmom_infer.features.downbeats.PatternTrackingProcessor`).
+Both sha256s were computed directly from the files already present locally
+at `../madmom-upstream/madmom/models/patterns/2013/*.pkl` (Wave 4.0's
+submodule checkout) and cross-checked byte-for-byte against fresh downloads
+from `https://raw.githubusercontent.com/CPJKU/madmom_models/master/patterns/
+...` for both files -- identical, confirmed 2026-07-13, network was
+available.
+
 Every other model family madmom ships would follow the exact same
 `_ModelFile`/`download()` pattern -- adding one is a matter of listing its
 relative paths + sha256s, not new machinery -- but is out of scope until a
@@ -138,7 +149,8 @@ madmom_infer/audio/chroma.py (DeepChromaProcessor.__init__),
 madmom_infer/features/chords.py (DeepChromaChordRecognitionProcessor.
 __init__, CNNChordFeatureProcessor.__init__, CRFChordRecognitionProcessor.
 __init__), madmom_infer/features/notes.py (RNNPianoNoteProcessor.__init__,
-CNNPianoNoteProcessor.__init__).
+CNNPianoNoteProcessor.__init__), madmom_infer/features/downbeats.py
+(PatternTrackingProcessor.__init__, via madmom_infer.ml.nn.unpickle.load_model).
 """
 
 import hashlib
@@ -653,3 +665,34 @@ def notes_cnn(cache_root: Path = None, force: bool = False):
     """
     return [download(f, cache_root=cache_root, force=force)
             for f in _NOTES_CNN_FILES]
+
+
+# ---------------------------------------------------------------------------
+# PATTERNS_BALLROOM: madmom's rhythmic-pattern GMM files (NOT NN weights) --
+# the 4f end-to-end target. sha256s verified against BOTH a fresh raw-GitHub
+# download AND the copy already checked out locally under
+# ../madmom-upstream/madmom/models (identical, see this module's header).
+# ---------------------------------------------------------------------------
+_PATTERNS_BALLROOM_FILES = [
+    _ModelFile("patterns/2013/ballroom_pattern_3_4.pkl",
+               "e4955a6b878be8226e5db860a2d1d3cd62db15c58f54dabff14f7e4564b3d9cb"),
+    _ModelFile("patterns/2013/ballroom_pattern_4_4.pkl",
+               "d16b5455f610bf5e68da48aef04a3882305e292a825a51c6f5d5a162c1f2ee28"),
+]
+
+
+def patterns_ballroom(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return local paths to both
+    `ballroom_pattern_{3,4}_4.pkl` files -- madmom's `PATTERNS_BALLROOM`
+    model list (`madmom-upstream/madmom/models/__init__.py`'s
+    `models('patterns/2013/ballroom_pattern_[34]_4.pkl')`), used by
+    `madmom_infer.features.downbeats.PatternTrackingProcessor`. NOT neural
+    network weights -- each file is a plain dict of fitted `ml.gmm.GMM`
+    instances plus a `num_beats` count, see `ml/nn/unpickle.py`'s module
+    header.
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _PATTERNS_BALLROOM_FILES]

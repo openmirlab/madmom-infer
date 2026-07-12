@@ -62,8 +62,18 @@ below; normalizing in float64 first and casting down afterwards would
 produce different (still "correct-looking", but NOT bit-identical) rounding
 in the last mantissa bit of every non-trivial filter coefficient.
 
-Reads: numpy; read by: madmom_infer/audio/spectrogram.py (planned,
-`FilteredSpectrogramProcessor`).
+Wave 4f addition: `bark_frequencies`, `bark_double_frequencies`,
+`BarkFilterbank`, `RectangularFilterbank` (+ the internal `_rectangular_filters`
+helper, mirroring `_triangular_filters`'s shape for `RectangularFilter`).
+`RectangularFilterbank` is the load-bearing one -- it feeds `audio/
+spectrogram.py`'s `MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`,
+in turn `features/downbeats.py`'s `PatternTrackingProcessor`.
+`BarkFilterbank` is ported for API completeness (real, public,
+`pickletools`-confirmed NOT needed by any target this project ships) --
+see that class's own section header for the confirmation.
+
+Reads: numpy; read by: madmom_infer/audio/spectrogram.py
+(`FilteredSpectrogramProcessor`, `MultiBandSpectrogram`).
 """
 
 import numpy as np
@@ -592,3 +602,154 @@ class SemitoneBandpassFilterbank:
             self.filters.append(ellip(order, passband_ripple,
                                       stopband_rejection, freqs,
                                       btype="bandpass"))
+
+
+# ---------------------------------------------------------------------------
+# Bark / rectangular filterbanks -- Wave 4f addition (audit table: feeds
+# audio/spectrogram.py's MultiBandSpectrogram/MultiBandSpectrogramProcessor,
+# in turn features/downbeats.py's PatternTrackingProcessor).
+#
+# **Finding, confirmed by reading upstream directly, not assumed**: only
+# `RectangularFilterbank` is actually load-bearing for `MultiBandSpectrogram`
+# (`madmom-upstream/madmom/audio/spectrogram.py:1310`, `from .filters import
+# RectangularFilterbank`) -- `BarkFilterbank` is NOT referenced by
+# `MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`, or by anything else
+# this port ships (no shipped model or processor constructs one). The 4.0
+# audit table's row groups `BarkFilterbank`/`RectangularFilter`/
+# `RectangularFilterbank` together under "feeds MultiBandSpectrogramProcessor"
+# -- ported here anyway (real, public, cheap, self-contained -- same "port
+# the real surface even if unreachable from a target processor" precedent as
+# `NOTES_CNN_MIREX`/`ONSETS_BRNN_PP`'s registry-less-but-real model families).
+# ---------------------------------------------------------------------------
+def bark_frequencies(fmin=20.0, fmax=15500.0):
+    """Frequencies aligned on the (normal) Bark scale, clipped to
+    `[fmin, fmax]`.
+
+    Verbatim port of `madmom.audio.filters.bark_frequencies`
+    (`filters.py:124-149`).
+    """
+    frequencies = np.array([
+        20, 100, 200, 300, 400, 510, 630, 770, 920, 1080, 1270, 1480, 1720,
+        2000, 2320, 2700, 3150, 3700, 4400, 5300, 6400, 7700, 9500, 12000,
+        15500,
+    ])
+    frequencies = frequencies[np.searchsorted(frequencies, fmin):]
+    frequencies = frequencies[:np.searchsorted(frequencies, fmax, "right")]
+    return frequencies
+
+
+def bark_double_frequencies(fmin=20.0, fmax=15500.0):
+    """Frequencies aligned on the Bark scale, INCLUDING center frequencies
+    between the corner frequencies (`num_bands='double'`), clipped to
+    `[fmin, fmax]`.
+
+    Verbatim port of `madmom.audio.filters.bark_double_frequencies`
+    (`filters.py:152-182`).
+    """
+    frequencies = np.array([
+        20, 50, 100, 150, 200, 250, 300, 350, 400, 450, 510, 570, 630, 700,
+        770, 840, 920, 1000, 1080, 1170, 1270, 1370, 1480, 1600, 1720, 1850,
+        2000, 2150, 2320, 2500, 2700, 2900, 3150, 3400, 3700, 4000, 4400,
+        4800, 5300, 5800, 6400, 7000, 7700, 8500, 9500, 10500, 12000, 13500,
+        15500,
+    ])
+    frequencies = frequencies[np.searchsorted(frequencies, fmin):]
+    frequencies = frequencies[:np.searchsorted(frequencies, fmax, "right")]
+    return frequencies
+
+
+def _rectangular_filters(bins, norm):
+    """Build `(start, data)` non-overlapping rectangular filter tuples, one
+    per adjacent pair of `bins`.
+
+    Port of `RectangularFilter.__new__` + `RectangularFilter.band_bins`
+    (`filters.py:608-679`) -- only the `overlap=False` path (the only mode
+    `BarkFilterbank` ever requests; `band_bins`'s `overlap=True` branch is an
+    unconditional `raise NotImplementedError` upstream, not ported since
+    nothing calls it). `data` is a run of `1`s (length `stop - start`),
+    already cast to `FILTER_DTYPE` and (if `norm`) normalized IN THAT DTYPE
+    -- same cast-then-normalize order as `_triangular_filters`, see this
+    module's header's "bit-identity trap" note (`Filter.__new__` casts
+    before normalizing for every `Filter` subclass, including this one).
+    """
+    if len(bins) < 2:
+        raise ValueError("not enough bins to create a RectangularFilter")
+    filters = []
+    for index in range(len(bins) - 1):
+        start, stop = int(bins[index]), int(bins[index + 1])
+        if start >= stop:
+            raise ValueError("`start` must be smaller than `stop`")
+        data = np.ones(stop - start, dtype=float)
+        data = np.asarray(data, dtype=FILTER_DTYPE)
+        if norm:
+            data = data / np.sum(data)
+        filters.append((start, data))
+    return filters
+
+
+class BarkFilterbank(Filterbank):
+    """A filterbank with non-overlapping rectangular filters spaced on the
+    Bark scale.
+
+    Composition port of `madmom.audio.filters.BarkFilterbank`
+    (`filters.py:1095-1150`). **Not consumed by any processor this project
+    ports** -- see this section's header note.
+    """
+
+    NUM_BANDS = "normal"
+    FMIN = 20.0
+    FMAX = 15500.0
+
+    def __init__(self, bin_frequencies, num_bands=NUM_BANDS, fmin=FMIN,
+                 fmax=FMAX, norm_filters=NORM_FILTERS,
+                 unique_filters=UNIQUE_FILTERS, **kwargs):
+        # pylint: disable=unused-argument
+        if num_bands == "normal":
+            frequencies = bark_frequencies(fmin, fmax)
+        elif num_bands == "double":
+            frequencies = bark_double_frequencies(fmin, fmax)
+        else:
+            raise ValueError("`num_bands` must be {'normal', 'double'}")
+        # Note: BarkFilterbank inverts the usual unique_bins/unique_filters
+        # relationship (`unique_bins=not unique_filters`), matching upstream
+        # (`filters.py:1144-1145`) exactly -- not a typo carried over.
+        bins = frequencies2bins(frequencies, bin_frequencies,
+                                 unique_bins=not unique_filters)
+        filters = _rectangular_filters(bins, norm=norm_filters)
+        matrix = _place_filters_into_matrix(filters, bin_frequencies)
+        super().__init__(matrix, bin_frequencies)
+
+
+class RectangularFilterbank(Filterbank):
+    """A filterbank of contiguous, non-overlapping rectangular bands split
+    at given crossover frequencies.
+
+    Composition port of `madmom.audio.filters.RectangularFilterbank`
+    (`filters.py:1240-1297`) -- direct matrix construction (each band is a
+    contiguous run of bins set to `1`, optionally normalized), NOT built
+    from individual `Filter` objects the way `BarkFilterbank`/
+    `LogarithmicFilterbank`/`MelFilterbank` are (upstream's own `__new__`
+    fills the matrix directly too -- no `RectangularFilter`/`from_filters`
+    involved here despite the similar name). Feeds `audio/spectrogram.py`'s
+    `MultiBandSpectrogram`.
+    """
+
+    def __init__(self, bin_frequencies, crossover_frequencies, fmin=FMIN,
+                 fmax=FMAX, norm_filters=NORM_FILTERS,
+                 unique_filters=UNIQUE_FILTERS, **kwargs):
+        # pylint: disable=unused-argument
+        fb = np.zeros((len(bin_frequencies), len(crossover_frequencies) + 1),
+                      dtype=FILTER_DTYPE)
+        corner_frequencies = np.r_[fmin, crossover_frequencies, fmax]
+        corner_bins = frequencies2bins(corner_frequencies, bin_frequencies,
+                                        unique_bins=unique_filters)
+        for i in range(len(corner_bins) - 1):
+            fb[corner_bins[i]:corner_bins[i + 1], i] = 1
+        if norm_filters:
+            # if the sum over a band is zero, do not normalize this band
+            band_sum = np.sum(fb, axis=0)
+            band_sum[band_sum == 0] = 1
+            fb /= band_sum
+        super().__init__(fb, bin_frequencies)
+        self.crossover_frequencies = bins2frequencies(
+            corner_bins[1:-1], bin_frequencies)

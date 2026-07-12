@@ -106,8 +106,12 @@ This project targets madmom's **inference** code only:
   onset times)
 - Beat tracking: `RNNBeatProcessor` (online and offline RNN ensembles),
   `DBNBeatTrackingProcessor` (beat-only, reusing the same HMM machinery as
-  downbeat tracking), and `MultiModelSelectionProcessor` end-to-end
-  (spectrogram frontend -> beat activation function -> decoded beat times)
+  downbeat tracking), `MultiModelSelectionProcessor` end-to-end (spectrogram
+  frontend -> beat activation function -> decoded beat times),
+  `BeatTrackingProcessor`/`BeatDetectionProcessor` (tempo-driven, look-
+  aside/look-ahead beat alignment, no HMM), and `CRFBeatDetectionProcessor`
+  (a numpy-ported Conditional-Random-Field Viterbi decode over several
+  candidate tempo intervals)
 - Tempo estimation: `TempoEstimationProcessor` with all 3 shipped histogram
   modes -- autocorrelation (`ACFTempoHistogramProcessor`), resonating comb
   filters (`CombFilterTempoHistogramProcessor`, backed by a numpy port of
@@ -132,6 +136,14 @@ This project targets madmom's **inference** code only:
   offset activations, decoded by `ADSRNoteTrackingProcessor`'s
   attack-decay-sustain-release HMM, reusing the same Viterbi decoder as beat/
   downbeat tracking)
+- Rhythmic pattern tracking: `PatternTrackingProcessor` (a Gaussian-Mixture-
+  Model observation model -- `ml/gmm.py`'s forward-inference-only numpy `GMM`
+  -- combined with a multi-band spectral-flux frontend
+  (`MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`) to jointly track
+  beats, downbeats, AND the rhythmic pattern/meter itself) and
+  `DBNBarTrackingProcessor` (decode downbeats from pre-determined beat
+  positions plus a downbeat activation function, e.g. `RNNBarProcessor`'s
+  output, across several candidate bar lengths)
 
 Out of scope, forever:
 
@@ -141,9 +153,8 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: CRF-based beat detection and pattern tracking, the
-remaining audio submodules (HPSS, cepstrogram/MFCC), and a torch
-reimplementation of the RNN ensemble forward pass itself
+Not yet ported: the remaining audio submodules (HPSS, cepstrogram/MFCC), and
+a torch reimplementation of the RNN ensemble forward pass itself
 (blocked on a real design question -- madmom's LSTM layers use peephole
 connections `torch.nn.LSTM` does not implement, so this needs a custom
 cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
@@ -250,6 +261,53 @@ alternative to the bidirectional default above -- same
 `activations -> DBNBeatTrackingProcessor` decode step. Same runtime-download/
 sha256/caching story as the processors above, via `madmom_infer/models.py`'s
 `beats_lstm()`/`beats_blstm()`.
+
+`CRFBeatDetectionProcessor` and `BeatTrackingProcessor`/
+`BeatDetectionProcessor` are drop-in alternatives to `DBNBeatTrackingProcessor`
+above -- same `activations -> beat_times` decode step, different decoding
+algorithm (a Conditional-Random-Field Viterbi decode over several candidate
+tempo intervals, or a non-HMM tempo-driven look-aside/look-ahead alignment,
+respectively):
+
+```python
+from madmom_infer.features.beats import CRFBeatDetectionProcessor
+
+crf = CRFBeatDetectionProcessor(fps=100)
+beat_times = crf(activations)
+```
+
+### Pattern tracking
+
+```python
+from madmom_infer.audio.signal import SignalProcessor
+from madmom_infer.audio.spectrogram import (
+    LogarithmicSpectrogramProcessor,
+    MultiBandSpectrogramProcessor,
+    SpectrogramDifferenceProcessor,
+)
+from madmom_infer.features.downbeats import PatternTrackingProcessor
+from madmom_infer.models import patterns_ballroom
+from madmom_infer.processors import SequentialProcessor
+
+pre_proc = SequentialProcessor([
+    SignalProcessor(num_channels=1, sample_rate=44100),
+    LogarithmicSpectrogramProcessor(),
+    SpectrogramDifferenceProcessor(positive_diffs=True),
+    MultiBandSpectrogramProcessor(crossover_frequencies=[270]),
+])
+features = pre_proc("track.wav")
+
+pattern_proc = PatternTrackingProcessor(patterns_ballroom(), fps=50)
+beats = pattern_proc(features)  # (time, beat_number_in_bar) pairs
+```
+
+Jointly tracks beats, downbeats, AND the rhythmic pattern/meter itself, via a
+Gaussian-Mixture-Model observation model (`madmom_infer.ml.gmm.GMM`,
+forward-inference-only) rather than an RNN. `patterns_ballroom()` downloads
+(and sha256-verifies) madmom's `PATTERNS_BALLROOM` GMM files -- NOT neural
+network weights, but still CC BY-NC-SA-licensed, same
+runtime-download/caching story as every other model family above (see
+[What this project will NEVER bundle](#what-this-project-will-never-bundle)).
 
 ### Tempo estimation
 

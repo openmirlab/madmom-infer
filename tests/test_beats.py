@@ -1,7 +1,9 @@
-"""Golden-fixture tests for Wave 4c: `madmom_infer.features.beats` --
+"""Golden-fixture tests for `madmom_infer.features.beats` -- Wave 4c's
 `RNNBeatProcessor`, `DBNBeatTrackingProcessor` (beat-only), and
-`MultiModelSelectionProcessor` -- all recorded by `tools/
-generate_beat_tempo_fixtures.py` from real (compiled) madmom.
+`MultiModelSelectionProcessor`, PLUS Wave 4f's `BeatTrackingProcessor`,
+`BeatDetectionProcessor`, and `CRFBeatDetectionProcessor` -- recorded by
+`tools/generate_beat_tempo_fixtures.py` (4c) and `tools/
+generate_crf_pattern_fixtures.py` (4f) from real (compiled) madmom.
 
 Several independent things are verified here:
 
@@ -24,6 +26,12 @@ Several independent things are verified here:
    `RNNBeatProcessor` + `DBNBeatTrackingProcessor`, run under the ORIGINAL
    reference venv's numpy/scipy build, reproduce real madmom's activations
    AND decoded beat times with ZERO differing elements.
+6. **Wave 4f: `BeatTrackingProcessor`/`BeatDetectionProcessor`/
+   `CRFBeatDetectionProcessor` decoded-beat-time exactness**, offline
+   (decode of REAL, already-recorded `RNNBeatProcessor` activations from
+   `tests/fixtures/beat_tracking_end_to_end.npz`) and cross-BLAS (the full
+   audio-in chain, reusing `features/beats_crf.py`'s numpy CRF Viterbi
+   port for the CRF case).
 
 **Same "shared-instance-in-order" caching-gotcha discipline as
 `test_downbeats_rnn.py`/`test_onsets.py`**: `RNNBeatProcessor` builds ONE
@@ -34,10 +42,11 @@ shared `RNNBeatProcessor(online=False)`/`RNNBeatProcessor(online=True)`
 instance, in order (`mono_44100` -> `stereo_44100` -> `float32_44100`);
 every network test below replicates that exact call order/instance-reuse.
 
-Reads: madmom_infer/features/beats.py, madmom_infer/models.py,
-tests/fixtures/beats_structural_digest.json,
+Reads: madmom_infer/features/beats.py, madmom_infer/features/beats_crf.py,
+madmom_infer/models.py, tests/fixtures/beats_structural_digest.json,
 tests/fixtures/beats_activations.npz,
-tests/fixtures/beats_multimodel_selection.npz.
+tests/fixtures/beats_multimodel_selection.npz,
+tests/fixtures/beat_tracking_end_to_end.npz.
 """
 
 import hashlib
@@ -368,4 +377,158 @@ print("EXACT_MATCH")
         capture_output=True, text=True, cwd=str(REPO_ROOT),
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# 6. Wave 4f: BeatTrackingProcessor / BeatDetectionProcessor /
+# CRFBeatDetectionProcessor -- decode of real, already-recorded activations
+# (offline) + full audio-in cross-BLAS exactness.
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def beat_tracking_e2e_fixture():
+    return np.load(FIXTURES_DIR / "beat_tracking_end_to_end.npz")
+
+
+def test_beat_tracking_processor_decode_matches_fixture(beat_tracking_e2e_fixture):
+    from madmom_infer.features.beats import BeatTrackingProcessor
+
+    proc = BeatTrackingProcessor(fps=100)
+    for case in BEAT_CASES:
+        act = beat_tracking_e2e_fixture[f"{case}_activations"]
+        out = np.asarray(proc(act))
+        expected = beat_tracking_e2e_fixture[f"{case}_beat_tracking"]
+        np.testing.assert_array_equal(out, expected), case
+
+
+def test_beat_detection_processor_decode_matches_fixture(beat_tracking_e2e_fixture):
+    from madmom_infer.features.beats import BeatDetectionProcessor
+
+    proc = BeatDetectionProcessor(fps=100)
+    for case in BEAT_CASES:
+        act = beat_tracking_e2e_fixture[f"{case}_activations"]
+        out = np.asarray(proc(act))
+        expected = beat_tracking_e2e_fixture[f"{case}_beat_detection"]
+        np.testing.assert_array_equal(out, expected), case
+
+
+def test_crf_beat_detection_processor_decode_matches_fixture(beat_tracking_e2e_fixture):
+    from madmom_infer.features.beats import CRFBeatDetectionProcessor
+
+    proc = CRFBeatDetectionProcessor(fps=100)
+    for case in BEAT_CASES:
+        act = beat_tracking_e2e_fixture[f"{case}_activations"]
+        out = np.asarray(proc(act))
+        expected = beat_tracking_e2e_fixture[f"{case}_crf"]
+        np.testing.assert_array_equal(out, expected), case
+
+
+def test_detect_beats_basic_periodicity():
+    """`detect_beats` on a synthetic, exactly-periodic activation function
+    should find beats spaced (close to) the given interval apart -- a
+    hand-built sanity check, not a golden-fixture claim (the golden claim
+    is `BeatTrackingProcessor`'s own fixture test above, which calls this
+    function internally)."""
+    from madmom_infer.features.beats import detect_beats
+
+    n_frames, interval = 500, 25
+    act = np.full(n_frames, 0.02)
+    for i in range(0, n_frames, interval):
+        act[i] = 1.0
+    positions = detect_beats(act, interval)
+    assert len(positions) > 1
+    np.testing.assert_allclose(np.diff(positions), interval, atol=1)
+
+
+def test_beat_detection_processor_is_beat_tracking_with_no_look_ahead():
+    from madmom_infer.features.beats import BeatDetectionProcessor
+
+    proc = BeatDetectionProcessor(fps=100)
+    assert proc.look_ahead is None
+
+
+@pytest.mark.network
+def test_beat_tracking_family_full_audio_matches_fixture(
+    beat_tracking_e2e_fixture, _beats_models_ready
+):
+    from madmom_infer.features.beats import (
+        BeatDetectionProcessor, BeatTrackingProcessor,
+        CRFBeatDetectionProcessor, RNNBeatProcessor,
+    )
+
+    rnn = RNNBeatProcessor(online=False)
+    bt = BeatTrackingProcessor(fps=100)
+    bd = BeatDetectionProcessor(fps=100)
+    crf = CRFBeatDetectionProcessor(fps=100)
+    for case in BEAT_CASES:
+        wav_path = str(WAVS_DIR / f"{case}.wav")
+        act = rnn(wav_path)
+        expected_act = beat_tracking_e2e_fixture[f"{case}_activations"]
+        np.testing.assert_array_max_ulp(act, expected_act, maxulp=MAX_ULP_NN)
+        for proc, key in ((bt, "beat_tracking"), (bd, "beat_detection"),
+                          (crf, "crf")):
+            out = np.asarray(proc(act))
+            expected = beat_tracking_e2e_fixture[f"{case}_{key}"]
+            np.testing.assert_array_equal(out, expected), (case, key)
+
+
+def _upstream_beats_models_available_for_4f():
+    return _upstream_beats_models_available()
+
+
+@pytest.mark.skipif(
+    not _reference_python_available(),
+    reason="reference madmom install (madmom-reference/.venv) not found on "
+           "this machine; the cross-BLAS proof requires it",
+)
+@pytest.mark.skipif(
+    not _upstream_beats_models_available_for_4f(),
+    reason="local ../madmom-upstream/madmom/models/beats checkout not "
+           "found; the cross-BLAS proof needs it (no network required this "
+           "way, see nn_files= override)",
+)
+def test_beat_tracking_family_is_exact_under_original_blas():
+    """THE proof for Wave 4f: this port's own `BeatTrackingProcessor`,
+    `BeatDetectionProcessor`, and `CRFBeatDetectionProcessor`, run under the
+    ORIGINAL reference venv's numpy/scipy build, reproduce real madmom's
+    decoded beat times with ZERO differing elements, for all 3 cases, fed
+    this port's own `RNNBeatProcessor(online=False)` activations. Uses the
+    local `../madmom-upstream` `.pkl` copies directly (`nn_files=` override)
+    so this test needs neither network nor a prior `-m network` run.
+    """
+    blstm_paths = [str(UPSTREAM_BEATS_BLSTM_DIR / f"beats_blstm_{i}.pkl")
+                   for i in range(1, 9)]
+    case_paths = ", ".join(repr(str(WAVS_DIR / f"{c}.wav")) for c in BEAT_CASES)
+    script = f"""
+import sys
+sys.path.insert(0, {str(REPO_ROOT)!r})
+import numpy as np
+from madmom_infer.features.beats import (
+    BeatDetectionProcessor, BeatTrackingProcessor, CRFBeatDetectionProcessor,
+    RNNBeatProcessor,
+)
+
+cases = {list(BEAT_CASES)!r}
+wav_paths = [{case_paths}]
+rnn = RNNBeatProcessor(online=False, nn_files={blstm_paths!r})
+bt = BeatTrackingProcessor(fps=100)
+bd = BeatDetectionProcessor(fps=100)
+crf = CRFBeatDetectionProcessor(fps=100)
+fixture = np.load({str(FIXTURES_DIR / "beat_tracking_end_to_end.npz")!r})
+
+for case, wav_path in zip(cases, wav_paths):
+    act = rnn(wav_path)
+    assert np.array_equal(act, fixture[case + "_activations"]), \\
+        f"{{case}}: activations differ"
+    for proc, key in ((bt, "beat_tracking"), (bd, "beat_detection"), (crf, "crf")):
+        out = np.asarray(proc(act))
+        expected = fixture[case + "_" + key]
+        assert np.array_equal(out, expected), f"{{case}}/{{key}}: decoded beats differ"
+print("EXACT_MATCH")
+"""
+    proc = subprocess.run(
+        [str(REFERENCE_PYTHON), "-c", script],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "EXACT_MATCH" in proc.stdout
     assert "EXACT_MATCH" in proc.stdout

@@ -176,12 +176,28 @@ never reads `self.map`, always runs its sub-processors with a plain list
 comprehension, see `processors.py`'s module header -- but the allowlist
 entry is still required for the unpickle to succeed at all.)
 
+4f target: `patterns/2013/ballroom_pattern_{3,4}_4.pkl` (`PATTERNS_BALLROOM`)
+-- `pickletools.dis()`-walked both directly (not guessed): each is a plain
+`dict` (`{'gmms': [...], 'num_beats': int, 'time_signature': (...)}`, no
+`madmom.processors.*`/NN globals at all) whose `'gmms'` list elements are
+`madmom.ml.gmm.GMM` instances, restored via `NEWOBJ` + `BUILD` (i.e.
+`GMM.__setstate__`, ALREADY handled by the standard `pickle.Unpickler`
+protocol this module's `SafeUnpickler` inherits unmodified -- only
+`find_class` is overridden, see this module's header). Needs exactly ONE
+new allowlist entry, found by the same technique:
+
+| pickled path (madmom original)  | mapped to (madmom_infer)         |
+|-------------------------------------|--------------------------------------|
+| `madmom.ml.gmm.GMM`                 | `madmom_infer.ml.gmm.GMM`            |
+
 Reads: pickle (stdlib), numpy, madmom_infer.ml.nn.{NeuralNetwork},
 madmom_infer.ml.nn.layers.*, madmom_infer.ml.nn.activations.*,
-madmom_infer.ml.crf.ConditionalRandomField, madmom_infer.processors.{
-SequentialProcessor,ParallelProcessor}; read by: madmom_infer/ml/nn/
-__init__.py (NeuralNetwork.load), madmom_infer/ml/crf.py
-(ConditionalRandomField.load), madmom_infer/models.py (cache-then-load flow).
+madmom_infer.ml.crf.ConditionalRandomField, madmom_infer.ml.gmm.GMM,
+madmom_infer.processors.{SequentialProcessor,ParallelProcessor}; read by:
+madmom_infer/ml/nn/__init__.py (NeuralNetwork.load), madmom_infer/ml/crf.py
+(ConditionalRandomField.load), madmom_infer/features/downbeats.py
+(PatternTrackingProcessor.__init__, loading PATTERNS_BALLROOM pattern
+files), madmom_infer/models.py (cache-then-load flow).
 """
 
 import _codecs
@@ -196,6 +212,7 @@ from . import NeuralNetwork
 from . import activations as _activations
 from . import layers as _layers
 from ..crf import ConditionalRandomField
+from ..gmm import GMM
 from ...processors import ParallelProcessor, SequentialProcessor
 
 # -- the full, closed allowlist (module, name) -> object -------------------
@@ -219,6 +236,13 @@ ALLOWED_GLOBALS = {
     ("madmom.ml.nn.layers", "ReshapeLayer"): _layers.ReshapeLayer,
     ("madmom.ml.nn.layers", "TransposeLayer"): _layers.TransposeLayer,
     ("madmom.ml.crf", "ConditionalRandomField"): ConditionalRandomField,
+    # 4f: PATTERNS_BALLROOM's pattern .pkl files (each a plain dict of
+    # {'gmms': [...], 'num_beats': int, 'time_signature': ...}) pickle a
+    # list of madmom.ml.gmm.GMM instances -- see madmom_infer/ml/gmm.py's
+    # module header for the pickletools-confirmed finding (old-format
+    # pickle, GMM.__setstate__'s legacy weights_/means_/covars_ rename
+    # branch fires on both target files).
+    ("madmom.ml.gmm", "GMM"): GMM,
     # 4e: notes_cnn.pkl pickles a whole SequentialProcessor/ParallelProcessor
     # graph, not a bare NeuralNetwork -- see this module's header.
     ("madmom.processors", "SequentialProcessor"): SequentialProcessor,

@@ -276,6 +276,30 @@ EXPECTED_KEYS = {
     "notes_peak_picking_synthetic.npz": {
         "activations", "onset_notes", "deprecated_notes",
     },
+    # Wave 4f (tools/generate_crf_pattern_fixtures.py) -- beats_crf function
+    # fixtures, fed a real beat activation function (mono_44100.wav only,
+    # same economy as 4c's comb-filter fixtures).
+    "beats_crf_functions.npz": {"crf_input_activations"} | {
+        f"{prefix}_interval{interval}"
+        for prefix in ("init_dist", "trans_dist", "norm_factors",
+                       "best_sequence_path", "best_sequence_log_prob")
+        for interval in (20, 35, 55)
+    },
+    # Wave 4f -- BeatTrackingProcessor/BeatDetectionProcessor/
+    # CRFBeatDetectionProcessor end-to-end decoded beat times, 44.1kHz-native
+    # cases only (RNNBeatProcessor has no resampling support).
+    "beat_tracking_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("activations", "beat_tracking", "beat_detection", "crf")
+    },
+    # Wave 4f -- PatternTrackingProcessor end-to-end (audio -> multi-band
+    # features -> decoded (down-)beats), 44.1kHz-native cases only.
+    "pattern_tracking_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("features", "decoded")
+    },
 }
 
 
@@ -451,3 +475,54 @@ def test_notes_layer_params_exists_and_loads():
     expected_types = {"ReshapeLayer", "TransposeLayer"}
     missing = expected_types - set(params.keys())
     assert not missing, f"notes_layer_params.json missing types: {sorted(missing)}"
+
+
+def test_gmm_scores_fixture_exists_and_loads():
+    """Wave 4f fixture (tools/generate_crf_pattern_fixtures.py): per-GMM
+    means/covars/weights + a fixed query array + real madmom's score/
+    responsibilities output, for a representative subset of GMMs in each
+    PATTERNS_BALLROOM pattern file. Key names depend on which GMM indices
+    the generator's RNG happened to sample, so this checks structural
+    invariants (both pattern files represented, every recorded GMM has a
+    matching means/covars/weights/x/log_prob/responsibilities set) rather
+    than an exact fixed key set."""
+    path = FIXTURES_DIR / "gmm_scores.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        keys = set(data.files)
+        for p_idx in (0, 1):
+            assert f"pattern{p_idx}_covariance_type" in keys, (
+                f"gmm_scores.npz missing pattern{p_idx}_covariance_type"
+            )
+        gmm_prefixes = {
+            key.rsplit("_", 1)[0] for key in keys
+            if "_gmm" in key and key.endswith("_means")
+        }
+        assert len(gmm_prefixes) >= 2, (
+            "gmm_scores.npz should record at least 2 GMMs total "
+            f"(found {len(gmm_prefixes)})"
+        )
+        for prefix in gmm_prefixes:
+            for suffix in ("means", "covars", "weights", "n_components",
+                           "x", "log_prob", "responsibilities"):
+                assert f"{prefix}_{suffix}" in keys, (
+                    f"gmm_scores.npz: {prefix} missing _{suffix}"
+                )
+
+
+def test_patterns_structural_digest_exists_and_loads():
+    """Wave 4f fixture (tools/generate_crf_pattern_fixtures.py): both
+    PATTERNS_BALLROOM pattern files' num_beats + per-GMM means/covars/
+    weights digests."""
+    path = FIXTURES_DIR / "patterns_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"pattern0", "pattern1"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, (
+        f"patterns_structural_digest.json missing keys: {sorted(missing)}"
+    )
+    for key in expected_keys:
+        assert "num_beats" in digest[key]
+        assert "gmms" in digest[key]
+        assert len(digest[key]["gmms"]) == digest[key]["num_gmms"]

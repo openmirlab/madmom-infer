@@ -27,9 +27,14 @@ Wave 4d addition: `SemitoneBandpassSpectrogram` -- feeds `audio/chroma.py`'s
 own composition class instead, see that class's docstring for why): it has
 no STFT stage at all, `filters.SemitoneBandpassFilterbank` is a TIME-domain
 IIR filterbank, and it needs `audio/signal.py`'s ffmpeg-subprocess `resample`
-(also new this wave) for every one of its ~78 semitone bands. Still NOT
-ported (no call site so far, `madmom-upstream/madmom/audio/spectrogram.py`):
-`MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`,
+(also new this wave) for every one of its ~78 semitone bands.
+
+Wave 4f addition: `MultiBandSpectrogram`/`MultiBandSpectrogramProcessor` --
+IS a `FilteredSpectrogram` subclass (same `np.dot(spectrogram, filterbank)`
+shape, just always built from `filters.RectangularFilterbank` rather than
+the default `LogarithmicFilterbank`), feeds `features/downbeats.py`'s
+`PatternTrackingProcessor`. Still NOT ported (no call site so far,
+`madmom-upstream/madmom/audio/spectrogram.py`):
 `LogarithmicFilteredSpectrogram`/`LogarithmicFilteredSpectrogramProcessor`
 (the fused filter+log convenience class -- this project composes the same
 pipeline via two separate stages instead, exactly like `build_spec_processor()`
@@ -565,6 +570,73 @@ class SuperFluxProcessor(SequentialProcessor):
             diff_ratio=diff_ratio, diff_max_bins=diff_max_bins,
             positive_diffs=positive_diffs, **kwargs)
         super().__init__((stft, spec, filt, log, diff))
+
+
+# ---------------------------------------------------------------------------
+# MultiBandSpectrogram -- Wave 4f addition (feeds features/downbeats.py's
+# PatternTrackingProcessor)
+# ---------------------------------------------------------------------------
+class MultiBandSpectrogram(FilteredSpectrogram):
+    """A `Spectrogram` combined into multiple contiguous bands via a
+    `filters.RectangularFilterbank`.
+
+    Composition port of `madmom.audio.spectrogram.MultiBandSpectrogram`
+    (`spectrogram.py:1265-1338`) -- same `np.dot(spectrogram, filterbank)`
+    shape as `FilteredSpectrogram` (which this subclasses), just always
+    built from a `RectangularFilterbank` rather than the default
+    `LogarithmicFilterbank`.
+    """
+
+    def __init__(self, spectrogram, crossover_frequencies, fmin=FMIN,
+                 fmax=FMAX, norm_filters=NORM_FILTERS,
+                 unique_filters=UNIQUE_FILTERS, **kwargs):
+        # pylint: disable=super-init-not-called
+        from .filters import RectangularFilterbank
+
+        if not isinstance(spectrogram, Spectrogram):
+            spectrogram = Spectrogram(spectrogram, **kwargs)
+        filterbank = RectangularFilterbank(
+            spectrogram.bin_frequencies, crossover_frequencies, fmin=fmin,
+            fmax=fmax, norm_filters=norm_filters,
+            unique_filters=unique_filters)
+        self.data = np.dot(np.asarray(spectrogram), np.asarray(filterbank))
+        self.filterbank = filterbank
+        self.stft = spectrogram.stft
+        self.spectrogram = spectrogram
+        self.crossover_frequencies = crossover_frequencies
+
+    @property
+    def bin_frequencies(self):
+        """Bin frequencies (the filterbank's center frequencies)."""
+        return self.filterbank.center_frequencies
+
+
+class MultiBandSpectrogramProcessor(Processor):
+    """Processor wrapper: combine a `Spectrogram`'s magnitudes into multiple
+    contiguous bands.
+
+    Port of `madmom.audio.spectrogram.MultiBandSpectrogramProcessor`
+    (`spectrogram.py:1341-1398`).
+    """
+
+    def __init__(self, crossover_frequencies, fmin=FMIN, fmax=FMAX,
+                 norm_filters=NORM_FILTERS, unique_filters=UNIQUE_FILTERS,
+                 **kwargs):
+        # pylint: disable=unused-argument
+        self.crossover_frequencies = np.array(crossover_frequencies)
+        self.fmin = fmin
+        self.fmax = fmax
+        self.norm_filters = norm_filters
+        self.unique_filters = unique_filters
+
+    def process(self, data, **kwargs):
+        """Create a `MultiBandSpectrogram` from the given data."""
+        args = dict(crossover_frequencies=self.crossover_frequencies,
+                    fmin=self.fmin, fmax=self.fmax,
+                    norm_filters=self.norm_filters,
+                    unique_filters=self.unique_filters)
+        args.update(kwargs)
+        return MultiBandSpectrogram(data, **args)
 
 
 # ---------------------------------------------------------------------------

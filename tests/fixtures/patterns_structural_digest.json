@@ -1,0 +1,3150 @@
+{
+  "pattern0": {
+    "gmms": [
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "fef151d41873a7e3d094982a2f73eadfd415129619ddedfb3da13b9422ac3a5a",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "73c715edcc026e8e5abcf3401e8a2295880e61ece269c98ab95a149c00619b38",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "d9c68f4427d14110b38e2d07f72df4225c2dd4bd69f534765fcd87882efbb296",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "61a6ff5691a9caf671d3c47aab1936860332e24e97be7d495dfc02af3d6a9d20",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "ee422af6d94c20746d136cb8c73e5809261d5f0813499db50e53ba6049f90676",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "c8be121b784ef6602be364dfe6531f89d7d9783a4200167dba10df53fd786190",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0ee317b62c9e952ea0c425cd0a4e44aea12ce2b6786d826eb0b8d0c641bde8eb",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "9f50ca5f8737177da2ca6e89a3f700df2716ba8afdbbd6b033cfa350a4a7169f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "5237b60a525ae171b4e11bc0d357e876ba909ae5307341f77890acd77017e0f3",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "8b74ca00f3d1b2b036c07cd616000f1e2622bda42bde700baa45460c69aff41e",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "5e350ba9d0a8555a81de9f5be2d15a70ae4ee25d4622bdf9fcb0640017a5b3f8",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "869627d84f38199ab684d6e684937ffd40a7b8dfe0570e3065c705325e49659a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "c9f222fb23b6506b1d8308ecff286d0f61889373c0f587cfff353c092976989d",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "cc43fc42cdc666507818854b25121e1d335bc4fbeed3a6e46b1b87bf31a5e4af",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "51fbd391776955b57b3521688f0a5890eab7557adbc7b13d804b4c9c2c9ab7e6",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "700db2f3560d9c3aecd41830f3898ecf3787818b93baa0cd5baaf7d50f6c3074",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "f92ff241cbe9483aa69218e655d5912a741cc22f8d3f8d4bbfa7bbc54bbe95b7",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "f1e3a40b4b285f9929fe486044b855affc0287fe5d86313846e6ee6f46fe913c",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "64fa7a64ed9db46316401b8ab4f7c16c39b21339c2198f3044a6391e8680e8fc",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "feb12c1ed424ec48be258590de9afaac5f03adc703a4520e471c5ab2d541d4f4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "61052b30ccbc18f7ac64fda75d00bfe62f5962ab69cbb3201ca6aaa04bfd5776",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "70fcc33dd158a2eb62951d4d6f40e8fe6921e088458a158e2be3f2e8cc882aba",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "8debcf277e81e881c6a57f9d225b6d2590882470aca93078a66c598c12840de4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "86b240ff485d81b38e481ad33c85e53431848ef1208f9a6b9ff2725021c1d8a1",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0d90e2c7c5ca6944cdd9ac1b5f0a6e283a23ceea1929d0e7161d7bcb03d3b429",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "163ab85ee0e1b9c579675597ec2fb0da3ca1e00b6e2178046a91e36cb8141c8f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "249846af21552fd411e19ceae505a9dfce620a086e645813a53ca185064b95e2",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "b91c48ac5e5dd9d24496424ae8a870f4bd5b12e5ece13695cecda8a866c66089",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "2790a8a583f64997e5bbe656ce5f7759f8a7a9d28b30fa16011a0cf56acabe3a",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "f4f26c2cabfd7bc209b7e00160b4331dc5284707a4fe1b3f2bf136fd426fc3d7",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0e3876efae8e636b8152ccf01350c696f4232b722eff795122e0d13fbcb1b77a",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "c7e571c8bebf7e25a3eb2f29ec281fb9cef3f4a347718cc74c61683a815b0788",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "41975ab1e917cb16c74e5adfe2f470d65d4ffebd18f2af62538d5787a8e36c57",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "264b09b4c06be7a71be2e851eaabb5ac39f7acf161e0c829e162326769714e90",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "72556a2ff5701ad9af90f6c4cfd927b7da7d60c3d8f1cd7e9f37af1bb4fcf9f4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "e89ebea0001d38de6bd5edafad94129f4b6e206a8100be251fe4deb784218dc5",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "bfcd27cf1ae9231f345307c28a5e5a50d223f9fc6920eacb5570fa17770a4772",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "da161543e3ec0192eea80034b6a7f423088f881feab9437a38dbc70e5a56044d",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "7c97d7d321ede4326b6d78b864b9e40f5df237e3d13371098bea11d11b1bc08d",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "e4058f96869f241536889f09a9f3858644448644e8c35d95f9f544f5f587ba8e",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "4bdba952aeaf87574044e56e28ef2dfe61fd68d10049eb2d47d35b3677436fc3",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "bbc400619b84f90c2f2723681921e0dd4c9ac9b936826d540f285bf4228b306f",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "c93e59b3ff96a803609e21dd366c5823750767a0c39b260ee2e396181219ff4b",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "9e6eaa013b38299ae0535c8b94abd0acb3f9063b0ded6458808e16422ee7ea84",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "f8898572a0b77f43bebc5cc11362e7dc6f656213785e8ef1f32d3ba010fc6b90",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "ad27defecb8fa000d83c01fe1a81026ae6268dc0f32d347a47aa5610afca05e6",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "c9f22f24dcba7e8abf11e5314bae60c330aaeddb1cbd1108c68d3174673314d9",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2a9b531a499211d5395326f31e39bcbb41011c33b2d54761acdb10d013b8eb08",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "f054a9d317ca09ee1e6d84b5ed80ed956515ceea09d948ad2a90857988970009",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "d9753991dc61b4493ff6d8091c629d935e67b3f184e2384ab3c1511bc56237e9",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "576dc58c80f68741d1c63575c12defc15943a9befadc88217a63ffb39bf949ad",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "27577bcb060078f19856e0b68d1eb27ddddde144446ee256e6ac88e4751d1adf",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "ea99e0132a56965ba06457fe245c66462d1a2a3fd4a0c78ebbabe716f2f642a4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6bc9d61473655e455e008c757b7f8ec166d5597fd24766f57d74ab4a1ad5175d",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "9574baa8d3faf35773da18bb05b64fa4484fe599e01e5ba5182a749a1b07bbd6",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "b41444b80daebcd29bdc324dd449ce44b25d6dc33cbc8fa9445ad3dddc7faef0",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "bc4bb51df7c10d377830bf425d9c42d349b9b3f3bfe928aaed80f96e7a5ba091",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "b8b9853df4d287cb0c88e3bafb16b2e02024ad4b7b821aa258b38bdcef384488",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "08899c974b195177cdba2d09c246e804c49d6738de49400296c0c538822cf482",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "475cdf0a3198b2806fe97bc940057f822a46f3416745a10bc993784efa4a9807",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0a53d4962745b60607ab142e28952509094e1adf06eb8211e98029d8b84ce01c",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "cc1f2fea90a360f2b406b9bef3e5cb6bd3e1403ecc4aa5d9f37431b0738519c4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "a0c7dc3ff0737c1db9f9d7a27b8b173e8db143bb041a238e241a1290c1f4804a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "dcab7828f69a4fca82a6ce50e73dbb22601c4135e12cc9c5db431ab0b4b6fa57",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "265f5fd276189a0f5b9358ed6fecbcabfc8b712561be16bb0a987713010879fa",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6699f4851a2355692d44e8bcf38042f4c40e51a7ae42998d1430f44105e67774",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "ed17ab250e691a2170e4ffaaec8ae814e1a9f9779b149a92fdf193c4333da110",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "02be9fbb9966cd2d93a91cd51f07d84909ededccbacc099ad14693e33401b8ff",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "b1ca69a97d5708803a5edf90208d97a1711746ca0fabea3e75c5a3f9367fedea",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "79c90b5cbee71439cf3cfa5df914beeee4d12e492ca6762b61b20b65e4ba01bc",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "020d1b59d6f45dde70b6815f696a2da496ae92f98e7322234fd7fef0b2efa83f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "80c875a4ca5a7f9309a838b137653e70d8076c88cafd74b3c9faa285da55ca4b",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "12e691028abf5a20cb63334ffc964ca836fdb3bd8201eb283a1ad16318feadb2",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "aff985bae196e5e1259988c9c522951fb3f62db81a0818dfe38648c075592504",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "72980ab5eb1e4a1064f7343507359ec3f20302e530060a8994be091397bee0d4",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "b0f0f9148a1b9350dd9e118c8dac7682ed625b8b8051ea7e7717026efb06fe7c",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "4d45f24d1d6ae3250b213fd9a79a7966afe763717d87a45cdfd61ccb2d968d02",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "4845b784a6ce85a56284ecb705a116930d6ce98531658bff811bb0db4ea31b45",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "77822488e92a57e923bb9e8a21c18aa87d9593b182fe63b4019caf2c87c6bac3",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "cccea6b8de1c795200df039d1b03dd76f0a6c0fb4e666f12b101c638a45ee259",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "3897c29e0b262ae6912818569804c58f4ecbc50772273e0990369ac75b1c48a8",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "e8e4cc47d116258b1fd331b8704c03e0c2e3f2c6447fb89eaace9a19bb32d619",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "6eb156ce53e946f5d3960bfc6579d89661f55905b786135bc6b2f74e453def86",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "71e260600c643293ef6defc24c84c04fb78226e60dda8b38fa1f2abcc7903ce2",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "1fe2ab5560196a5a37f3b379450bbb16852e5ac24a055ca8566670733425e433",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "fd5b6b8c4490e94db9228e689bbb67475e84bf80a5e9f6b1204987e62ce181fb",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "97ba7c6bacf0c746600b1ee34458ec1d9eb055c0f11c9c46e4bbfa1cf204c3a4",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0655b64323940994a698b90db27f9d7ce430c8098bc35a2305cd1951cfdedaeb",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "562b6ce45ea60dff1fe49225c706f95925ed421ed6219da27514a9b5c6eeef8b",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "0b62af29805a8a88bdb19049561843f2443b1a6d235dea26cfd4a7ff87043172",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "a450e68b5176359b0aed16a9c8c1436c0dffac3e115c7f513c01f32ec4a6fcdc",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "febf197d0124375f40092bd07d77816fe8ac49909fd4e289775e4d9e2aaac92f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "11f3afb404739151efcc8853bdc48e932eee9d089623771f2324017ff9794d39",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "9077faf4b8f01954e0ff47817b28de6e809e6b364ae9b393583e36061309439f",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "fccd6f9b408896c36a39f3c15aa8842254909d1d60a33c9f7083f4f22054a303",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "a3aa7ac3b0d83031dadf42cf2a6c0ce7f8ffe930ef3eb04ed1f42059068f09b4",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "9d803845bae8999dd087c3c0a5215a3aa5edeb0e3d4764994882ac3b288b1367",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "be5d829b6340a62419702fbce215a438a9d43902a2125e2fc0b323e867e347a0",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "0a7f5386784ac95137971e4694904574190b50422d9042d347f218fa52bd91e1",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "c66d526e3fe68af044dfed0291d8830dcb9f270e850fca24ea71c76081858752",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "4518c3b9b22fc6b7a3da9f9d3122ec446d65f453989f5893e08b87212bfa1acd",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2a55911f9e7d4b8954ed708a5eb1816b47578ff53ccf92e6237a832426318f25",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "f42982a2570b46d55314da8406127c40f89cfbb115eb1a9c9b86670081c91f36",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "87d8d131e7d52bc2b65b33a706273e669abc15f41bcb5bd41a85037fae7f9260",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "4b431ffd684d50b867c5527d2f2f904f3fc672a26188d901cbc6903483e54797",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "f0aa0b6e7107e133ef240cfe72a0e10d361534eb55cc79c485cf7a3045596463",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "48b972b3bb14345a3c601885deeca01c246f88d903e4543033f27d5dcd09dc0c",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "8ed36eab6ec0c3dc49789baf9ed0206ba2c7eeb62ef3b24189d975103b8d907e",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "77cabef538f7ad3302dd38ea58925ae23801098fb3c5b70d6a0bdf226b6a117f",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "e41aeed8371754f8c78c860b933882e1eb4cbde116b3ee8eabf9453d37b35c65",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "164615392ddd4622a4aa7364ed64ca74d81e89c12123ba0888155c0a2be509c1",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0a8c3d147b6e2d4d536c617539e20da37672e090c9a99f27f4011d1f9a3ec883",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "4026959f28694538279ad17e48d44be4bf6a910f958c7ed160f5a8dc5f1a01ee",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "8c8f81f5c9474aafd9ef2af9a4fda387809977531020a6d9e2b66cbc56488979",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "5c8ff63b83474890c24fe7c0aa310332b756042ca4ebe33c8bf52061c31da361",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "2176a2dd75a9cdfd91f99a2f44ad7fabb84cf6d4f62bf1b03ce48fa612f7c624",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "34953db244a84696478ddf6759fa5246d7d935889f8a4116faaa5c3ab756d472",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "c18c82bffb717730ef75d8f797bd112b812d822d1c4ada94348043b14f1c9eb5",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "c0bfc00a18ab331df2e5a63598aca541f64d338ef29c36dd4b54eb2da1b7ba76",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "f8caceb3f8039b11440734248ef883a5f5c5a6839a77932d04e1b3aef0f4f889",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "e9b14b05c5be1d665814ecf07119e348139eecc64ffde5c67bf6d4cb1835c2a3",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "fb23a66776fa1dba74f1b55fe2d54f21d90acecff3795eb09bd907167312cef6",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "cd1a0341b1c3096c1973d933b98e94d38baefc4a3dca0d21a560bb8fee0e1f01",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "98a5678d3fe05876fad1a500791fee73b25936a5484df36143f750685d189f1e",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "40d5241447ec35c6f3b4a80026bd8a8e1e75f5e68216ce2dc45bb0fd9263153a",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "8dcc88b6b1334899c09a8245f561a170fde9bed093a5fc661c94d2fd1d81d304",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "acfd6c4662e59df7bb1d1d0aa4ef43c7613541283f4e0a3cd872ce6ed0b0f37d",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "f0744fccc0aadedeabc82c09427687230d7b47e66fc808326792feeed3e6641e",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "4f8ef4eaf7c0e99d9f6aa545c4c66d30e2c8947eeff492861c753d175b261798",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "d3026272dc63b50f1393b888b69e6795d8aae124bbfa2171739e7ddded401f4d",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "395e29f2e29071655b143d339f44f0ba04110abba894222817af1f12dc028bcd",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "df19c3a21691d563092a7a518d292816109575128a717a3294a23935e93030c6",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "a4f7afbfcd09ba2a0fc09519696e6ea5b3bd7f1d5765afe099e001ff1378d2e1",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "179baa527f98e457b93f99f5d0f3aef1c9a93d26246b8fc6e4f52d978adce79e",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "25ed2614a9f344f6b0d0c6baa60e8057f9ea4b3fe7e6caa2f0bee02a4c823b75",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "dc547f6f428b84f4e5c3a4c90eca8754a2e3cd95bcb5463d51bb0074d98b3ab4",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "9d3243695cc41dfc0a2fc215bd2c507a98dc6089ad1d7edd7634ce597b5983e5",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2039afbe7b31c53917aab31132355a2bb5ef158d2b7e091be2c498af1c8399ab",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "2d75c8eb2496820a5c9863dca5471b140f7263d87712709890e385eff67876f9",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "109dee9443b197f4efdb82c362ac865ca09eb616d0eecd435702c9dd6ff3de5f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "097dbeb3d9c25bd8111ca2e4c9f762b1dc3e98c75fa3243bf6e8b035cbe99b83",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "9724278f0df0fcb6d8ed40ac5f9c6d991376217d341b4d32d4a694fbdb86e8c5",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "a22e34875b7278d9a83c07ddfe45f21f8dec8d076332ce29ca0b92367d7f0915",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "858e8c1c3e9f1fa7ccca9feafe403fca4b94a50360a2cea9f9e9912c4c33bd8b",
+          "shape": [
+            2
+          ]
+        }
+      }
+    ],
+    "num_beats": 3,
+    "num_gmms": 48
+  },
+  "pattern1": {
+    "gmms": [
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "689e9e8f695795d0b1531279dcc684890850450105c82d8dc7270e39800a1d09",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "c7d97cb63a30cd8578f64487601a543e6392577af2fa525d12c5ee62723757fe",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "d6f26557afbbd3505c6ad44e65d64cf59ea6cf8c18ccf5647c965766bd0124a0",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "6211223b866fd0aa6847ca3a18c97d61aed49f2f5ab061d23a1a16844434425e",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "f6244c8f4b490faebbfb14db1142d727cb8c5457e0ff04a86b9df5019b89e338",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "237ec30ecada617a1720805d7801b612161c9023c9a436c1abafea2bc3f3041a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "165c65a4c4cb215373a5767e5b92a2cf4f61c9cd715b255ea0d61520ed2e64c6",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "da2d724f31a22609201f72f2170985bb05acb97279897b33037b1e2287cb1f4e",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "9c01f3165e83fdf92087a67061ac4471d9c14efd18e57e9c9d6e9740fc214427",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "2797465c2b896e3ef10e16130ccde145b8c34643b5636cdf134452f639fa8f25",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "6db0309ce6249f4117b1d4402a19856dfb94c0359781dd7b7521b28822817d10",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "459856070bf6948f6fffafb6c8a607f239f628abb76a984b32762706993fd3c3",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "f969a5cd321a6f7d844e5bd8e9bb5fef28c5dd89a00728f5d3df6ee5f35da8fa",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "e2bc459225b754009aabb4fa83367af7d943f5ae6c596bbf7d8529699b1da29f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "175a7e02107a5954d05cc25d204bbc4f6eef1b836daea4c070a902a52715b22b",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "dcce304cce953b50b046b727962b607cf0096ebe69b0c26b2954332e12e40173",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "c94aecff71b58040ad920e5633c81fe02b4aa37a57b7a60f2188a194fd9aa81f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "c823c72016a2cb227b44a76fb0a13749b7d047786ee0e5f3a0c83945194b76ff",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "87c3fce22954a90b696913fa844e0b878bef3d80090ddde5a1d05a01549ec1db",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "d37476b2bcc2748366041d1aabad528d5a6426f7c91c7f1feaa51f1208b7d94e",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6d70f8847c4bbb04059919dbd2818bb407761d62482a201972cca8b6292808a6",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "db32dfa67b3b13f6782e16bb59050f6e0a95d90caffea488285c1e725c58f9ea",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "bf9b3351e030cf7214aa4c4b8c56660460cc1b5c431c7fcbbd8d2a0576789dff",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "12abe0e42f83735f52855c5465f1153a911bc945b9839bbaa104cc6172ef1ace",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "5f146e4b8f25a659e57d9e60d41a5170c71d4965d7638b7221459ee7175eada7",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "c3e7fee42f221437bb8dcc8acf7c9168437bd9ab4b93548e692d44554204145f",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "3c8fee497a9c99954a622a17a2c98fb9babb2e7f5ac87625777a8ff0b0b5e3d2",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "225e25d494b4688fbf520f5fe9291a57f92ebf807f759a4b8210058d6112b711",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "641de311106d2e9503bd5057d79a453b607cc68e5762e4b5f66f1340f45d81ee",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "51452e80c65b8151356e1c80e0833ea9342547dcbe6c3d3f709e4e3cf1e3db46",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "d5e501109e64f603930373dcd263de76147e0958babb32d09274ae707d35fe1f",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "b2c800079eeb42ff9438ff076dfd73493f481f703b692072fb478032281ebc90",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "d2abcd1324f5e27c0146ee2d153cfe295b0526f3429e361fc8b2ef4ee55f0e02",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0413e399dcfa66483f2cf0f491f71016a637cece5d5311dede8d5f9db8e0aad0",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "578beec29f7bef269f7f41393455e729f18d071ec40f2a34b4eb6c80d0f63924",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "26998ea2c17e66e9ce6b1d350de5cfa63150a713a2f53490f2802f9dd44b527a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "383fbaeb63e8c4226fd3ec3e67eb7724c0411b048102ad71f9d108b052c375c6",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "50ce31ddf783f7892ba19d75fdaa8ff9e5d021bb55abd5c97dd40ae51ce90bfd",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "502f4304bc096d6427b5b73d52f9daddd05ee05e006c6ddd08680fb1bd9d6dc5",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "825abbf5e1ad3dbcc77ddcf55bf68baa57a3cf8fd949a41698376b2dc395b554",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "3df57f26323444cb57a8b1834cacc61d9935d1c036a05a84a4eb5aff9c4bc73d",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "8c8930c2375bae2131f15081c50a723525159ed5ca1f08eb6f447dcabb7a3950",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "d614464fcbadb905623dbed0c45ca52fd60831790c4283eb47d7de3d66f5eaaa",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "9d356d0bddef0ecbfe67d11e47ad646a7a9e66e6aa9f5b6137e7870f1f7be118",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "80ccba984615cd64ce64b0fd68b7e3fdda51948e6c61b6fd6b762c1b9169d3f3",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "170299cf213ec572d61dfd552f39614022decfcbd500afe27cf9d4a005c96545",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "4c37ef65508311608b76c1b4fc3ed743a9761b74071f3ab3f87c9595e32b926b",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "307336be7b8388ad5fe678c4dc5dc0a4fbbe563b24ad72e5eff770c006996ad1",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "8d45416cb1e4581be9d3acfe834f9c7d7e8174f7ecd145733cc4dcc022173292",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "86f9950583f3d19f2f03b2c436310feb89bc5e68a87c566905d5eb004fbc2b87",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "159c98d2cced6f1c1ca296dbaf2670da093e3e60c46c78e8f73295ee3e783246",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0f677798b174235387c05bd96db5f2ec4fb46a68cffb2d00317ee9b304db42f2",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "3de50f3852e1feb7d14c6bf6925f6a6ecc21978216bd2603c4ff2053861f4438",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "5a7859e3dbcf8962b1bc2e66e19a04a91f8ef217caa4cd89a848a07eaf6aa423",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "6a4940c5dd72528fe40f64f763f5f405c53191b16434853383aeb0c98de9fdc9",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "2534f51555f981061624c81841cfc9e53bfbd19f68b3fcf42f3c4962981e33ed",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "bc26229830acc1e83d464ace66cdb7d15a89aae2260514754830dbbbb5759bfc",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "748c6dd9628d9533a30d1990f6b0ce574c8d17f7c55497f7038499ecf6f75b08",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "8ee95f4eb5dde22f6711a0b1e2b8b9689c0b86b56bd07e187f960ec7d9ddb2b8",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "036b645a6abfa8494434f54476205dcdd3421119cb7a9238b5f34bed813b29f6",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "40dc22bdf9ea2dab33ac4c22c17f58be8435331cc8c44c26b178d126734cf44a",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "e1a9f8d86ac6c9d9e21fcc2ddbaedd62bcce2e5def54f097a4d5027b753fe624",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2bf41915f67febdea0c5bf5147a6320ebb5f342484e797c5972ef6fed79f1f6e",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "8791ab467430a1f77f5a346b1b3c4bdd83bd44a20ca9303493aa11ad783be37d",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "54d5b37aeb0a00d393a848d213e8c49a682ec0c0783c5eec6063f1bb7191f2a3",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6baaee4997fb73f1ad01a9945bcd25f483b380ef496a02a337bfdbf8de603c8b",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "74e0159246e378840b493d0a0d82cfb8aeca45f0e9066e7d4777afc96c09f973",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "07671b24f50f7d373139e128c75de389841f2608bd0f0b8f20de04ee8de2c5a4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "e3c531054e5f6fdae10b9df6e1ced34e393244b617c7d133c50d00b5d31641d8",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "b572cb3e1b8ed464d2302e1b3d2d32c58cea3111cfaaff050ca566088ab3c933",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "352818432599cbd504ad798608422622a51a23208ef5ccd09b0f0e16362ea604",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "c6ffd5d84d5931224efc19ad64e3d27c74cf461fa7cecbf4b7895dcd4a91c8ba",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "560dcfb0a90da90c0133bca2a9fb03b072e25878d023c1b4c30de4a7a20defa0",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "04055493dccac6c99ef5a5babe35c2f1b41c7718b06858030d83a4a1342ebdb0",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "5bdc33fd7f4f03e17c6348856e931da5767fc8a594c101e61c7bf0489810a22f",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "24ad042b038cccc21600a57c22b240c6ff4b13a19f6ecf99f08d982cc45863a3",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "b18c32ffbc5a07a53052173d9e70fcadb3cd90b3501bccec7658a127c27ab125",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "9cb75427917c702fcd5123a97b7e510a529bdf1bed56cc5b9697ceb17e7ee242",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "1c74faa23c9b2ff5563612c7e15b287767b6174c583c338d4f9380cb3e46253e",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "13b26306a61df5b718d1c9521270c8883e3ec300cc737c53ee4d2ebc14c26e86",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "460438df1b48cd44e321dd5a9feed1ccc18eaa70d9435170368abca153e31090",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "ddad4c0576b1793bbf7dd54e0ff6509415e2925a7d6d6f457822967ac2b64154",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "064d1c54e6c9008447bd3a0c4d4651edb43ebbd0e6e8db646ddc7cfd15462484",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2c5a5c6604d9fee947afb1cde82d063a19e59a579232b81c24df0183044499f1",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "1d011dd3cbc51c3763b352828bc6e12b829a14ae29e5be3169c9fa6ca2286aa3",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "602ac308c5d70c14c9479a88b90062dd508bb9b8dc1d2d336842c1f736005666",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "71726111b4916d7b1bc3c8ecd3baa6334f2b108e8c647b5ff21c81bb73e8555c",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "3edd12c000326d3103c4abe172bdb701376b30a301f0abc3b76d656544950f3b",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "04d2bc69e74a2fa0155414b43f29a699a240fdc5bda98cfa33ca3ff9d7712a8d",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6bd6d686780eb2718867837cf0d3f17a51c911822e056197ec6136f3c2554e83",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "cf593f9327043a34b59eee2abe16d967bf543bd6f05e17ebb0570ac892242649",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "73c502cb99171a50233fad16d65e8327acf742f2ec8b2fa58f0b9d05e2559be0",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2dbebc0f1cd3ddfd8e700fbe7337bd9243635acb824d5fba969d6986f51b19aa",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "d5b0ead7730458256bac114100bdffb2c57508272fdc4dd0f482bd1784cc95ce",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "face019f6641a2f8cb213fda3bfb7d689ebe8958c3e2cdb9b9675a0507bd839e",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "4695480979782697968b1ff3308403ea7c35992f3a9659e5a026e19ec70922ef",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "061a5102e372bd64eafdc732cd5f33909cf6f73b901aa43bb4659960f86b9e24",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "28fc0e1ac6770d470db8799a7a0ba80bab607a515180f00b5e783c7f52228c4d",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "ca649d8f0edf78b89a5b1d207bb04e5a437183a5131e8ed634956eb0fd945fa9",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "c2cccd3c8efe7158a1d7c07ec7d0b16806581a4fd617c365294f041f3ee1b0fe",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "51508c59bad5506b5274f92f01a797c7d1020e88786d20220516e696f6ef3ae5",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "df0f72c64f77d718ddd50c9882f0fa9be77e66e1cee7163c2e6c10be08f8985e",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "ed36b5391328c8696bea16dde9a22010bcf65ef04790610865e4905ba0d75bfa",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "e6f4ed70bce6fb50251f992a888636c3e7bf435aae645b09075d7ab1042eaf11",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "ed416dd054b5ee126b7c66b00e9c1e08fed47505fd4cc91b8d3e2bd8d76831da",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "9bc5e5ee23cf3c0d8392585b4660313d4d06a6b204ea0fd0ab7b2cea8e076efd",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "bd6c61981301dd7f63649d0e26ef1dcc47ec3e88913a20f25d54a5f723b011d6",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "a641d0200950526bf96f69e8ed2cfcdc601ef567ab82c70e20a7b1422429fc33",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "73cada2ead8abd207310b9d901cabee21a13bee2b1b4e715331785a81741fe6c",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "7b7176a80befcbbc4e7b4b5e0930ffd3afd69306359ae045fbfc680a31a33b03",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "2d3f3a24e7e4bc505e9692d2d9719987ed848159b4c5cfd5d30c99ec8a2776dc",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "796fceb652579641c3d8cdea75eea444610cbbc0f874db1887f48fb810667a48",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "605eeb63880c02a64c56d82a2ffb560aba6c4348670445193e7654e21c1e38b9",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "83e094bcf7b09891e33cfa263b7f4f6a5ff9f0b30fce78fa1f2f4b13f122560e",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "ba5a64e90efb7611c2fc958a276f54147b4fbd8e081bb710b5787d28da89cfe4",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "a4c59af6aee56de4408ea2131a1387a891e8120477f105d52db4bcac1328a33a",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "ce1704e92b64fc992a92962260a82b5662cc7429adbca7b13cbe501917ee3d9a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "44e74c5142af28e305422e085ab460882bf132ea40f3aa6f1f05797160cac145",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "0b59b8ffc26bf5f4fd3c5843825409fe97e841a0253e075d3b07655f0916abb6",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "e83c59345bb1799d7d76a0f5ab4390d6d460d1209b3036311c280bc39a120e5b",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "0662d13e51ef4076eee0596f7b6d91ce4c96a541eff4b81aaef765cdfcf95d42",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "500536b1b0c5568ee422d1b550dcf806abc60fbb53ef7d72a9d0963978d896d6",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "c08539778af1f3e7bf7b58397a3979c4bfa8b6c0ec4a7680b1ab8135c99f2110",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "4059c582d45b6763a59910a694879d0405da5f58f0221117c4cc2125d3372813",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "bedb33d970776c569301156900c04ddca3042c1ed6192a67002fd31686b34270",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "57284e9739c383ee42a110dd53b5aa998daa8e63ad330b26eeba2928762c7be3",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "e33e483a52d8596de092e313410843bdfa4699911c104569a25958ad84d46521",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "9088a45457b9d3aca26243c52b648bc1ee17d84ef164a5fb6ce7921315b21d9b",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "89be7f89d60f40317870bcf072c9d582b94071a9dcffd8b97aae0e94227a44bd",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "bd265baf84877392d90d1d68dcbfd6e3d4dc237f740f3e3e0eb1fbf9b40c2242",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "105597d1f444b0324cf96d4a4ff221a0792fa01eca93cbfcab0aad0491b04983",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "886f00d9f3574824388f6b75c7ae49119425edaecea18fd21702d8698b3df8e4",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "521778894abf086b6fd71c563a23e55bc0f56e0329448c0eb07903f8afad4696",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "af0d44200c5908d6ed0b3a655022d7bc2dc401121b7d77450e2410a71ec39c7c",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "3cf544a15cb11071a2e03a29d3d13d620f778b422a1ab7399b0f773f9fb47737",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "7112e1192ee8b48ab208da25d71ecb41950e3f3535f79caf675fe0542e61765d",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "2c23ae3b8a82ccb325a7f701cc2ba75093e40c9135df3c0ccf6a030170f73a05",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "021682066c42d4cdc97299d4c886ad9235f35007098eae00076a549851fcb1e5",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "d4c2328bc076ff29aa8800210f8fa811400b19b9d608156009b9daa6ff122668",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "3541cb3cea531c5f50b644cff754d1bf90fcc34675c22742581d5b836fa59194",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "41719640a4715cfe8ab5ee178ae16891f698e5787badb3516be5a7508f92751f",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "1df7c0f7881566d83a3b142ce37a7159d7378b25d8687f408b200a72f0d9e65e",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "65861198f04fc2f6dc53adf780b964f488a7040b0939f30c1b9fc857a2b5d6e2",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6cc5f84105144b11a4ae3bd4a8f735c909ffc2c68f839e2532e916349344aa61",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "d9e1bce2b96e9ee06d7cabbe7f85a704771209b12eb8c7ae36a2b403222bcd40",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "32448a1d0650b6457ea565bb1ed10b491c56ea91fb43b37a8a9ba807eae68e16",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "924feaa8362072840550adef0e63785e9ce3dd639347feaf0dc04438465ac006",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "5de9351cef0b81024442b16633423e049c11d887ffd3841c4dd00e84c8065890",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "0ca597e4a63e89c3e310feaaae0917771a711a1a06277e0965d9a10d9fdc05ce",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "7aad7fa6d6e0e22abce27dddedb28deee95c659973408062d8f8f9b98dcdb25a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "c24f919925a6bf4fd06096a34422460735e531cc5c5ff89a365ec00f135cde71",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "af335da379be5d9569480c304f4c93db800a3405d0496210bda59dc911c1c4ae",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "93e57732c0974ba02de7212b5c31b7d76a95050bdd9a250842af660fe7e8d1e6",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "ecae9c3e3c90e13cb7bebbc7cdc80c2e36cd294501536e0afe045cf3262d6a69",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "3ba3d6fcdb20ae0e4b8b211075ea69dc912d48874cbf6005cbd4a566b52612a4",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "dc5f84156bd5d181a67611edfaebdbe5b6366c273c12d630dc521c1dd6b38d9f",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "cf98dfd0e0e28e2f8eaafa8c69e46f1a23d83a1508c92f28b7001b8629735b3c",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "6949b2b751c20b56816483cdcc496a5ed4541d2f3080d881e2e21a52da51772b",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "a604f66919be9e62e0d875d75a8435a878a3d5ecd3c0aeeff30d6444637a9013",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "a5ac561d9b7441682f553f4317552b67a660aba001de0af30b6a656e0a3bd8a7",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "79df4eefdb5a67027e4ec3ab4af14262b45e687cfc11222bf09db4883cb39fd7",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "54d1895df0969dca66b6c79f151a829c6defb2f4dfc37fd28a4a7e5faaca3d1a",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "f548e7fb927804f839e02207c31e04f9ecb58822ca92f136782c774044a7b5bb",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "9ea9db0f99e5c8eb1a528c24cd12d275a2e12d08ad92c44797461adaad67f1c9",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "e067c13ccba83dca163e25042ba5b50b3fc40153712f65a13a3605e32df5f989",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "53374eb4b8681a37459bf3dafc1989ecad703250b687a3a362b437119c706c1d",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "006745d4456a202e9aa06b0fa3fe0c906703fbe3db5555ebbd362b07cb365f80",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "d7501bc3c9344a56047df118fcb6945da08e61c2bc5ab1a8ddc7a07541202b44",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "8db2d926218b65a96ae8367d3335ca34de5c1859694a59b03048310a9b5da848",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "775b12a91a3ba80ca29e7db597981c344a38c6e2225d4147782e30a999faeaae",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "5c6b7614f5efca7d6643839956dbced3b8105ca741e2d385511d865365108a47",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "113d02ecfafc6f81f12b129605a26009f0cbec7dcffdeb0e82007e7befba7645",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "724b1757018db589414e0bbcb5111f14909877989b59d759a1127cc48ca14aaf",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "6c7a28fb2e6fa37228c25c755a9c00c4486ce613b6b9b8f00ff1e439d8dcf598",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "67096fc94da15e956049c1b41ba0c3a87ac125245456f8ffdcc39b3dab957749",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "04e674e8ab75cb338f04213832c3fa9fa4c1f4869f42fe3fc0587409e94613aa",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "f52a494bd3a9be418487f43204afd2332050250766fb59ac678710a8dc5bf6be",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "1a9288f1887d0cebe7b944a58a2e9fccbaf8b74a4f25733e289bd9f3fac83015",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "97820ddf60a776aabba14e6a0c7adc3fca2326088cee4484bbc35d33bfeba286",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "ea4747e084ff606bfc38f630f8262565870c462a612c257faa00a9ec64d6402c",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "bb3db5f93607d0dda0a493fd89a6d36a1087ed36bd54aac1b9be9f966ba47ce3",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "e4045a206315126bcf32298b95efc6394cf5aec9859192caafcc2913e223de0d",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "5f66dc184ae82cbfd87e633452e097847fc0975cc25f8294b51ea324d41659e4",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "9f7bb7333ea85b28c76b5d9cce0b81cffbcd7c950663eddabaffe39fb83807ad",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "0eb09c31dbd37be1bb8e2c503f4b95eeb2a4f2727eef62a8d3192f3d61bb2e34",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "145b814d6ac956d85581b5616151205e4e6badbed84c42ac64ff3682b4e31edc",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "6b2f5f8fc41dd98cff5b56ea072c3f57377f5b4316825ba4101e7c072254a540",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "31f33562cbb3a027c78c5b71f215fe21fff93e0058bb681b26f040e5330bf817",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "d9ad9cd73b90e0dcada6f4fdf2271043047eefbb00b8c46a0f39280a80d678ba",
+          "shape": [
+            2
+          ]
+        }
+      },
+      {
+        "covariance_type": "full",
+        "covars": {
+          "dtype": "float64",
+          "sha256": "7f691cda757883a4e64a3048609f357389fd157dc03210583274cc12a099ce5c",
+          "shape": [
+            2,
+            2,
+            2
+          ]
+        },
+        "means": {
+          "dtype": "float64",
+          "sha256": "d2bd655e048a0cd83314506b3e5e64dc555c0b73b364bf78411fa1eea57f2de0",
+          "shape": [
+            2,
+            2
+          ]
+        },
+        "n_components": 2,
+        "weights": {
+          "dtype": "float64",
+          "sha256": "a0f96013523746bd9f7905557fb1b826fef95af916ec9703891dc74efa7274ae",
+          "shape": [
+            2
+          ]
+        }
+      }
+    ],
+    "num_beats": 4,
+    "num_gmms": 64
+  }
+}
