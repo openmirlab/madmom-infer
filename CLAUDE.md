@@ -22,9 +22,59 @@ to refer to a specific chunk of already-shipped work:
   frontend (`madmom_infer/torch/`)
 - **Phase 3b** (not started): torch NN forward pass, blocked on madmom's
   LSTM peephole connections having no `torch.nn.LSTM` equivalent
-- Further backlog (not phased): onset/tempo/chord/key/note feature
-  extraction beyond `RNNDownBeatProcessor`, remaining audio submodules
-  (chroma, HPSS, cepstrogram)
+- **Phase 4 — complete-port campaign** (started 2026-07-12, branch
+  `feat/complete-port`): port every remaining inference-relevant madmom
+  capability. Target surface = what the reference madmom install exposes
+  (0.17.dev0, built from `../madmom-upstream`). Waves, each gated on
+  golden fixtures + the full suite green before its commit:
+  - **4.0 reference-env rebuild + gap audit**: the original reference venv
+    (`all-in-one-fix/.venv`) no longer exists on this machine. Rebuild at
+    `../madmom-reference/.venv` (Python 3.10, numpy==1.23.5,
+    scipy==1.15.3 — matching the recorded environment of the committed
+    fixtures), install madmom from `../madmom-upstream` (populate its
+    `madmom/models` submodule first), repoint `REFERENCE_PYTHON` in
+    tests/tools/docs, and prove faithfulness by running the
+    previously-skipped cross-BLAS exactness tests against the already-
+    committed fixtures — if they fail on BLAS-build differences, STOP and
+    surface it; never silently regenerate Phase-1/2 fixtures. Then a
+    class-level gap audit: every public processor/class in upstream
+    `features/`, `audio/`, `ml/` → ported / to-port (which wave) /
+    excluded (why), recorded below.
+  - **4a CNN infra + key detection**: `ConvolutionalLayer`,
+    `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` (pure
+    numpy — the classes `key_cnn.pkl` actually pickles) + unpickler
+    allowlist entries + models-registry entries (key/2018) +
+    `CNNKeyRecognitionProcessor` end-to-end with `key_prediction_to_label`.
+  - **4b onsets**: the spectral-flux DSP family (superflux, complex
+    domain, high-frequency content, …), `RNNOnsetProcessor`,
+    `CNNOnsetProcessor` (reuses 4a's conv layers),
+    `OnsetPeakPickingProcessor`.
+  - **4c beats completion + tempo**: `RNNBeatProcessor`, beat-only
+    `DBNBeatTrackingProcessor`, `MultiModelSelectionProcessor`;
+    `TempoEstimationProcessor` (acf/dbn/comb — comb via a numpy port of
+    `audio/comb_filters.pyx`; TCN layers only if the reference surface
+    actually ships a TCN model).
+  - **4d chroma + chords**: `ml/crf.py` (numpy CRF Viterbi),
+    `DeepChromaProcessor`, `CLPChroma`,
+    `DeepChromaChordRecognitionProcessor`, `CNNChordFeatureProcessor` +
+    `CRFClassifier` chord decoding.
+  - **4e notes/piano**: `RNNPianoNoteProcessor`,
+    `ADSRNoteTrackingProcessor` (`notes_hmm.py` state spaces on the
+    existing HMM machinery), `NotePeakPickingProcessor`.
+  - **4f CRF beats + patterns**: numpy port of `features/beats_crf.pyx`
+    (same playbook as Phase 1's `hmm.pyx` port), `ml/gmm.py`,
+    `GMMPatternTrackingProcessor`.
+  - **4g leftovers + closure**: `audio/cepstrogram.py` (MFCC),
+    `audio/hpss.py`, anything the 4.0 audit flags; closure audit (every
+    upstream inference class → ported or documented-excluded); README/
+    CHANGELOG sync; version bump; merge to main.
+  - **Permanent exclusions** (existing ones unchanged, plus): `bin/` CLI
+    programs (this package is a library — processors are the API) and
+    layer classes no shipped model needs (no speculative GRU/TCN ports).
+  - Weights discipline is unchanged: every new model family goes through
+    `models.py`'s sha256-pinned runtime download, never bundled; the
+    CC-BY-NC-SA weights license is one models-repo-wide fact and applies
+    to key/chords/onsets/notes exactly as it does to the downbeat models.
 
 ## File-top header convention
 
