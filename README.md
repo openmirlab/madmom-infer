@@ -41,7 +41,8 @@ scratch -- it does not exist without their work:
   DSP, HMM/DBN decoding, and RNN ensemble code re-derive (see Citation below)
 - **[CPJKU/madmom_models](https://github.com/CPJKU/madmom_models)** -- the
   official upstream repository this project downloads pretrained
-  `RNNDownBeatProcessor` weights from at runtime (never bundled, see
+  `RNNDownBeatProcessor`/`CNNKeyRecognitionProcessor` weights from at
+  runtime (never bundled, see
   [What this project will NEVER bundle](#what-this-project-will-never-bundle))
 
 See [NOTICE](./NOTICE) for the full attribution statement, including why this
@@ -95,6 +96,60 @@ This project targets madmom's **inference** code only:
 - Decoding algorithms (Viterbi-based HMM/DBN beat and downbeat tracking)
 - The NN runtime and `RNNDownBeatProcessor` end-to-end (spectrogram frontend ->
   BLSTM ensemble -> DBN decode)
+- The CNN runtime (convolution/max-pool/batch-norm/pad/global-average/stride
+  layers) and `CNNKeyRecognitionProcessor` end-to-end (spectrogram frontend
+  -> CNN -> 24-class major/minor key probabilities + decoded label)
+- Onset detection: the full spectral-flux/phase-deviation/complex-domain DSP
+  function family, `SpectralOnsetProcessor`, `RNNOnsetProcessor` (online and
+  offline RNN ensembles), `CNNOnsetProcessor`, and `OnsetPeakPickingProcessor`
+  end-to-end (spectrogram frontend -> onset activation function -> decoded
+  onset times)
+- Beat tracking: `RNNBeatProcessor` (online and offline RNN ensembles),
+  `DBNBeatTrackingProcessor` (beat-only, reusing the same HMM machinery as
+  downbeat tracking), `MultiModelSelectionProcessor` end-to-end (spectrogram
+  frontend -> beat activation function -> decoded beat times),
+  `BeatTrackingProcessor`/`BeatDetectionProcessor` (tempo-driven, look-
+  aside/look-ahead beat alignment, no HMM), and `CRFBeatDetectionProcessor`
+  (a numpy-ported Conditional-Random-Field Viterbi decode over several
+  candidate tempo intervals)
+- Tempo estimation: `TempoEstimationProcessor` with all 3 shipped histogram
+  modes -- autocorrelation (`ACFTempoHistogramProcessor`), resonating comb
+  filters (`CombFilterTempoHistogramProcessor`, backed by a numpy port of
+  madmom's comb-filter Cython module), and DBN-based
+  (`DBNTempoHistogramProcessor`, reusing `DBNBeatTrackingProcessor`)
+- Chroma extraction: classic pitch-class-profile chroma (`PitchClassProfile`/
+  `HarmonicPitchClassProfile`), a deep-neural-network chroma extractor
+  (`DeepChromaProcessor`), and Compressed Log Pitch chroma
+  (`CLPChroma`/`CLPChromaProcessor`, a pure-DSP, time-domain-filterbank-based
+  chroma feature)
+- Chord recognition: a numpy Conditional Random Field decoder
+  (`ConditionalRandomField`) backing two full audio-in, chord-segments-out
+  pipelines -- `DeepChromaProcessor` -> `DeepChromaChordRecognitionProcessor`,
+  and `CNNChordFeatureProcessor` -> `CRFChordRecognitionProcessor`
+- `RNNBarProcessor`: an alternative, GRU-based joint beat/downbeat model
+  (beat-synchronous percussive + harmonic features, the harmonic branch built
+  on `CLPChromaProcessor` above) as a full audio-in alternative to
+  `RNNDownBeatProcessor`
+- Piano note transcription: `RNNPianoNoteProcessor` (RNN onset activations,
+  decoded by `NoteOnsetPeakPickingProcessor`/`NotePeakPickingProcessor`) and
+  `CNNPianoNoteProcessor` (a multi-task CNN producing per-pitch note/onset/
+  offset activations, decoded by `ADSRNoteTrackingProcessor`'s
+  attack-decay-sustain-release HMM, reusing the same Viterbi decoder as beat/
+  downbeat tracking)
+- Rhythmic pattern tracking: `PatternTrackingProcessor` (a Gaussian-Mixture-
+  Model observation model -- `ml/gmm.py`'s forward-inference-only numpy `GMM`
+  -- combined with a multi-band spectral-flux frontend
+  (`MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`) to jointly track
+  beats, downbeats, AND the rhythmic pattern/meter itself) and
+  `DBNBarTrackingProcessor` (decode downbeats from pre-determined beat
+  positions plus a downbeat activation function, e.g. `RNNBarProcessor`'s
+  output, across several candidate bar lengths)
+- MFCC/cepstral features: `Cepstrogram`/`CepstrogramProcessor` (a generic
+  DCT-of-spectrogram transform) and `MFCC`/`MFCCProcessor` (the standard
+  Mel-filter -> log -> DCT pipeline, reusing the Mel filterbank above)
+- Harmonic/percussive source separation: `HarmonicPercussiveSourceSeparation`
+  (alias `HPSS`) -- median-filter-based `slices()`/`masks()` (Fitzgerald
+  2010)
 
 Out of scope, forever:
 
@@ -104,13 +159,16 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: onset/tempo/chord/key/note feature extraction beyond
-`RNNDownBeatProcessor`, the remaining audio submodules (chroma, HPSS,
-cepstrogram), and a torch reimplementation of the RNN ensemble forward pass
-itself (blocked on a real design question -- madmom's LSTM layers use peephole
-connections `torch.nn.LSTM` does not implement, so this needs a custom cell,
-not a drop-in swap). Viterbi/DBN decoding is sequential and discrete-state, so
-it is not planned for a torch port -- no GPU benefit to speak of.
+Every inference-relevant public class/function in upstream madmom's
+`features/`, `audio/`, and `ml/` packages is now ported (or documented as
+permanently excluded, see above) -- the numpy backend is feature-complete
+against a real madmom 0.17.dev0 install's own surface. The only remaining
+gap is a torch reimplementation of the RNN ensemble forward pass itself
+(blocked on a real design question -- madmom's LSTM layers use peephole
+connections `torch.nn.LSTM` does not implement, so this needs a custom
+cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
+discrete-state, so it is not planned for a torch port -- no GPU benefit to
+speak of.
 
 ---
 
@@ -146,6 +204,264 @@ repository on first use, sha256-verified, and cached locally -- no separate
 download step needed. See
 [What this project will NEVER bundle](#what-this-project-will-never-bundle)
 for the licensing terms that apply to those weights.
+
+### Key detection
+
+```python
+from madmom_infer.features.key import (
+    CNNKeyRecognitionProcessor,
+    key_prediction_to_label,
+)
+
+key_proc = CNNKeyRecognitionProcessor()
+prediction = key_proc("track.wav")  # (1, 24) major/minor key probabilities
+key_prediction_to_label(prediction)  # e.g. "E major"
+```
+
+Same runtime-download/sha256/caching story as `RNNDownBeatProcessor` above,
+via `madmom_infer/models.py`'s `key_cnn()`.
+
+### Onset detection
+
+```python
+from madmom_infer.features.onsets import (
+    CNNOnsetProcessor,
+    OnsetPeakPickingProcessor,
+)
+
+onset_proc = CNNOnsetProcessor()
+activations = onset_proc("track.wav")
+
+peak_picking = OnsetPeakPickingProcessor(fps=100)
+onset_times = peak_picking(activations)  # onset times [seconds]
+```
+
+`RNNOnsetProcessor()` (bidirectional ensemble) and `RNNOnsetProcessor(online=True)`
+(a smaller, causal ensemble) are drop-in alternatives to `CNNOnsetProcessor`
+above -- same `activations -> OnsetPeakPickingProcessor` decode step. For
+direct access to the underlying pure-DSP onset detection functions (no
+pretrained weights needed at all), see `SpectralOnsetProcessor`:
+
+```python
+from madmom_infer.features.onsets import SpectralOnsetProcessor
+
+sodf = SpectralOnsetProcessor(onset_method="superflux")
+activations = sodf("track.wav")
+```
+
+Same runtime-download/sha256/caching story as `RNNDownBeatProcessor`/
+`CNNKeyRecognitionProcessor` above for `RNNOnsetProcessor`/`CNNOnsetProcessor`,
+via `madmom_infer/models.py`'s `onsets_rnn()`/`onsets_brnn()`/`onsets_cnn()`.
+
+### Beat tracking
+
+```python
+from madmom_infer.features.beats import RNNBeatProcessor, DBNBeatTrackingProcessor
+
+beat_proc = RNNBeatProcessor()
+activations = beat_proc("track.wav")
+
+dbn = DBNBeatTrackingProcessor(fps=100)
+beat_times = dbn(activations)  # beat times [seconds]
+```
+
+`RNNBeatProcessor(online=True)` is a smaller, causal ensemble, a drop-in
+alternative to the bidirectional default above -- same
+`activations -> DBNBeatTrackingProcessor` decode step. Same runtime-download/
+sha256/caching story as the processors above, via `madmom_infer/models.py`'s
+`beats_lstm()`/`beats_blstm()`.
+
+`CRFBeatDetectionProcessor` and `BeatTrackingProcessor`/
+`BeatDetectionProcessor` are drop-in alternatives to `DBNBeatTrackingProcessor`
+above -- same `activations -> beat_times` decode step, different decoding
+algorithm (a Conditional-Random-Field Viterbi decode over several candidate
+tempo intervals, or a non-HMM tempo-driven look-aside/look-ahead alignment,
+respectively):
+
+```python
+from madmom_infer.features.beats import CRFBeatDetectionProcessor
+
+crf = CRFBeatDetectionProcessor(fps=100)
+beat_times = crf(activations)
+```
+
+### Pattern tracking
+
+```python
+from madmom_infer.audio.signal import SignalProcessor
+from madmom_infer.audio.spectrogram import (
+    LogarithmicSpectrogramProcessor,
+    MultiBandSpectrogramProcessor,
+    SpectrogramDifferenceProcessor,
+)
+from madmom_infer.features.downbeats import PatternTrackingProcessor
+from madmom_infer.models import patterns_ballroom
+from madmom_infer.processors import SequentialProcessor
+
+pre_proc = SequentialProcessor([
+    SignalProcessor(num_channels=1, sample_rate=44100),
+    LogarithmicSpectrogramProcessor(),
+    SpectrogramDifferenceProcessor(positive_diffs=True),
+    MultiBandSpectrogramProcessor(crossover_frequencies=[270]),
+])
+features = pre_proc("track.wav")
+
+pattern_proc = PatternTrackingProcessor(patterns_ballroom(), fps=50)
+beats = pattern_proc(features)  # (time, beat_number_in_bar) pairs
+```
+
+Jointly tracks beats, downbeats, AND the rhythmic pattern/meter itself, via a
+Gaussian-Mixture-Model observation model (`madmom_infer.ml.gmm.GMM`,
+forward-inference-only) rather than an RNN. `patterns_ballroom()` downloads
+(and sha256-verifies) madmom's `PATTERNS_BALLROOM` GMM files -- NOT neural
+network weights, but still CC BY-NC-SA-licensed, same
+runtime-download/caching story as every other model family above (see
+[What this project will NEVER bundle](#what-this-project-will-never-bundle)).
+
+### Tempo estimation
+
+```python
+from madmom_infer.features.beats import RNNBeatProcessor
+from madmom_infer.features.tempo import TempoEstimationProcessor
+
+beat_proc = RNNBeatProcessor()
+activations = beat_proc("track.wav")
+
+tempo_proc = TempoEstimationProcessor(fps=100)  # comb-filter histogram, default
+tempi = tempo_proc(activations)  # [[bpm, strength], ...], strongest first
+```
+
+Pass `method="acf"` or `method="dbn"` for the autocorrelation or DBN-based
+histogram modes instead of the default resonating-comb-filter one.
+
+### Chroma extraction
+
+```python
+from madmom_infer.audio.chroma import DeepChromaProcessor
+
+chroma_proc = DeepChromaProcessor()
+chroma = chroma_proc("track.wav")  # (num_frames, 12) chroma vectors
+```
+
+Two more chroma flavors are available: `CLPChromaProcessor()` (pure DSP, no
+pretrained weights -- Compressed Log Pitch chroma, needs `ffmpeg` on `PATH`
+for its internal semitone-filterbank resampling), and
+`PitchClassProfile`/`HarmonicPitchClassProfile` (hand-designed filterbank
+weighting on top of a plain `Spectrogram`, no pretrained weights either):
+
+```python
+from madmom_infer.audio.chroma import CLPChromaProcessor
+from madmom_infer.audio.spectrogram import Spectrogram
+from madmom_infer.audio.chroma import PitchClassProfile
+
+clp_proc = CLPChromaProcessor(fps=50)
+clp_chroma = clp_proc("track.wav")
+
+spec = Spectrogram("track.wav", frame_size=2048, fps=100)
+pcp = PitchClassProfile(spec)
+```
+
+Same runtime-download/sha256/caching story as the processors above for
+`DeepChromaProcessor`, via `madmom_infer/models.py`'s `chroma_dnn()`.
+
+### Chord recognition
+
+```python
+from madmom_infer.audio.chroma import DeepChromaProcessor
+from madmom_infer.features.chords import DeepChromaChordRecognitionProcessor
+from madmom_infer.processors import SequentialProcessor
+
+chroma_proc = DeepChromaProcessor()
+decode = DeepChromaChordRecognitionProcessor()
+chord_rec = SequentialProcessor([chroma_proc, decode])
+
+chords = chord_rec("track.wav")
+# structured array of (start, end, label) segments, e.g.:
+# [(0.0, 1.6, 'F:maj'), (1.6, 2.5, 'A:maj'), (2.5, 4.1, 'D:maj')]
+```
+
+`CNNChordFeatureProcessor` -> `CRFChordRecognitionProcessor` is a drop-in
+alternative chain (a learned CNN feature extractor instead of deep chroma,
+decoded by a separately-trained CRF model). Same runtime-download/sha256/
+caching story as the processors above, via `madmom_infer/models.py`'s
+`chords_dccrf()`/`chords_cnn_feat()`/`chords_cfcrf()`.
+
+### Piano note transcription
+
+```python
+from madmom_infer.features.notes import (
+    CNNPianoNoteProcessor,
+    ADSRNoteTrackingProcessor,
+)
+
+cnn_proc = CNNPianoNoteProcessor()
+activations = cnn_proc("track.wav")  # (num_frames, 88, 3): note/onset/offset
+
+adsr = ADSRNoteTrackingProcessor()
+notes = adsr(activations)  # (time, MIDI_pitch, duration) triples
+```
+
+An RNN alternative is also available -- `RNNPianoNoteProcessor()` produces a
+`(num_frames, 88)` onset activation function (one column per piano key,
+MIDI note 21..108), decoded by peak-picking instead of an HMM:
+
+```python
+from madmom_infer.features.notes import (
+    RNNPianoNoteProcessor,
+    NoteOnsetPeakPickingProcessor,
+)
+
+rnn_proc = RNNPianoNoteProcessor()
+activations = rnn_proc("track.wav")
+
+peak_pick = NoteOnsetPeakPickingProcessor(fps=100, pitch_offset=21)
+onsets = peak_pick(activations)  # (time, MIDI_pitch) pairs
+```
+
+Same runtime-download/sha256/caching story as the processors above, via
+`madmom_infer/models.py`'s `notes_brnn()`/`notes_cnn()`.
+
+### MFCC / cepstral features
+
+Pure DSP, no pretrained weights:
+
+```python
+from madmom_infer.audio.spectrogram import Spectrogram, FilteredSpectrogramProcessor
+from madmom_infer.audio.filters import LogarithmicFilterbank
+from madmom_infer.audio.cepstrogram import MFCC, Cepstrogram
+
+# MFCC needs an ALREADY-filtered spectrogram to construct -- matching real
+# madmom's own (surprising, verified) behavior: a plain Spectrogram raises
+# AttributeError here, see madmom_infer/audio/cepstrogram.py's module
+# header for the full story.
+filt_spec = FilteredSpectrogramProcessor(
+    filterbank=LogarithmicFilterbank, num_bands=12, fmin=30, fmax=17000,
+)("track.wav")
+mfcc = MFCC(filt_spec)  # (num_frames, 30) MFCCs, warns and re-derives
+                        # the spectrogram from filt_spec.stft internally
+
+spec = Spectrogram("track.wav")
+cepstrogram = Cepstrogram(spec)  # DCT of the plain magnitude spectrogram
+```
+
+### Harmonic/percussive source separation
+
+```python
+import numpy as np
+from madmom_infer.audio.spectrogram import Spectrogram
+from madmom_infer.audio.hpss import HPSS
+
+spec = Spectrogram("track.wav")
+hpss = HPSS()  # alias for HarmonicPercussiveSourceSeparation
+harmonic_slice, percussive_slice = hpss.slices(np.asarray(spec))
+harmonic_mask, percussive_mask = hpss.masks(harmonic_slice, percussive_slice)
+harmonic = np.asarray(spec) * harmonic_mask
+percussive = np.asarray(spec) * percussive_mask
+```
+
+`slices()`/`masks()` are the working surface; `HPSS().process()` itself is
+NOT usable -- it's a faithfully-reproduced real madmom bug (unconditionally
+raises for every input), see `madmom_infer/audio/hpss.py`'s module header.
 
 ### Torch frontend
 

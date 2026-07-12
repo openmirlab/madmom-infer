@@ -10,14 +10,42 @@ Phase-1 scope: only `ShortTimeFourierTransformProcessor`/
 `ShortTimeFourierTransform` plus the free functions they need
 (`stft`, `fft_frequencies`) are ported -- these are the only surface
 all-in-one-infer's `build_spec_processor()` exercises
-(`all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`). Deliberately NOT
-ported (no phase-1 call site, `madmom-upstream/madmom/audio/stft.py:136-184,
-554-712`): `phase()`/`local_group_delay()` and the `Phase`/`LocalGroupDelay`
-classes (phase-vocoder-style analysis, unrelated to the spectrogram-magnitude
-chain), and `pyfftw` acceleration (`rfft_builder`, `fftw=` passthrough --
-`pyfftw` is not a project dependency and was never present in the reference
-madmom install this port's fixtures were generated against, so the `fftw`
-code paths in upstream are dead code for this port's purposes anyway).
+(`all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`). Still NOT ported:
+`pyfftw` acceleration (`rfft_builder`, `fftw=` passthrough -- `pyfftw` is not
+a project dependency and was never present in the reference madmom install
+this port's fixtures were generated against, so the `fftw` code paths in
+upstream are dead code for this port's purposes anyway).
+
+Wave 4b addition: `phase()`, `Phase`, `local_group_delay()`/`lgd` (alias),
+`LocalGroupDelay`/`LGD` (alias) -- the phase-vocoder-style analysis chain
+`features/onsets.py`'s phase-deviation onset family
+(`phase_deviation`/`weighted_phase_deviation`/`normalized_weighted_phase_
+deviation`/`complex_domain`/`rectified_complex_domain`/`complex_flux`) reads
+off `spectrogram.stft.phase()` and `...phase().lgd()`. Composition port, same
+`.data`-wrapping pattern as `ShortTimeFourierTransform` itself (not an
+`np.ndarray` subclass -- docs/DESIGN.md C.2).
+
+**Bug, replicated on purpose (golden-fixture mandate, bugs included -- see
+CLAUDE.md).** Upstream `LocalGroupDelay.__new__` (`stft.py:682-686`) reads:
+
+    def __new__(cls, phase, **kwargs):
+        if not isinstance(stft, Phase):
+            phase = Phase(phase, circular_shift=True, **kwargs)
+        ...
+
+`stft` here is NOT the `phase` parameter -- it's an undefined local name
+that Python resolves to the MODULE-LEVEL `stft` function (this same file
+defines `def stft(frames, window, ...)` above). `isinstance(<function>,
+Phase)` is always `False`, so `not isinstance(...)` is always `True`: this
+branch is unconditionally taken, regardless of whether the `phase` argument
+passed in was already a `Phase` instance. The practical effect: constructing
+`LocalGroupDelay(existing_phase_instance)` does NOT reuse that instance (as
+the docstring implies) -- it always rebuilds a fresh `Phase` from
+`existing_phase_instance.stft` (unwrapped one level, since `Phase.__new__`
+itself DOES correctly check `isinstance(stft, Phase)`) with `circular_shift`
+forced to `True`. Confirmed via direct inspection of the upstream source
+(not merely suspected); this port's `LocalGroupDelay.__init__` below always
+takes the "reconstruct" branch to match, and is documented there too.
 
 Two bit-identity traps replicated HERE ON PURPOSE, not fixed (see
 tests/fixtures/README.md "Surprises" and CLAUDE.md's golden-fixture
@@ -229,6 +257,11 @@ class ShortTimeFourierTransform:
         """Bin frequencies [Hz]."""
         return fft_frequencies(self.num_bins, self.frames.signal.sample_rate)
 
+    def phase(self, **kwargs):
+        """Return the `Phase` of this STFT. Port of
+        `ShortTimeFourierTransform.phase` (`stft.py:427-438`), Wave 4b."""
+        return Phase(self, **kwargs)
+
 
 STFT = ShortTimeFourierTransform
 
@@ -272,3 +305,182 @@ class ShortTimeFourierTransformProcessor(Processor):
 
 
 STFTProcessor = ShortTimeFourierTransformProcessor
+
+
+# ---------------------------------------------------------------------------
+# Phase / LocalGroupDelay -- Wave 4b addition (onset phase-deviation family)
+# ---------------------------------------------------------------------------
+def phase(stft_data):
+    """Phase of a complex STFT array. Verbatim port of
+    `madmom.audio.stft.phase` (`stft.py:136-152`): `np.angle(stft_data)`."""
+    return np.angle(stft_data)
+
+
+def local_group_delay(phase_data):
+    """Local group delay (derivative of unwrapped phase over frequency) of
+    a `(num_frames, num_bins)` phase array.
+
+    Verbatim port of `madmom.audio.stft.local_group_delay`
+    (`stft.py:155-184`).
+    """
+    if phase_data.ndim != 2:
+        raise ValueError("phase must be a 2D array")
+    unwrapped_phase = np.unwrap(phase_data)
+    unwrapped_phase[:, :-1] -= unwrapped_phase[:, 1:]
+    unwrapped_phase[:, -1] = 0
+    return unwrapped_phase
+
+
+# alias
+lgd = local_group_delay
+
+
+class Phase:
+    """The phase of a `ShortTimeFourierTransform`.
+
+    Composition port of `madmom.audio.stft.Phase` (`stft.py:554-644`).
+    `.data` is `np.angle(stft)`, `float32` (matches upstream's implicit
+    downcast: `np.angle` of a `complex64` array returns `float32`).
+    `circular_shift` defaults to `True` when a fresh `STFT` must be built
+    from a non-STFT input (matches upstream's `kwargs.pop('circular_shift',
+    True)`) -- phase information is only meaningful with a circular-shifted
+    STFT (`stft.py:110-123`'s `fft_shift` swap), and a non-circular-shift
+    STFT emits a `RuntimeWarning` here, matching upstream, rather than
+    silently producing wrong-but-plausible-looking phase values.
+    """
+
+    def __init__(self, stft, **kwargs):
+        if isinstance(stft, Phase):
+            # already a Phase, use its STFT
+            stft = stft.stft
+        if not isinstance(stft, ShortTimeFourierTransform):
+            circular_shift = kwargs.pop("circular_shift", True)
+            stft = ShortTimeFourierTransform(
+                stft, circular_shift=circular_shift, **kwargs
+            )
+        if not stft.circular_shift:
+            import warnings
+
+            warnings.warn(
+                "`circular_shift` of the STFT must be set to 'True' for "
+                "correct phase",
+                RuntimeWarning,
+            )
+        self.data = phase(np.asarray(stft)).astype(np.float32)
+        self.stft = stft
+
+    # -- numpy interop, mirroring audio/signal.py's Signal -------------
+    def __array__(self, dtype=None):
+        return np.asarray(self.data, dtype=dtype)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def ndim(self):
+        return self.data.ndim
+
+    @property
+    def dtype(self):
+        return self.data.dtype
+
+    @property
+    def num_frames(self):
+        """Number of frames."""
+        return len(self.data)
+
+    @property
+    def num_bins(self):
+        """Number of bins."""
+        return int(self.data.shape[1])
+
+    @property
+    def bin_frequencies(self):
+        """Bin frequencies."""
+        return self.stft.bin_frequencies
+
+    def local_group_delay(self, **kwargs):
+        """Return the `LocalGroupDelay` of this phase. Port of
+        `Phase.local_group_delay` (`stft.py:614-628`)."""
+        return LocalGroupDelay(self, **kwargs)
+
+    lgd = local_group_delay
+
+
+class LocalGroupDelay:
+    """The local group delay of a `Phase`.
+
+    Composition port of `madmom.audio.stft.LocalGroupDelay`
+    (`stft.py:646-712`). **Reproduces a real upstream bug on purpose** -- see
+    this module's header for the full explanation: `LocalGroupDelay.__new__`
+    checks `isinstance(stft, Phase)` where `stft` is an undefined name that
+    Python resolves to the module-level `stft()` FUNCTION, not the `phase`
+    argument, so the condition is always `True` and a fresh `Phase` is always
+    rebuilt (with `circular_shift` forced to `True`) regardless of whether
+    the input was already a `Phase` instance. This class's `__init__` below
+    always takes that same "always rebuild" branch, matching upstream's
+    actual (buggy) behavior, not its docstring's stated intent.
+    """
+
+    def __init__(self, phase_or_stft, **kwargs):
+        # bug-for-bug port (see class + module docstrings): upstream never
+        # actually reuses an already-built Phase here, it always rebuilds.
+        phase_obj = Phase(phase_or_stft, circular_shift=True, **kwargs)
+        if not phase_obj.stft.circular_shift:
+            import warnings
+
+            warnings.warn(
+                "`circular_shift` of the STFT must be set to 'True' for "
+                "correct local group delay"
+            )
+        self.data = local_group_delay(np.asarray(phase_obj))
+        self.phase = phase_obj
+        self.stft = phase_obj.stft
+
+    # -- numpy interop, mirroring audio/signal.py's Signal -------------
+    def __array__(self, dtype=None):
+        return np.asarray(self.data, dtype=dtype)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def ndim(self):
+        return self.data.ndim
+
+    @property
+    def dtype(self):
+        return self.data.dtype
+
+    @property
+    def num_frames(self):
+        """Number of frames."""
+        return len(self.data)
+
+    @property
+    def num_bins(self):
+        """Number of bins."""
+        return int(self.data.shape[1])
+
+    @property
+    def bin_frequencies(self):
+        """Bin frequencies."""
+        return self.stft.bin_frequencies
+
+
+# alias
+LGD = LocalGroupDelay

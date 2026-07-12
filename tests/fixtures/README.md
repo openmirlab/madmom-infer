@@ -23,13 +23,13 @@ fixture category.
 
 ## Regenerating
 
-```sh
-/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python \
-    tools/generate_fixtures.py
+**Do not regenerate these committed fixtures casually** -- they're the
+frozen acceptance standard this port is graded against. If you do need to
+regenerate them, use the reference venv:
 
-# or, equivalently:
-uv run --project /home/worzpro/Desktop/dev/openmirlab/all-in-one-fix \
-    python tools/generate_fixtures.py
+```sh
+/home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python \
+    tools/generate_fixtures.py
 ```
 
 The script is standalone (imports only `numpy`/`scipy`/`madmom`, never
@@ -37,10 +37,13 @@ The script is standalone (imports only `numpy`/`scipy`/`madmom`, never
 re-running it reproduces byte-identical `.wav`/`.npz` files (verified: two
 consecutive runs hash-compared identical, including `manifest.json`).
 
-For a from-scratch environment (no dependency on the `all-in-one-fix`
-checkout existing), see `docs/DESIGN.md` section C.4 for the pinned
-`numpy==1.23.5 scipy==1.15.3 cython 'git+https://github.com/CPJKU/madmom'`
-recipe.
+The reference venv originally lived at `all-in-one-fix/.venv`; that
+checkout no longer exists on this machine and was rebuilt 2026-07-12
+(Wave 4.0) at `../../../madmom-reference/.venv` from
+`../../../madmom-upstream`, to the exact same recorded versions. For a
+fully from-scratch environment, see `docs/DESIGN.md` section C.4 for the
+pinned `numpy==1.23.5 scipy==1.15.3 cython
+'git+https://github.com/CPJKU/madmom'` recipe.
 
 ## Test wavs (`wavs/`)
 

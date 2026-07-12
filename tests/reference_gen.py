@@ -4,7 +4,7 @@ Computes real madmom's `Signal`/`FramedSignal`/`remix` outputs for a fixed
 set of deterministic test cases and dumps them to an .npz file. Must be run
 under a *working* madmom install (this repo has none by design -- see
 docs/DESIGN.md); `test_signal.py` invokes this script as a subprocess of
-`/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python`
+`/home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python`
 (madmom 0.17.dev0, numpy 1.23.5, scipy 1.15.3).
 
 Deliberately standalone: no import of `madmom_infer` anywhere in this file,

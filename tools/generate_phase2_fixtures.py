@@ -10,12 +10,13 @@ fixtures, same as `tools/generate_fixtures.py`'s doc block explains for
 Phase 1).
 
 HOW TO RUN -- same real-madmom reference venv as Phase 1
-(`all-in-one-fix/.venv`, Python 3.10.18, numpy 1.23.5, scipy 1.15.3), which
-already has the `DOWNBEATS_BLSTM` weights installed as vendored package data
-(a real, pip-installed madmom 0.17.dev0 wheel bundles its own `madmom/models`
-tree):
+(`madmom-reference/.venv`, Python 3.10.18, numpy 1.23.5, scipy 1.15.3 --
+rebuilt 2026-07-12 to the same recorded versions as the original, now-gone
+`all-in-one-fix/.venv`), which already has the `DOWNBEATS_BLSTM` weights
+installed as vendored package data (a real, pip-installed madmom 0.17.dev0
+wheel bundles its own `madmom/models` tree):
 
-    /home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python \\
+    /home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python \\
         tools/generate_phase2_fixtures.py
 
 Reuses the SAME test wavs `tools/generate_fixtures.py` already generated
@@ -131,7 +132,7 @@ def main() -> None:
         print(
             "ERROR: this script needs the real `madmom` package (not "
             "madmom_infer), including its DOWNBEATS_BLSTM pretrained model "
-            "weights. Run it with the all-in-one-fix venv's interpreter -- "
+            "weights. Run it with the madmom-reference venv's interpreter -- "
             "see this file's module docstring for the exact command.",
             file=sys.stderr,
         )

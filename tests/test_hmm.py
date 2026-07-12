@@ -1,8 +1,9 @@
 """A/B tests for madmom_infer.ml.hmm against real madmom's compiled ml/hmm.pyx.
 
 Fixtures are pre-recorded by tests/generate_fixtures.py, run once against the
-compiled madmom install in all-in-one-fix/.venv (see that script's docstring
-for exact provenance/regeneration instructions) -- these tests never import
+compiled madmom install in the reference venv (madmom-reference/.venv --
+see that script's docstring for exact provenance/regeneration instructions)
+-- these tests never import
 real madmom themselves, only the saved .npz arrays, so they run under
 whatever numpy/Python this project's own environment uses.
 

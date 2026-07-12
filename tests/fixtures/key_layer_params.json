@@ -1,0 +1,37 @@
+{
+  "AverageLayer": {
+    "axis": [
+      0,
+      1
+    ],
+    "dtype": null,
+    "keepdims": false
+  },
+  "BatchNormLayer": {
+    "activation_fn": "elu"
+  },
+  "ConvolutionalLayer": {
+    "activation_fn": "linear",
+    "pad": "valid",
+    "stride": 1
+  },
+  "MaxPoolLayer": {
+    "axis": null,
+    "size": [
+      2,
+      2
+    ],
+    "stride": [
+      2,
+      2
+    ]
+  },
+  "PadLayer": {
+    "axes": [
+      0,
+      1
+    ],
+    "value": 0.0,
+    "width": 2
+  }
+}

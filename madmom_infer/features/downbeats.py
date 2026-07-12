@@ -32,13 +32,83 @@ always uses a plain Python loop over `self.hmms` and drops the
 `multiprocessing.Pool` branch entirely (documented here so a future reader
 doesn't go looking for it and wonder if it was missed).
 
+Wave 4c adds `SyncronizeFeaturesProcessor` (pure numpy, no NN weights --
+average feature frames into per-beat-subdivision bins) and `RNNBarProcessor`
+(madmom's alternative, GRU-based downbeat model:
+`madmom-upstream/madmom/features/downbeats.py:915-1035`), completing the
+`GRULayer`/`GRUCell`/`DOWNBEATS_BGRU` scope-addition the 4.0 audit flagged
+(CLAUDE.md's corrections section). At that point **`RNNBarProcessor` could
+NOT be INSTANTIATED end-to-end from raw audio** -- its `__init__` needed
+`audio/chroma.py`'s `CLPChromaProcessor` for its harmonic feature branch,
+which was TO-PORT(4d), not yet ported (confirmed by reading
+`RNNBarProcessor.__init__` directly, `downbeats.py:965/980`). The class was
+ported VERBATIM regardless (matching upstream's own structure exactly,
+including the `from ..audio.chroma import CLPChromaProcessor` import) --
+it simply raised `ImportError` on construction until 4d landed
+`CLPChromaProcessor`. What 4c COULD and DID prove bit-identical was the part
+that actually needed `GRULayer`/`GRUCell`: the `DOWNBEATS_BGRU`
+`NeuralNetworkEnsemble` forward pass itself, fed real madmom's own captured
+intermediate beat-synchronized features as a golden fixture (see
+`tools/generate_beat_tempo_fixtures.py`/`tests/test_downbeats_rnn.py`) --
+the genuine "does this port's GRU implementation match real madmom's"
+question, answered directly, without requiring this project's own
+(not-yet-existing) `CLPChromaProcessor` to reproduce the harmonic features
+from scratch.
+
+**Wave 4d closes this loop**: `audio/chroma.py`'s `CLPChromaProcessor` now
+exists, so `RNNBarProcessor()` is fully instantiable and provably correct
+end-to-end from raw audio -- see `tests/test_downbeats_rnn.py`'s
+"RNNBarProcessor end-to-end (Wave 4d)" section (decoded beat times EXACT,
+decoded downbeat activation within a documented ~4e-8 absolute tolerance,
+both in-process and cross-BLAS). Wave 4d also found and fixed a genuine
+latent bug in `SyncronizeFeaturesProcessor.process` BELOW, surfaced only by
+actually exercising this end-to-end for the first time: it called
+`features.T` directly, which works on upstream's `np.ndarray`-subclass
+spectrograms but raises `AttributeError` on this project's own
+composition-style ones (`SpectrogramDifference`/`CLPChroma`) -- fixed with
+an explicit `np.asarray(features).T`, see that method's inline comment.
+
+**Wave 4f addition**: `PatternTrackingProcessor` (upstream's actual class
+name -- earlier wave-plan text called this `GMMPatternTrackingProcessor`,
+corrected by the 4.0 audit, see CLAUDE.md) and `DBNBarTrackingProcessor`.
+Both are verbatim ports built on `features/beats_hmm.py`'s new
+`MultiPatternStateSpace`/`MultiPatternTransitionModel` (this wave's own
+addition, alongside `GMMPatternTrackingObservationModel`).
+`PatternTrackingProcessor` models each rhythmic pattern (loaded from a
+`PATTERNS_BALLROOM` `.pkl` file -- a plain dict of `{'gmms': [...],
+'num_beats': int}`, unpickled via `madmom_infer.ml.nn.unpickle.load_model`,
+NOT a bare `pickle.load` the way upstream's own `__init__` does it, same
+restricted-unpickling convention as every other model family in this
+project) as a `BarStateSpace`/`BarTransitionModel`, stacks them into one
+`MultiPatternStateSpace`/`MultiPatternTransitionModel`, and decodes with a
+`GMMPatternTrackingObservationModel` (`ml/gmm.py`'s `GMM.score`, this wave's
+own numpy GMM port) -- takes a `MultiBandSpectrogram`-shaped multi-band
+spectral-flux feature array (`audio/spectrogram.py`'s `MultiBandSpectrogram`/
+`MultiBandSpectrogramProcessor`, also new this wave) as input, decodes
+(down-)beat positions with `beat_numbers`. `DBNBarTrackingProcessor` needs
+NO GMM at all -- it treats different `beats_per_bar` values as different
+"patterns" of the SAME `MultiPatternStateSpace`/`MultiPatternTransitionModel`
+machinery, reusing `RNNBeatTrackingObservationModel` (already ported,
+Phase 2) as its observation model instead; it decodes downbeats given
+pre-determined beat positions PLUS a downbeat activation function (the
+`RNNBarProcessor` output above), NOT raw audio directly.
+
 Reads: madmom_infer/features/beats_hmm.py (BarStateSpace, BarTransitionModel,
-RNNDownBeatTrackingObservationModel), madmom_infer/ml/hmm.py
-(HiddenMarkovModel), madmom_infer/processors.py (Processor, ParallelProcessor,
+RNNDownBeatTrackingObservationModel, MultiPatternStateSpace,
+MultiPatternTransitionModel, GMMPatternTrackingObservationModel, Wave 4f),
+madmom_infer/ml/hmm.py (HiddenMarkovModel), madmom_infer/ml/nn/unpickle.py
+(load_model, PatternTrackingProcessor's pattern-file loading, Wave 4f),
+madmom_infer/processors.py (Processor, ParallelProcessor,
 SequentialProcessor), madmom_infer/audio/{signal,stft,spectrogram}.py (the
-pre-processing cascade), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
-madmom_infer/models.py (DOWNBEATS_BLSTM download)
+pre-processing cascade, incl. Wave 4f's MultiBandSpectrogram), madmom_infer/
+audio/chroma.py (CLPChromaProcessor, RNNBarProcessor's harmonic-feature
+branch, Wave 4d), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
+madmom_infer/models.py (DOWNBEATS_BLSTM/DOWNBEATS_BGRU/PATTERNS_BALLROOM
+download); read by: madmom_infer/features/tempo.py does NOT read this file
+(only features/beats.py's DBNBeatTrackingProcessor, see that module).
 """
+
+import warnings
 
 import numpy as np
 
@@ -49,7 +119,9 @@ from madmom_infer.audio.spectrogram import (
 )
 from madmom_infer.audio.stft import ShortTimeFourierTransformProcessor
 from madmom_infer.features.beats_hmm import (
-    BarStateSpace, BarTransitionModel, RNNDownBeatTrackingObservationModel,
+    BarStateSpace, BarTransitionModel, GMMPatternTrackingObservationModel,
+    MultiPatternStateSpace, MultiPatternTransitionModel,
+    RNNBeatTrackingObservationModel, RNNDownBeatTrackingObservationModel,
 )
 from madmom_infer.ml.hmm import HiddenMarkovModel
 from madmom_infer.ml.nn import NeuralNetworkEnsemble
@@ -341,3 +413,385 @@ class DBNDownBeatTrackingProcessor(Processor):
         # return the beat positions (converted to seconds) and beat numbers
         return np.vstack(((beats + first) / float(self.fps),
                           beat_numbers[beats])).T
+
+
+class SyncronizeFeaturesProcessor(Processor):
+    """Synchronize features to beats: divide a beat interval into
+    `beat_subdivisions` divisions, then average all feature values that
+    fall into each subdivision (0 if none do).
+
+    Verbatim port of `madmom.features.downbeats.SyncronizeFeaturesProcessor`
+    (`madmom-upstream/madmom/features/downbeats.py:824-912`). Wave 4c, part
+    of the `RNNBarProcessor`/`GRULayer` scope addition (see this module's
+    header). Pure numpy, no NN weights -- independently verifiable without
+    `RNNBarProcessor`'s own blocked (see header) harmonic-feature branch.
+    """
+
+    def __init__(self, beat_subdivisions, fps, **kwargs):
+        # pylint: disable=unused-argument
+        self.beat_subdivisions = beat_subdivisions
+        self.fps = fps
+
+    def process(self, data, **kwargs):
+        """Synchronize features to beats.
+
+        Parameters
+        ----------
+        data : tuple (features, beats)
+            Tuple of two numpy arrays, the first containing features to be
+            synchronized and the second the beat times.
+
+        Returns
+        -------
+        numpy array (num_beats - 1, beat_subdivisions, features_dim)
+            Beat-synchronous features.
+        """
+        # pylint: disable=arguments-differ, unused-argument
+        features, beats = data
+        if beats.size == 0:
+            return np.array([]), np.array([])
+        if beats.ndim > 1:
+            beats = beats[:, 0]
+        while (float(len(features)) / self.fps) < beats[-1]:
+            beats = beats[:-1]
+            warnings.warn("Beat sequence too long compared to features.")
+        num_beats = len(beats)
+        # Wave 4d fix: `np.asarray(features)` first -- `features` is, in
+        # real end-to-end use, one of this project's own composition-style
+        # spectrogram objects (`SpectrogramDifference`/`CLPChroma`, see
+        # docs/DESIGN.md C.2), which have no `.T` attribute of their own
+        # (unlike upstream's `np.ndarray`-subclass hierarchy, where `.T`
+        # comes for free). Confirmed empirically: `RNNBarProcessor.process`
+        # feeds exactly this call site a `SpectrogramDifference`/`CLPChroma`
+        # instance, not a raw array -- calling `.T` directly raised
+        # `AttributeError` before this fix, only unnoticed in 4c because
+        # that wave's own `SyncronizeFeaturesProcessor` test fed a raw,
+        # already-captured ndarray fixture (see tools/
+        # generate_beat_tempo_fixtures.py), never a live composition object.
+        features = np.array(np.asarray(features).T, copy=False, ndmin=2).T
+        feat_dim = features.shape[-1]
+        beat_features = np.zeros(
+            (num_beats - 1, self.beat_subdivisions, feat_dim))
+        beat_start = int(max(0, np.floor((beats[0] - 0.02) * self.fps)))
+        for i in range(num_beats - 1):
+            beat_duration = beats[i + 1] - beats[i]
+            offset = 0.5 * beat_duration / self.beat_subdivisions
+            offset = np.min([offset, 0.05])
+            beat_end = int(np.floor((beats[i + 1] - offset) * self.fps))
+            subdiv = np.floor(np.linspace(0, self.beat_subdivisions,
+                                          beat_end - beat_start,
+                                          endpoint=False))
+            beat = features[beat_start:beat_end]
+            subdiv_features = [beat[subdiv == div] for div in
+                               range(self.beat_subdivisions)]
+            beat_features[i, :, :] = np.array(
+                [np.mean(x, axis=0) for x in subdiv_features])
+            beat_start = beat_end
+        return beat_features
+
+
+class RNNBarProcessor(Processor):
+    """Retrieve a downbeat activation function from a signal and
+    pre-determined beat positions by obtaining beat-synchronous harmonic and
+    percussive features which are processed with a GRU-RNN.
+
+    Verbatim port of `madmom.features.downbeats.RNNBarProcessor`
+    (`madmom-upstream/madmom/features/downbeats.py:915-1035`). Wave 4c --
+    **see this module's header: cannot be instantiated end-to-end from raw
+    audio until 4d ports `audio/chroma.py`'s `CLPChromaProcessor`** (its
+    `__init__` needs it for `self.harm_feat`); the `GRULayer`/`GRUCell`
+    forward pass this class exists to exercise is instead proven bit-exact
+    via a golden intermediate-feature fixture, not a full audio-in run --
+    see `tests/test_downbeats_rnn.py`.
+    """
+
+    def __init__(self, beat_subdivisions=(4, 2), fps=100, **kwargs):
+        # pylint: disable=unused-argument
+        from madmom_infer.audio.chroma import CLPChromaProcessor
+        from madmom_infer.models import downbeats_bgru
+
+        sig = SignalProcessor(num_channels=1, sample_rate=44100)
+        frames = FramedSignalProcessor(frame_size=2048, fps=fps)
+        stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+        spec = FilteredSpectrogramProcessor(
+            num_bands=6, fmin=30., fmax=17000., norm_filters=True)
+        log_spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
+        diff = SpectrogramDifferenceProcessor(
+            diff_ratio=0.5, positive_diffs=True)
+        self.perc_feat = SequentialProcessor(
+            (sig, frames, stft, spec, log_spec, diff))
+        self.harm_feat = CLPChromaProcessor(
+            fps=fps, fmin=27.5, fmax=4200., compression_factor=100,
+            norm=True, threshold=0.001)
+        self.perc_beat_sync = SyncronizeFeaturesProcessor(
+            beat_subdivisions[0], fps=fps, **kwargs)
+        self.harm_beat_sync = SyncronizeFeaturesProcessor(
+            beat_subdivisions[1], fps=fps, **kwargs)
+        bgru = downbeats_bgru()
+        self.perc_nn = NeuralNetworkEnsemble.load(bgru[0], **kwargs)
+        self.harm_nn = NeuralNetworkEnsemble.load(bgru[1], **kwargs)
+
+    def process(self, data, **kwargs):
+        """Retrieve a downbeat activation function from a signal and beat
+        positions.
+
+        Parameters
+        ----------
+        data : tuple
+            Tuple containing a signal or file (handle) and corresponding
+            beat times [seconds].
+
+        Returns
+        -------
+        numpy array, shape (num_beats, 2)
+            Beat positions (first column) and the corresponding downbeat
+            activations (second column).
+        """
+        # pylint: disable=arguments-differ, unused-argument
+        signal, beats = data
+        perc = self.perc_feat(signal)
+        harm = self.harm_feat(signal)
+        perc_synced = self.perc_beat_sync((perc, beats))
+        harm_synced = self.harm_beat_sync((harm, beats))
+        perc = self.perc_nn(perc_synced.reshape((len(perc_synced), -1)))
+        harm = self.harm_nn(harm_synced.reshape((len(harm_synced), -1)))
+        act = np.mean([perc, harm], axis=0)
+        act = np.append(act, np.ones(1) * np.nan)
+        return np.vstack((beats, act)).T
+
+
+# ---------------------------------------------------------------------------
+# Wave 4f addition: PatternTrackingProcessor, DBNBarTrackingProcessor
+# ---------------------------------------------------------------------------
+class PatternTrackingProcessor(Processor):
+    """Pattern tracking with a dynamic Bayesian network (DBN) approximated
+    by a Hidden Markov Model (HMM).
+
+    Verbatim port of `madmom.features.downbeats.PatternTrackingProcessor`
+    (`downbeats.py:443-626`) -- **upstream's actual class name**; earlier
+    wave-plan text referred to this as `GMMPatternTrackingProcessor`,
+    corrected by the 4.0 audit (see CLAUDE.md).
+
+    Parameters
+    ----------
+    pattern_files : list
+        List of files with the patterns (including the fitted GMMs and
+        information about the number of beats) -- see
+        `madmom_infer.models.patterns_ballroom`.
+    min_bpm : list, optional
+        Minimum tempi used for pattern tracking [bpm].
+    max_bpm : list, optional
+        Maximum tempi used for pattern tracking [bpm].
+    num_tempi : int or list, optional
+        Number of tempi to model; if set, limit the number of tempi and use
+        a log spacings, otherwise a linear spacings.
+    transition_lambda : float or list, optional
+        Lambdas for the exponential tempo change distributions (higher
+        values prefer constant tempi from one beat to the next one).
+    fps : float, optional
+        Frames per second.
+
+    Notes
+    -----
+    `min_bpm`, `max_bpm`, `num_tempo_states`, and `transition_lambda` must
+    contain as many items as rhythmic patterns are modeled (i.e. length of
+    `pattern_files`). If a single value is given for `num_tempo_states` and
+    `transition_lambda`, this value is used for all rhythmic patterns.
+    """
+
+    MIN_BPM = (55, 60)
+    MAX_BPM = (205, 225)
+    NUM_TEMPI = None
+    # Note: if multiple values are given, the individual values represent
+    #       the lambdas for each transition into the beat at this index
+    TRANSITION_LAMBDA = 100
+
+    def __init__(self, pattern_files, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
+                 num_tempi=NUM_TEMPI, transition_lambda=TRANSITION_LAMBDA,
+                 fps=None, **kwargs):
+        # pylint: disable=unused-argument
+        from madmom_infer.ml.nn.unpickle import load_model
+
+        min_bpm = np.array(min_bpm, ndmin=1)
+        max_bpm = np.array(max_bpm, ndmin=1)
+        num_tempi = np.array(num_tempi, ndmin=1)
+        transition_lambda = np.array(transition_lambda, ndmin=1)
+        # make sure arguments are given for each pattern (expand if needed)
+        if len(min_bpm) != len(pattern_files):
+            min_bpm = np.repeat(min_bpm, len(pattern_files))
+        if len(max_bpm) != len(pattern_files):
+            max_bpm = np.repeat(max_bpm, len(pattern_files))
+        if len(num_tempi) != len(pattern_files):
+            num_tempi = np.repeat(num_tempi, len(pattern_files))
+        if len(transition_lambda) != len(pattern_files):
+            transition_lambda = np.repeat(transition_lambda,
+                                          len(pattern_files))
+        # check if all lists have the same length
+        if not (len(min_bpm) == len(max_bpm) == len(num_tempi) ==
+                len(transition_lambda) == len(pattern_files)):
+            raise ValueError('`min_bpm`, `max_bpm`, `num_tempi` and '
+                             '`transition_lambda` must have the same length '
+                             'as number of patterns.')
+        # save some variables
+        self.fps = fps
+        self.num_beats = []
+        # convert timing information to construct a state space
+        min_interval = 60. * self.fps / np.asarray(max_bpm)
+        max_interval = 60. * self.fps / np.asarray(min_bpm)
+        # collect beat/bar state spaces, transition models, and GMMs
+        state_spaces = []
+        transition_models = []
+        gmms = []
+        # check that at least one pattern is given
+        if not pattern_files:
+            raise ValueError('at least one rhythmical pattern must be given.')
+        # load the patterns -- via this project's own restricted unpickler,
+        # NOT a bare pickle.load the way upstream's own __init__ does it
+        # (see this module's header).
+        for p, pattern_file in enumerate(pattern_files):
+            pattern = load_model(pattern_file)
+            # get the fitted GMMs and number of beats
+            gmms.append(pattern['gmms'])
+            num_beats = pattern['num_beats']
+            self.num_beats.append(num_beats)
+            # model each rhythmic pattern as a bar
+            state_space = BarStateSpace(num_beats, min_interval[p],
+                                        max_interval[p], num_tempi[p])
+            transition_model = BarTransitionModel(state_space,
+                                                  transition_lambda[p])
+            state_spaces.append(state_space)
+            transition_models.append(transition_model)
+        # create multi pattern state space, transition and observation model
+        self.st = MultiPatternStateSpace(state_spaces)
+        self.tm = MultiPatternTransitionModel(transition_models)
+        self.om = GMMPatternTrackingObservationModel(gmms, self.st)
+        # instantiate a HMM
+        self.hmm = HiddenMarkovModel(self.tm, self.om, None)
+
+    def process(self, features, **kwargs):
+        """Detect the (down-)beats given the features.
+
+        Parameters
+        ----------
+        features : numpy array
+            Multi-band spectral features.
+
+        Returns
+        -------
+        beats : numpy array, shape (num_beats, 2)
+            Detected (down-)beat positions [seconds] and beat numbers.
+        """
+        # pylint: disable=arguments-differ, unused-argument
+        # get the best state path by calling the viterbi algorithm
+        path, _ = self.hmm.viterbi(features)
+        # the positions inside the pattern (0..num_beats)
+        positions = self.st.state_positions[path]
+        # corresponding beats (add 1 for natural counting)
+        beat_numbers = positions.astype(int) + 1
+        # transitions are the points where the beat numbers change
+        # FIXME: we might miss the first or last beat!
+        #        we could calculate the interval towards the beginning/end to
+        #        decide whether to include these points
+        beat_positions = np.nonzero(np.diff(beat_numbers))[0] + 1
+        # return the beat positions (converted to seconds) and beat numbers
+        return np.vstack((beat_positions / float(self.fps),
+                          beat_numbers[beat_positions])).T
+
+
+class DBNBarTrackingProcessor(Processor):
+    """Bar tracking with a dynamic Bayesian network (DBN) approximated by a
+    Hidden Markov Model (HMM).
+
+    Verbatim port of `madmom.features.downbeats.DBNBarTrackingProcessor`
+    (`downbeats.py:1038-1154`). Unlike `PatternTrackingProcessor` above,
+    this needs NO GMM/pattern files at all -- different `beats_per_bar`
+    values are treated as different "patterns" of the SAME
+    `MultiPatternStateSpace`/`MultiPatternTransitionModel` machinery,
+    reusing `RNNBeatTrackingObservationModel` (already ported, Phase 2) as
+    its observation model. Decodes downbeat positions given pre-determined
+    BEAT positions plus a downbeat activation function (e.g.
+    `RNNBarProcessor`'s output above) -- not raw audio directly.
+
+    Parameters
+    ----------
+    beats_per_bar : int or list
+        Number of beats per bar to be modeled. Can be either a single number
+        or a list or array with bar lengths (in beats).
+    observation_weight : int, optional
+        Weight for the downbeat activations.
+    meter_change_prob : float, optional
+        Probability to change meter at bar boundaries.
+    """
+
+    OBSERVATION_WEIGHT = 100
+    METER_CHANGE_PROB = 1e-7
+
+    def __init__(self, beats_per_bar=(3, 4),
+                 observation_weight=OBSERVATION_WEIGHT,
+                 meter_change_prob=METER_CHANGE_PROB, **kwargs):
+        # pylint: disable=unused-argument
+        if isinstance(beats_per_bar, (int, np.integer)):
+            beats_per_bar = (beats_per_bar,)
+        self.beats_per_bar = beats_per_bar
+        # state space & transition model for each bar length
+        state_spaces = []
+        transition_models = []
+        for beats in self.beats_per_bar:
+            # Note: tempo and transition_lambda is not relevant
+            st = BarStateSpace(beats, min_interval=1, max_interval=1)
+            tm = BarTransitionModel(st, transition_lambda=1)
+            state_spaces.append(st)
+            transition_models.append(tm)
+        # Note: treat different bar lengths as different patterns and use
+        #       the existing MultiPatternStateSpace and
+        #       MultiPatternTransitionModel
+        self.st = MultiPatternStateSpace(state_spaces)
+        self.tm = MultiPatternTransitionModel(
+            transition_models, transition_prob=meter_change_prob)
+        # observation model -- Note: RNNBeatTrackingObservationModel (1D,
+        # single downbeat-activation column), NOT RNNDownBeatTrackingObservation
+        # Model (2D beat+downbeat) -- matches upstream exactly
+        # (downbeats.py:1110): DBNBarTrackingProcessor.process only ever
+        # feeds it `data[:, 1]` (the downbeat-activation column alone).
+        self.om = RNNBeatTrackingObservationModel(self.st, observation_weight)
+        # instantiate a HMM
+        self.hmm = HiddenMarkovModel(self.tm, self.om, None)
+
+    def process(self, data, **kwargs):
+        """Detect downbeats from the given beats and activation function
+        with Viterbi decoding.
+
+        Parameters
+        ----------
+        data : numpy array, shape (num_beats, 2)
+            Array containing beat positions (first column) and corresponding
+            downbeat activations (second column).
+
+        Returns
+        -------
+        numpy array, shape (num_beats, 2)
+            Decoded (down-)beat positions and beat numbers.
+
+        Notes
+        -----
+        The position of the last beat is not decoded, but rather
+        extrapolated based on the position and meter of the second to last
+        beat.
+        """
+        # pylint: disable=unused-argument
+        beats = data[:, 0]
+        activations = data[:, 1]
+        # remove unsynchronised (usually the last) values
+        activations = activations[:-1]
+        # Viterbi decoding
+        path, _ = self.hmm.viterbi(activations)
+        # get the position inside the bar
+        position = self.st.state_positions[path]
+        # the beat numbers are the counters + 1 at the transition points
+        beat_numbers = position.astype(int) + 1
+        # add the last beat (which has no activation function value)
+        meter = self.beats_per_bar[self.st.state_patterns[path[-1]]]
+        last_beat_number = np.mod(beat_numbers[-1], meter) + 1
+        beat_numbers = np.append(beat_numbers, last_beat_number)
+        # return beats and their beat numbers
+        return np.vstack((beats, beat_numbers)).T

@@ -17,8 +17,11 @@ linked to `openblas64_`; this project's own environment resolves to a
 different OpenBLAS build via numpy's bundled `scipy-openblas` wheels. Proof:
 exporting this port's own computed magnitude-spectrogram and filterbank-
 matrix arrays (bit-identical to madmom's own, independently verified) and
-running `np.dot` on them through the ORIGINAL reference venv's numpy/BLAS
-(`all-in-one-fix/.venv`, numpy 1.23.5) reproduces the golden fixture with
+running `np.dot` on them through the reference venv's numpy/BLAS
+(`madmom-reference/.venv`, rebuilt 2026-07-12 to the same recorded versions
+-- numpy 1.23.5, scipy 1.15.3 -- as the original, now-gone
+`all-in-one-fix/.venv` that the golden fixtures were recorded from)
+reproduces the golden fixture with
 ZERO differing elements -- see `test_filtered_spectrogram_algorithm_is_exact_
 under_original_blas` below, which performs exactly this cross-environment
 check as an executable test, not just a one-off investigation. Under THIS
@@ -98,7 +101,7 @@ ALL_CASES = {
 MAX_ULP = 64
 
 REFERENCE_PYTHON = Path(
-    "/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python"
+    "/home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python"
 )
 
 
@@ -254,7 +257,7 @@ def _reference_python_available():
 
 @pytest.mark.skipif(
     not _reference_python_available(),
-    reason="reference madmom install (all-in-one-fix/.venv) not found on "
+    reason="reference madmom install (madmom-reference/.venv) not found on "
            "this machine; the cross-BLAS proof requires it",
 )
 def test_filtered_spectrogram_algorithm_is_exact_under_original_blas(tmp_path):

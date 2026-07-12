@@ -129,6 +129,177 @@ EXPECTED_KEYS = {
         for case in ("mono_44100", "stereo_44100", "float32_44100")
         for suffix in ("activations", "beat_times")
     },
+    # Wave 4a (tools/generate_key_fixtures.py) -- 44.1kHz-native cases only,
+    # CNNKeyRecognitionProcessor has no resampling support (same reason as
+    # RNNDownBeatProcessor, see that file's module header).
+    "key_layers.npz": {"spec_input"} | {
+        f"{layer_type}_{suffix}"
+        for layer_type, suffixes in (
+            ("PadLayer", ("input", "output")),
+            ("ConvolutionalLayer", ("input", "output", "weights", "bias")),
+            ("BatchNormLayer",
+             ("input", "output", "beta", "gamma", "mean", "inv_std")),
+            ("MaxPoolLayer", ("input", "output")),
+            ("AverageLayer", ("input", "output")),
+        )
+        for suffix in suffixes
+    },
+    "key_activations.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("prediction", "label")
+    },
+    # Wave 4b (tools/generate_onset_fixtures.py) -- pure-DSP onset function
+    # golden outputs, model-independent (mono_44100.wav only, see that
+    # file's module header).
+    "onset_dsp_functions.npz": {
+        "wrap_to_pi_input", "wrap_to_pi_output", "high_frequency_content",
+        "spectral_diff", "spectral_flux", "superflux",
+        "modified_kullback_leibler", "phase_deviation",
+        "weighted_phase_deviation", "normalized_weighted_phase_deviation",
+        "complex_domain", "rectified_complex_domain",
+        "complex_flux_unfiltered", "complex_flux_filtered", "sodf_default",
+        "sodf_superflux",
+    },
+    "onset_stride_layer.npz": {"StrideLayer_input", "StrideLayer_output"},
+    # Wave 4b -- 44.1kHz-native cases only, RNNOnsetProcessor/
+    # CNNOnsetProcessor have no resampling support (same reason as
+    # RNNDownBeatProcessor/CNNKeyRecognitionProcessor).
+    "onset_activations.npz": {
+        f"{case}_{model}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for model in ("brnn", "rnn", "cnn")
+        for suffix in ("activations", "onsets")
+    },
+    # Wave 4c (tools/generate_beat_tempo_fixtures.py) -- comb-filter
+    # function fixtures, fed a real beat activation function
+    # (mono_44100.wav only, see that file's module header).
+    "beats_comb_filters.npz": {
+        "comb_filter_input_1d", "comb_filter_input_2d",
+        "comb_filter_bank_forward", "comb_filter_bank_backward",
+    } | {
+        f"feed_{direction}_tau{tau}"
+        for direction in ("forward", "backward")
+        for tau in (5, 17, 43)
+    } | {"feed_backward_2d_tau17"},
+    # Wave 4c -- 44.1kHz-native cases only, RNNBeatProcessor has no
+    # resampling support (same reason as RNNDownBeatProcessor/
+    # RNNOnsetProcessor).
+    "beats_activations.npz": {
+        f"{case}_{model}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for model in ("blstm", "lstm")
+        for suffix in ("activations", "beat_times")
+    },
+    "beats_multimodel_selection.npz": {
+        f"prediction_{i}" for i in range(8)
+    } | {"selected"},
+    "tempo_histograms.npz": {"tempo_input_activations"} | {
+        f"{method}_{suffix}"
+        for method in ("acf", "comb", "dbn")
+        for suffix in ("histogram_bins", "histogram_delays", "tempi")
+    },
+    "sync_features.npz": {
+        "sync_features_input", "sync_beats_input", "sync_features_output",
+    },
+    "downbeats_bgru_intermediate.npz": {
+        "beats", "perc_synced", "harm_synced", "perc_nn_out", "harm_nn_out",
+        "full_downbeat_activation",
+    },
+    # Wave 4d (tools/generate_chroma_chord_fixtures.py) -- CRF direct-decode
+    # fixture, real chord-feature observations + real decoded state
+    # sequence + labels, both CRF model families.
+    "crf_decode.npz": {
+        "dccrf_observations", "dccrf_y_star", "dccrf_labels_start",
+        "dccrf_labels_end", "dccrf_labels_label", "cfcrf_observations",
+        "cfcrf_y_star", "cfcrf_labels_start", "cfcrf_labels_end",
+        "cfcrf_labels_label",
+    },
+    # Wave 4d -- classic chroma (PitchClassProfile/HarmonicPitchClassProfile),
+    # 44.1kHz-native cases only (no file-load resampling).
+    "chroma_classic.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("pcp", "hpcp")
+    },
+    # Wave 4d -- CLP chroma (SemitoneBandpassSpectrogram + CLPChroma).
+    "clp_chroma.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in (
+            "semitone_bandpass", "semitone_bin_frequencies", "clp_chroma",
+        )
+    },
+    # Wave 4d -- DeepChromaProcessor end-to-end activations.
+    "chroma_dnn_activations.npz": {
+        f"{case}_chroma"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+    },
+    # Wave 4d -- chord recognition end-to-end (audio -> chord segments),
+    # both DeepChromaChordRecognitionProcessor (dccrf) and
+    # CNNChordFeatureProcessor + CRFChordRecognitionProcessor (cfcrf) paths.
+    "chords_end_to_end.npz": {
+        f"{case}_{model}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for model in ("dccrf", "cfcrf")
+        for suffix in ("start", "end", "label")
+    },
+    # Wave 4d -- RNNBarProcessor full AUDIO-IN end-to-end fixture.
+    "rnn_bar_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("beats", "bar_output")
+    },
+    # Wave 4e -- ReshapeLayer/TransposeLayer golden (input, output) fixtures,
+    # self-contained (no weights -- these layers have no trainable params).
+    "notes_layers.npz": {
+        "TransposeLayer_input", "TransposeLayer_output",
+        "ReshapeLayer_input", "ReshapeLayer_output",
+    },
+    # Wave 4e -- RNNPianoNoteProcessor/CNNPianoNoteProcessor end-to-end
+    # activations + decoded notes, 44.1kHz-native cases only (no file-load
+    # resampling).
+    "notes_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in (
+            "rnn_activations", "cnn_activations", "onset_notes",
+            "deprecated_notes", "adsr_notes",
+        )
+    },
+    # Wave 4e -- synthetic (hand-crafted, deterministic) ADSRNoteTracking
+    # decode fixture -- exercises the segmentation logic non-trivially
+    # (unlike the real-audio fixture above, which decodes to empty on every
+    # case, see tools/generate_notes_fixtures.py's module header).
+    "notes_adsr_synthetic.npz": {"activations", "notes"},
+    # Wave 4e -- synthetic peak-picking fixture (same rationale).
+    "notes_peak_picking_synthetic.npz": {
+        "activations", "onset_notes", "deprecated_notes",
+    },
+    # Wave 4f (tools/generate_crf_pattern_fixtures.py) -- beats_crf function
+    # fixtures, fed a real beat activation function (mono_44100.wav only,
+    # same economy as 4c's comb-filter fixtures).
+    "beats_crf_functions.npz": {"crf_input_activations"} | {
+        f"{prefix}_interval{interval}"
+        for prefix in ("init_dist", "trans_dist", "norm_factors",
+                       "best_sequence_path", "best_sequence_log_prob")
+        for interval in (20, 35, 55)
+    },
+    # Wave 4f -- BeatTrackingProcessor/BeatDetectionProcessor/
+    # CRFBeatDetectionProcessor end-to-end decoded beat times, 44.1kHz-native
+    # cases only (RNNBeatProcessor has no resampling support).
+    "beat_tracking_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("activations", "beat_tracking", "beat_detection", "crf")
+    },
+    # Wave 4f -- PatternTrackingProcessor end-to-end (audio -> multi-band
+    # features -> decoded (down-)beats), 44.1kHz-native cases only.
+    "pattern_tracking_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("features", "decoded")
+    },
 }
 
 
@@ -152,6 +323,88 @@ def test_nn_structural_digest_exists_and_loads():
     expected_keys = {f"downbeats_blstm_{i}" for i in range(1, 9)}
     missing = expected_keys - set(digest.keys())
     assert not missing, f"nn_structural_digest.json missing keys: {sorted(missing)}"
+
+
+def test_key_structural_digest_exists_and_loads():
+    """Wave 4a fixture (tools/generate_key_fixtures.py): the unpickled
+    key_cnn.pkl structural digest."""
+    path = FIXTURES_DIR / "key_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    assert "key_cnn" in digest, "key_structural_digest.json missing 'key_cnn'"
+    assert len(digest["key_cnn"]) == 30, (
+        "key_cnn.pkl is expected to have exactly 30 layers"
+    )
+
+
+def test_key_layer_params_exists_and_loads():
+    """Wave 4a fixture (tools/generate_key_fixtures.py): non-array
+    hyperparameters for each of the 5 new layer-type fixtures in
+    key_layers.npz."""
+    path = FIXTURES_DIR / "key_layer_params.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    params = json.loads(path.read_text())
+    expected_types = {
+        "PadLayer", "ConvolutionalLayer", "BatchNormLayer", "MaxPoolLayer",
+        "AverageLayer",
+    }
+    missing = expected_types - set(params.keys())
+    assert not missing, f"key_layer_params.json missing types: {sorted(missing)}"
+
+
+def test_onset_structural_digest_exists_and_loads():
+    """Wave 4b fixture (tools/generate_onset_fixtures.py): the unpickled
+    onsets_rnn_1/onsets_brnn_1/onsets_cnn structural digests."""
+    path = FIXTURES_DIR / "onset_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"onsets_rnn_1", "onsets_brnn_1", "onsets_cnn"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"onset_structural_digest.json missing keys: {sorted(missing)}"
+    assert len(digest["onsets_rnn_1"]) == 4
+    assert len(digest["onsets_brnn_1"]) == 4
+    assert len(digest["onsets_cnn"]) == 8
+
+
+def test_onset_stride_layer_params_exists_and_loads():
+    """Wave 4b fixture (tools/generate_onset_fixtures.py): StrideLayer's
+    non-array hyperparameter (block_size)."""
+    path = FIXTURES_DIR / "onset_stride_layer_params.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    params = json.loads(path.read_text())
+    assert "StrideLayer" in params
+    assert "block_size" in params["StrideLayer"]
+
+
+def test_beats_structural_digest_exists_and_loads():
+    """Wave 4c fixture (tools/generate_beat_tempo_fixtures.py): the
+    unpickled beats_lstm_1/beats_blstm_1 structural digests."""
+    path = FIXTURES_DIR / "beats_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"beats_lstm_1", "beats_blstm_1"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"beats_structural_digest.json missing keys: {sorted(missing)}"
+    assert len(digest["beats_lstm_1"]) == 4
+    assert len(digest["beats_blstm_1"]) == 4
+
+
+def test_downbeats_bgru_structural_digest_exists_and_loads():
+    """Wave 4c fixture (tools/generate_beat_tempo_fixtures.py): the
+    unpickled downbeats_bgru_rhythmic_0/harmonic_0 structural digests
+    (GRULayer/GRUCell)."""
+    path = FIXTURES_DIR / "downbeats_bgru_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {
+        "downbeats_bgru_rhythmic_0", "downbeats_bgru_harmonic_0",
+    }
+    missing = expected_keys - set(digest.keys())
+    assert not missing, (
+        f"downbeats_bgru_structural_digest.json missing keys: {sorted(missing)}"
+    )
+    assert len(digest["downbeats_bgru_rhythmic_0"]) == 3
+    assert len(digest["downbeats_bgru_harmonic_0"]) == 3
 
 
 def test_wav_fixtures_exist():
@@ -181,3 +434,146 @@ def test_manifest_exists_and_has_provenance():
     ):
         assert key in manifest, f"manifest.json missing key: {key}"
     assert manifest["madmom_version"], "manifest.json: madmom_version is empty"
+
+
+def test_chroma_dnn_structural_digest_exists_and_loads():
+    """Wave 4d fixture (tools/generate_chroma_chord_fixtures.py): the
+    unpickled chroma_dnn.pkl structural digest."""
+    path = FIXTURES_DIR / "chroma_dnn_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    assert "chroma_dnn" in digest, (
+        "chroma_dnn_structural_digest.json missing 'chroma_dnn'"
+    )
+    assert len(digest["chroma_dnn"]) == 4, (
+        "chroma_dnn.pkl is expected to have exactly 4 FeedForwardLayers"
+    )
+
+
+def test_notes_structural_digest_exists_and_loads():
+    """Wave 4e fixture (tools/generate_notes_fixtures.py): the unpickled
+    notes_brnn.pkl (flat layer list) and notes_cnn.pkl (nested
+    SequentialProcessor/ParallelProcessor graph, see madmom_infer/ml/nn/
+    unpickle.py's header) structural digests."""
+    path = FIXTURES_DIR / "notes_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"notes_brnn", "notes_cnn"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"notes_structural_digest.json missing keys: {sorted(missing)}"
+    assert len(digest["notes_brnn"]) == 4
+    assert digest["notes_cnn"]["type"] == "SequentialProcessor"
+    assert len(digest["notes_cnn"]["processors"]) == 6
+
+
+def test_notes_layer_params_exists_and_loads():
+    """Wave 4e fixture (tools/generate_notes_fixtures.py): non-array
+    hyperparameters for the 2 new layer-type fixtures in notes_layers.npz."""
+    path = FIXTURES_DIR / "notes_layer_params.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    params = json.loads(path.read_text())
+    expected_types = {"ReshapeLayer", "TransposeLayer"}
+    missing = expected_types - set(params.keys())
+    assert not missing, f"notes_layer_params.json missing types: {sorted(missing)}"
+
+
+def test_gmm_scores_fixture_exists_and_loads():
+    """Wave 4f fixture (tools/generate_crf_pattern_fixtures.py): per-GMM
+    means/covars/weights + a fixed query array + real madmom's score/
+    responsibilities output, for a representative subset of GMMs in each
+    PATTERNS_BALLROOM pattern file. Key names depend on which GMM indices
+    the generator's RNG happened to sample, so this checks structural
+    invariants (both pattern files represented, every recorded GMM has a
+    matching means/covars/weights/x/log_prob/responsibilities set) rather
+    than an exact fixed key set."""
+    path = FIXTURES_DIR / "gmm_scores.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        keys = set(data.files)
+        for p_idx in (0, 1):
+            assert f"pattern{p_idx}_covariance_type" in keys, (
+                f"gmm_scores.npz missing pattern{p_idx}_covariance_type"
+            )
+        gmm_prefixes = {
+            key.rsplit("_", 1)[0] for key in keys
+            if "_gmm" in key and key.endswith("_means")
+        }
+        assert len(gmm_prefixes) >= 2, (
+            "gmm_scores.npz should record at least 2 GMMs total "
+            f"(found {len(gmm_prefixes)})"
+        )
+        for prefix in gmm_prefixes:
+            for suffix in ("means", "covars", "weights", "n_components",
+                           "x", "log_prob", "responsibilities"):
+                assert f"{prefix}_{suffix}" in keys, (
+                    f"gmm_scores.npz: {prefix} missing _{suffix}"
+                )
+
+
+def test_patterns_structural_digest_exists_and_loads():
+    """Wave 4f fixture (tools/generate_crf_pattern_fixtures.py): both
+    PATTERNS_BALLROOM pattern files' num_beats + per-GMM means/covars/
+    weights digests."""
+    path = FIXTURES_DIR / "patterns_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"pattern0", "pattern1"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, (
+        f"patterns_structural_digest.json missing keys: {sorted(missing)}"
+    )
+    for key in expected_keys:
+        assert "num_beats" in digest[key]
+        assert "gmms" in digest[key]
+        assert len(digest[key]["gmms"]) == digest[key]["num_gmms"]
+
+
+def test_cepstrogram_fixture_exists_and_loads():
+    """Wave 4g fixture (tools/generate_leftovers_fixtures.py):
+    Cepstrogram/MFCC golden outputs."""
+    path = FIXTURES_DIR / "cepstrogram.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        expected_keys = {
+            "spectrogram_input", "cepstrogram_default", "mfcc_default",
+            "mfcc_custom",
+        }
+        missing = expected_keys - set(data.files)
+        assert not missing, f"cepstrogram.npz missing keys: {sorted(missing)}"
+
+
+def test_hpss_fixture_exists_and_loads():
+    """Wave 4g fixture (tools/generate_leftovers_fixtures.py):
+    HarmonicPercussiveSourceSeparation.slices()/.masks() golden outputs."""
+    path = FIXTURES_DIR / "hpss.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        expected_keys = {
+            "spectrogram_input", "harmonic_slice", "percussive_slice",
+            "harmonic_mask_binary", "percussive_mask_binary",
+            "harmonic_mask_soft", "percussive_mask_soft",
+            "harmonic_slice_custom", "percussive_slice_custom",
+        }
+        missing = expected_keys - set(data.files)
+        assert not missing, f"hpss.npz missing keys: {sorted(missing)}"
+
+
+def test_signal_leftovers_fixture_exists_and_loads():
+    """Wave 4g fixture (tools/generate_leftovers_fixtures.py): `attenuate`/
+    `rescale`/`trim`/`energy`/`root_mean_square`/`sound_pressure_level`
+    golden outputs -- resolves the 4b audit-table TO-VERIFY flag."""
+    path = FIXTURES_DIR / "signal_leftovers.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        expected_keys = {
+            "signal_input", "attenuate_6db", "attenuate_0db",
+            "rescale_float32", "rescale_float64", "trim_input", "trim_fb",
+            "trim_f", "trim_b", "energy_1d", "root_mean_square_1d",
+            "sound_pressure_level_1d", "energy_framed",
+            "root_mean_square_framed", "sound_pressure_level_framed",
+            "energy_float", "sound_pressure_level_float",
+        }
+        missing = expected_keys - set(data.files)
+        assert not missing, (
+            f"signal_leftovers.npz missing keys: {sorted(missing)}"
+        )

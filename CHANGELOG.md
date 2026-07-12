@@ -5,6 +5,626 @@ All notable changes to madmom-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.3.0] - 2026-07-13
+
+**Phase 4 complete-port campaign (`feat/complete-port` branch) -- DONE.**
+Waves 4.0 and 4a-4g together port every remaining inference-relevant
+class/function madmom's own `features/`, `audio/`, and `ml/` packages
+expose (beyond the numpy DSP pipeline, forward-pass-only NN runtime, and
+`RNNDownBeatProcessor` end-to-end path Phases 1-2 already shipped):
+key detection, onset detection (spectral-flux family + RNN/CNN), beat
+tracking (RNN/DBN/CRF/tempo-driven + multi-model selection), tempo
+estimation (ACF/comb/DBN histograms), downbeat/bar tracking (GRU ensemble
++ CLP-chroma-synced features + rhythmic pattern tracking via GMMs), chroma
+(DNN, classic PCP/HPCP, and CLP) + chord recognition (CRF-decoded, both
+DeepChroma and CNN-feature paths), piano note transcription (RNN/CNN +
+ADSR-HMM decoding), and this wave's own leftovers (MFCC/cepstrogram, HPSS,
+comb-filter-adjacent `audio/signal.py` utility functions). See
+`CLAUDE.md`'s "4g closure verdict" for the exhaustive, row-by-row audit
+proving every upstream `features/`/`audio/`/`ml/` public class is either
+ported or documented-excluded (permanent exclusions: `evaluation/*`,
+`bin/*`, `io/*`/most of `utils/*`, `OnlineProcessor`-based live-streaming,
+TCN layers/models -- none shipped by a real madmom install). Every wave was
+gated on golden fixtures proving bit-identical or documented-tolerance
+agreement with real (compiled) madmom, plus the full test suite green,
+before its own commit -- see each wave's entry below (newest first) for
+the individual faithfulness proofs, real upstream bugs found and
+faithfully reproduced (not silently "fixed"), and real numpy-2.x-vs-1.23.5
+compatibility fixes made along the way.
+
+**Wave 4g of the complete-port campaign: leftovers + closure.** Ports the
+final 4 targets the 4.0 audit table's own TO-PORT rows and the 4b
+TO-VERIFY flag left open, then closes out the whole campaign: `audio/
+cepstrogram.py` (`Cepstrogram`/`MFCC`, reusing wave 4b's already-ported
+`MelFilterbank`), `audio/hpss.py` (`HarmonicPercussiveSourceSeparation`),
+`audio/filters.py`'s `HarmonicFilterbank` (verbatim port of upstream's own
+unconditional `raise NotImplementedError`, same not-actually-implemented
+shape as wave 4d's `SimpleChromaFilterbank`), and the 6 real functions
+(`attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`,
+`sound_pressure_level`) the wave-4b audit-table TO-VERIFY flag left
+unresolved in `audio/signal.py` (the rest of that flagged list -- `Stream`,
+`LoadAudioFileError`, `load_wave_file`, `write_wave_file`, `load_audio_file`
+-- turned out to be upstream's own deprecated shims delegating to the
+already-permanently-excluded `io.audio` module, or the already-excluded
+online-streaming `Stream` class, not gaps this port needs to close).
+
+**Major, real, confirmed upstream bug found and reproduced bug-for-bug, not
+fixed**: `MFCC` can only be constructed from an ALREADY-`FilteredSpectrogram`
+instance in real madmom 0.17.dev0 -- every other input (a plain
+`Spectrogram`, a `LogarithmicSpectrogram`, or a raw wav path/array, which
+builds a plain `Spectrogram` internally) unconditionally raises
+`AttributeError: 'Spectrogram' object has no attribute 'filterbank'`,
+confirmed directly against the reference venv. `HarmonicPercussiveSource
+Separation.process()` is similarly unconditionally broken for every input
+(`AttributeError` for a `Spectrogram` input accessing a nonexistent `.spec`
+attribute; `UnboundLocalError` for anything else, `spectrogram` referenced
+before assignment) -- both confirmed empirically, both pinned by
+`pytest.raises` tests rather than "fixed" into working code upstream itself
+never shipped working. `Cepstrogram` (no such check), `HPSS.slices()`/
+`.masks()`, and all 6 new `audio/signal.py` functions ARE fully usable and
+bit-identical to real madmom.
+
+### Added
+- `madmom_infer/audio/cepstrogram.py` (new module): `Cepstrogram`,
+  `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` -- composition classes
+  (not `np.ndarray` subclasses), reusing wave 4b's `MelFilterbank`.
+  Bit-identical to real madmom cross-BLAS (`np.array_equal`); in-process
+  (differing-numpy/scipy-build) `MFCC` drift measured up to ~3.8e-6
+  absolute (asserted at `atol=1e-5`, ~2.6x observed -- an unstable-near-zero
+  ULP metric doesn't apply here, same documented-absolute-tolerance
+  precedent as wave 4d's `SemitoneBandpassSpectrogram` and wave 4e's raw
+  RNN activations); `Cepstrogram` is bit-identical even in-process (no
+  BLAS/build sensitivity at all -- pure `scipy.fftpack.dct`).
+  `MFCCProcessor.process()` verbatim-reproduces an upstream oversight: it
+  never forwards its own stored `self.transform` to the `MFCC(...)` call it
+  makes, so a custom `transform=` argument is inert (ported as-is).
+- `madmom_infer/audio/hpss.py` (new module):
+  `HarmonicPercussiveSourceSeparation` (alias `HPSS`). `slices()`/`masks()`
+  are bit-identical to real madmom, both in-process and cross-BLAS (pure
+  `scipy.ndimage.median_filter` + elementwise mask arithmetic, no BLAS).
+  `process()` is a faithful bug-for-bug port of a real, unconditional
+  upstream crash (see above).
+- `madmom_infer/audio/filters.py`: `HarmonicFilterbank` -- verbatim port of
+  upstream's own unconditional `raise NotImplementedError`, confirmed by
+  reading `filters.py:1369-1379` directly (no filterbank-construction code
+  follows the raise at all, unlike `SimpleChromaFilterbank`'s at-least-dead
+  TODO-commented code).
+- `madmom_infer/audio/signal.py`: `attenuate`, `rescale`, `trim`, `energy`,
+  `root_mean_square`, `sound_pressure_level` -- verbatim ports, all 6
+  bit-identical to real madmom (pure numpy, no BLAS), resolving the wave-4b
+  audit-table TO-VERIFY flag. Also fixed a real bug in this wave's own
+  first draft of `rescale()`: a bare `signal.astype(dtype)` call assumed
+  ndarray semantics that this project's own composition `Signal` class
+  doesn't have (`Signal` has no `.astype` method) -- fixed with
+  `np.asarray(signal).astype(dtype)`, which works uniformly for both a
+  `Signal` and a plain ndarray.
+- `tools/generate_leftovers_fixtures.py` (new script): output-only golden
+  fixtures for all of the above, reusing this project's own already-golden-
+  fixture-proven Phase-1 DSP chain to reconstruct inputs (same economy as
+  `tools/generate_onset_fixtures.py`) -- `tests/fixtures/cepstrogram.npz`,
+  `tests/fixtures/hpss.npz`, `tests/fixtures/signal_leftovers.npz`.
+- 38 new tests total (`tests/test_cepstrogram.py`: 12;
+  `tests/test_hpss.py`: 9; `tests/test_signal_leftovers.py`: 13;
+  `tests/test_filters.py`: +1; `tests/test_fixtures_exist.py`: +3 -- all
+  fully offline, including the 3 cross-BLAS tests, which shell out to the
+  reference venv but need no network). Full offline suite: 302 passed, 2
+  skipped, 53 deselected (was 264/2/53 after 4f); network suite unchanged
+  at 53 passed, 1 skipped (no new network-marked tests this wave -- none of
+  4g's targets need model downloads), 303 deselected (was 265 after 4f,
+  grown by the same 38 new offline tests).
+
+**Wave 4f of the complete-port campaign (`feat/complete-port` branch): CRF
+beat detection + rhythmic pattern tracking.** Adds a numpy port of madmom's
+Cython CRF beat-tracking Viterbi decoder (`features/beats_crf.py`,
+backing `CRFBeatDetectionProcessor`), the tempo-driven, non-HMM
+`BeatTrackingProcessor`/`BeatDetectionProcessor` (an audit-table gap wave 4c
+itself flagged and deferred), a forward-inference-only numpy Gaussian
+Mixture Model (`ml/gmm.py`), and the pattern-tracking HMM machinery
+(`MultiPatternStateSpace`/`MultiPatternTransitionModel`/
+`GMMPatternTrackingObservationModel`) backing `PatternTrackingProcessor`
+(upstream's real class name -- earlier wave-plan text called this
+`GMMPatternTrackingProcessor`, corrected here) and `DBNBarTrackingProcessor`.
+
+### Added
+- `madmom_infer/features/beats_crf.py` (new module): `initial_distribution`,
+  `transition_distribution`, `normalisation_factors`, `best_sequence`
+  (verbatim ports -- not Cython-typed in the original `.pyx`) and `viterbi`
+  (a real numpy translation of the typed-Cython Viterbi loop). **Two
+  precision mistakes found and fixed only by fuzzing against real madmom
+  directly, not by reading the `.pyx` source**: (1) the naive reading of
+  `cdef double new_prob` as "the addition happens in double precision" is
+  WRONG -- C's/Cython's usual arithmetic conversions determine an
+  expression's precision from its OPERANDS (both `float`/32-bit here), not
+  its assignment target, so the actual arithmetic is float32 throughout, the
+  `double` declaration only widens an already-rounded result; (2)
+  `v_c[i] += activations[i] + norm_factor[i]` is a compound assignment that
+  groups as `v_c[i] + (activations[i] + norm_factor[i])`, NOT the
+  left-to-right `(v_c[i] + activations[i]) + norm_factor[i]` a naive
+  three-term translation produces -- floating-point addition isn't
+  associative, so the grouping is load-bearing. Fixing both reproduced real
+  madmom's decoded path AND scalar `log_prob` bit-for-bit in 200/200+
+  randomized fuzz trials against the reference venv, not just the ULP-close
+  claim an intermediate (wrong) attempt could support.
+- `madmom_infer/features/beats.py`: `detect_beats`, `BeatTrackingProcessor`,
+  `BeatDetectionProcessor`, `CRFBeatDetectionProcessor` -- verbatim ports,
+  closing the audit-table gap wave 4c's own status entry flagged
+  (`CRFBeatDetectionProcessor` needs `BeatTrackingProcessor` as a base class
+  and this wave's own `beats_crf.py` port, neither of which existed in 4c).
+  `CRFBeatDetectionProcessor`'s `multiprocessing.Pool`-based `num_threads`
+  dispatch is dropped in favor of a plain sequential `map`, matching this
+  project's stated permanent exclusion of multiprocessing plumbing.
+- `madmom_infer/ml/gmm.py` (new module): `logsumexp`, `pinvh`,
+  `log_multivariate_normal_density` (+ all 4 covariance-type variants), `GMM`
+  (forward-inference only -- `score`/`score_samples`, no `fit()`, matching
+  this project's stated inference-only scope). `GMM.__setstate__` (a
+  verbatim port of upstream's legacy `weights_`/`means_`/`covars_` -> 
+  `weights`/`means`/`covars` rename branch) is what makes unpickling the
+  shipped `PATTERNS_BALLROOM` files work at all -- both are OLD-FORMAT
+  pickles (confirmed empirically: loading either with real madmom emits the
+  "please update your GMM models" `UserWarning`, same finding-shape as wave
+  4c's `downbeats_bgru_*.pkl`/`GRULayer`).
+- `madmom_infer/features/beats_hmm.py`: `MultiPatternStateSpace`,
+  `MultiPatternTransitionModel`, `GMMPatternTrackingObservationModel` --
+  near-line-for-line ports, the pattern-tracking HMM machinery.
+- `madmom_infer/audio/filters.py`: `bark_frequencies`,
+  `bark_double_frequencies`, `BarkFilterbank`, `RectangularFilterbank` (+ an
+  internal `_rectangular_filters` helper). **Found by reading upstream
+  directly**: only `RectangularFilterbank` is actually load-bearing for
+  `MultiBandSpectrogram` -- `BarkFilterbank` is not referenced by anything
+  this project ships, ported for API completeness anyway (same "real,
+  public, cheap, unreachable-from-any-target" precedent as
+  `NOTES_CNN_MIREX`/`ONSETS_BRNN_PP`).
+- `madmom_infer/audio/spectrogram.py`: `MultiBandSpectrogram`,
+  `MultiBandSpectrogramProcessor` -- feeds `PatternTrackingProcessor`.
+- `madmom_infer/features/downbeats.py`: `PatternTrackingProcessor` (loads
+  `PATTERNS_BALLROOM` pattern files via this project's own restricted
+  `SafeUnpickler`, NOT upstream's bare `pickle.load`), `DBNBarTrackingProcessor`
+  (needs no GMM at all -- different `beats_per_bar` values are treated as
+  different "patterns" of the same `MultiPatternStateSpace`/
+  `MultiPatternTransitionModel` machinery, reusing the already-ported
+  `RNNBeatTrackingObservationModel` as its observation model). **Bug found
+  and fixed during this wave's own verification, not upstream's**: a first
+  draft wired `DBNBarTrackingProcessor.om` to
+  `RNNDownBeatTrackingObservationModel` (2D beat+downbeat observations)
+  instead of the correct `RNNBeatTrackingObservationModel` (1D, matching
+  upstream `downbeats.py:1110` exactly and this processor's own
+  `data[:, 1]`-only usage) -- caught immediately by an end-to-end
+  cross-check against real madmom (`AxisError`, not a silent wrong answer).
+- `madmom_infer/models.py`: `patterns_ballroom()`/`PATTERNS_BALLROOM` (2
+  files, NOT neural-network weights -- each a plain dict of fitted
+  `ml.gmm.GMM` instances) -- both sha256s computed from the local
+  `../madmom-upstream` submodule checkout AND cross-checked byte-for-byte
+  against fresh `raw.githubusercontent.com/CPJKU/madmom_models` downloads,
+  identical.
+- `madmom_infer/ml/nn/unpickle.py`: 1 new `ALLOWED_GLOBALS` entry
+  (`madmom.ml.gmm.GMM`), found by `pickletools`-walking both target `.pkl`
+  files directly (each pickles a plain dict whose `'gmms'` list elements are
+  `GMM` instances, restored via the standard `pickle.Unpickler`'s `BUILD`
+  opcode -> `GMM.__setstate__`, which `SafeUnpickler` leaves untouched --
+  only `find_class` is overridden).
+- New `tools/generate_crf_pattern_fixtures.py`: `beats_crf` function-level
+  fixtures (fed a real beat activation function), `BeatTrackingProcessor`/
+  `BeatDetectionProcessor`/`CRFBeatDetectionProcessor` end-to-end decoded
+  beat times (all 3 44.1kHz test-wav cases, shared-`RNNBeatProcessor`-
+  instance-in-order discipline), `GMM` score/posterior fixtures against the
+  real `PATTERNS_BALLROOM` GMMs, a `PATTERNS_BALLROOM` structural digest,
+  and `PatternTrackingProcessor` end-to-end (audio -> multi-band features ->
+  decoded (down-)beats, all 3 cases).
+- **Faithfulness proof: PASSED, bit-identical throughout.**
+  `tests/test_beats_crf.py`'s cross-BLAS test and 80-trial in-process fuzz
+  test both reproduce real madmom's CRF-decoded path AND scalar `log_prob`
+  with **zero differing elements** -- `viterbi()` touches no BLAS at all
+  (pure elementwise/reduction numpy), so bit-identity, not ULP-closeness, is
+  the expected and verified claim, same precedent as wave 4c's comb filters.
+  `tests/test_gmm.py`'s cross-BLAS test reproduces real madmom's
+  `GMM.score`/`score_samples` with **zero differing elements** for every GMM
+  in both pattern files (despite `score_samples` calling
+  `scipy.linalg.cholesky`/`solve_triangular`, genuinely BLAS/LAPACK-backed --
+  a non-free claim, verified rather than assumed). `tests/test_beats.py`'s
+  and `tests/test_patterns.py`'s cross-BLAS tests reproduce real madmom's
+  `BeatTrackingProcessor`/`BeatDetectionProcessor`/`CRFBeatDetectionProcessor`
+  decoded beat times AND `PatternTrackingProcessor`'s decoded (down-)beat
+  positions/beat numbers with **zero differing elements**, for all 3
+  44.1kHz test-wav cases.
+- 61 new tests total (`tests/test_beats_crf.py`: 14 offline + 1 fuzz
+  (skipped outside the reference venv); `tests/test_gmm.py`: 8 offline + 1
+  network; `tests/test_patterns.py`: 8; `tests/test_beats.py`: +7 (6 offline
+  + 1 network); `tests/test_fixtures_exist.py`: +5). Full offline suite: 264
+  passed, 2 skipped, 53 deselected (was 223/1/51 after 4e); network suite:
+  53 passed, 1 skipped, 265 deselected, all green.
+
+**Wave 4e of the complete-port campaign (`feat/complete-port` branch): piano
+note transcription.** Adds `RNNPianoNoteProcessor` (RNN onset activations)
+and `CNNPianoNoteProcessor` (multi-task CNN note/onset/offset activations),
+`NoteOnsetPeakPickingProcessor`/`NotePeakPickingProcessor` (peak-picking
+decode, reusing the onset-detection family's `peak_picking`), and
+`ADSRNoteTrackingProcessor` (a new attack-decay-sustain-release HMM,
+`features/notes_hmm.py`, on the existing Phase-1 `ml/hmm.py` Viterbi
+decoder).
+
+### Added
+- `madmom_infer/features/notes_hmm.py` (new module): `ADSRStateSpace`,
+  `ADSRTransitionModel`, `ADSRObservationModel` -- a near-line-for-line port
+  of upstream's per-pitch ADSR HMM state space (silence -> attack -> decay ->
+  sustain -> release), built on the same `ml/hmm.py` `TransitionModel`/
+  `ObservationModel` base classes `features/beats_hmm.py` already uses.
+- `madmom_infer/ml/nn/layers.py`: `ReshapeLayer`, `TransposeLayer` --
+  confirmed by `pickletools`-walking all 4 target note-CNN pickles
+  (`notes_cnn.pkl` = `NOTES_CNN`, `notes_cnn_{1,2}.pkl` = `NOTES_CNN_MIREX`,
+  unused by any ported processor but walked anyway) to be exactly the 2 new
+  layer classes needed on top of already-ported ones.
+- **Real surprise, found by `pickletools`-walking `notes_cnn.pkl` directly,
+  not guessed**: it does not pickle a bare `NeuralNetwork` the way every
+  other target `.pkl` in this project does -- it pickles the model's ENTIRE
+  multi-task `madmom.processors.SequentialProcessor`/`ParallelProcessor`
+  branch-and-`dstack` graph directly (3 parallel note/onset/offset branches,
+  each `ConvolutionalLayer` -> `TransposeLayer` -> `ReshapeLayer` ->
+  `FeedForwardLayer`, merged by a plain `numpy.dstack` reference). This
+  turned out to need zero new code in `ml/nn/__init__.py` --
+  `NeuralNetworkEnsemble.load`/`NeuralNetwork.load` were already fully
+  generic (matching upstream's own equally generic `Processor.load`) -- only
+  new `ml/nn/unpickle.py` allowlist entries: `madmom.processors.
+  {SequentialProcessor,ParallelProcessor}`, `numpy.dstack` (two module-path
+  spellings across the target pickles), and two Python-2-pickle-compat
+  primitives (`_codecs.encode`, `itertools.imap` -> Python 3's builtin
+  `map`) that real madmom's own bare `pickle.load` resolves transparently
+  via `pickle._compat_pickle.NAME_MAPPING` but this project's
+  allowlist-only `SafeUnpickler.find_class` does not, needing explicit
+  entries (same shape of gap wave 4c's `copy_reg._reconstructor`/
+  `__builtin__.object` entries already closed for the older-format
+  `downbeats_bgru_*.pkl` files).
+- `madmom_infer/features/notes.py` (new module): `RNNPianoNoteProcessor`,
+  `NoteOnsetPeakPickingProcessor`, `NotePeakPickingProcessor` (upstream's
+  deprecated-since-0.17 alias, ported anyway -- the audit table lists it as
+  real, not dead code), `_cnn_pad`, `CNNPianoNoteProcessor`,
+  `ADSRNoteTrackingProcessor`.
+- `madmom_infer/models.py`: `notes_brnn()`/`NOTES_BRNN` (1 file),
+  `notes_cnn()`/`NOTES_CNN` (1 file) -- both sha256s computed from the local
+  `../madmom-upstream` submodule checkout AND cross-checked byte-for-byte
+  against fresh `raw.githubusercontent.com/CPJKU/madmom_models` downloads,
+  identical. `NOTES_CNN_MIREX` (`notes/2018/notes_cnn_[12].pkl`) is real,
+  `package_data`-shipped, and was `pickletools`-walked for completeness, but
+  -- like wave 4b's `ONSETS_BRNN_PP` -- no ported processor loads it
+  (upstream's own `CNNPianoNoteProcessor.__init__` hardcodes `NOTES_CNN`
+  only), so it has no registry entry.
+- New `tools/generate_notes_fixtures.py`: `notes_brnn.pkl`/`notes_cnn.pkl`
+  structural digests (the latter a recursive digest of the nested processor
+  graph above), self-contained `ReshapeLayer`/`TransposeLayer` golden
+  fixtures, `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` end-to-end
+  activations plus decoded notes for all 3 usable 44.1kHz test-wav cases
+  (fresh processor instances per case -- a shared instance across differing-
+  dtype wavs was found, empirically, to make REAL madmom itself silently
+  produce a materially wrong `float32_44100` RNN activation array, a real
+  upstream `FilteredSpectrogramProcessor`/`ShortTimeFourierTransformProcessor`
+  caching artifact, same category wave 4d already documented for
+  `RNNBarProcessor`), and two SYNTHETIC (hand-crafted, deterministic)
+  fixtures for `ADSRNoteTrackingProcessor`/`NoteOnsetPeakPickingProcessor`'s
+  decode logic -- the real-audio test wavs decode to EMPTY output on every
+  case, too weak a fixture to exercise the segmentation branches, so the
+  synthetic ones include a deliberately INCOMPLETE note that must be
+  discarded.
+- **Faithfulness proof: PASSED.** `tests/test_notes.py::
+  test_full_pipeline_is_exact_under_original_blas` reproduces real madmom's
+  `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` activations AND decoded
+  notes (peak-picked and ADSR-HMM-decoded) with **zero differing elements**,
+  for all 3 44.1kHz test-wav cases, both model families -- confirmed also
+  independently for the synthetic ADSR fixture
+  (`test_adsr_synthetic_decode_is_exact_under_original_blas`). In-process
+  (differing-BLAS-build) drift: CNN activations up to 247 ULP (asserted at a
+  1024-ULP margin, ~4x observed, matching this repo's convention); RNN
+  activations (a raw, near-zero-centered linear-layer output, not a
+  bounded-[0,1] probability -- an ULP-view metric is unstable that close to
+  zero) measured up to ~7.15e-7 absolute (asserted at `atol=1e-5`, ~14x
+  observed, same "documented absolute tolerance, not ULP" precedent as wave
+  4d's `SemitoneBandpassSpectrogram` finding).
+- 23 new tests (`tests/test_notes.py`: 12 offline + 11 network);
+  `tests/test_fixtures_exist.py`: +6 (2 new structural-digest/params test
+  functions + 4 new parametrized fixture-file cases). Full offline suite:
+  223 passed, 1 skipped, 51 deselected (was 205/1/40 after 4d); network
+  suite: 51 passed, 1 skipped, 223 deselected, all green.
+
+**Wave 4d of the complete-port campaign (`feat/complete-port` branch): chroma
++ chords, and closing wave 4c's `RNNBarProcessor` loop.** Adds a numpy
+Conditional Random Field decoder (`ml/crf.py`), all three chroma paths
+(classic `PitchClassProfile`/`HarmonicPitchClassProfile`, DNN
+`DeepChromaProcessor`, and CLP `CLPChroma`/`CLPChromaProcessor`), two full
+audio-in chord-recognition pipelines, and (unblocked by `CLPChromaProcessor`)
+`RNNBarProcessor`'s first real audio-in end-to-end proof.
+
+### Added
+- `madmom_infer/ml/crf.py` (new module): `ConditionalRandomField` -- a
+  pure-numpy, matrix-formulation Viterbi decoder (forward-inference only).
+  Adds a `.load()` classmethod (not in upstream, which inherits `Processor.
+  load`'s bare `pickle.load`) delegating to `unpickle.load_model`, matching
+  `NeuralNetwork.load`'s restricted-unpickling convention.
+- `madmom_infer/ml/nn/unpickle.py`: 1 new `ALLOWED_GLOBALS` entry
+  (`madmom.ml.crf.ConditionalRandomField`) -- confirmed by `pickletools` to
+  be the ONLY new global all 4 target `.pkl` files need beyond already-
+  ported classes (`chroma_dnn.pkl` needs only `FeedForwardLayer`/`relu`/
+  `sigmoid`; `chords_cnnfeat.pkl` needs only wave 4a's CNN layer set;
+  `chords_dccrf.pkl`/`chords_cnncrf.pkl` need only `ConditionalRandomField`).
+- `madmom_infer/audio/filters.py`: `hz2midi`, `midi2hz`, `semitone_frequencies`,
+  `PitchClassProfileFilterbank`, `HarmonicPitchClassProfileFilterbank`,
+  `SemitoneBandpassFilterbank` -- verbatim/composition ports. Also
+  `SimpleChromaFilterbank`, ported **including its unconditional
+  `raise NotImplementedError`**: confirmed by reading upstream directly that
+  it is not actually implemented in real madmom either (dead code below the
+  raise), so this port reproduces that not-implemented state rather than
+  "fixing" it.
+- `madmom_infer/audio/signal.py`: `resample()` -- a **policy correction, not
+  silently made**: this project's "no ffmpeg dependency" stance (Phase 1
+  through 4c) does not survive `SemitoneBandpassFilterbank`, whose ~78
+  semitone bands each filter at a FIXED sample rate (882/4410/22050 Hz)
+  unconditionally different from this project's 44100 Hz convention --
+  resampling is load-bearing on every call here, not an optional
+  convenience. Implemented as a narrow ffmpeg-subprocess call (only the
+  exact shape this one caller needs), shelling out to the system `ffmpeg`
+  binary with the same command shape real madmom's own `_ffmpeg_call`
+  builds -- verified **bit-identical** (`np.array_equal`) against real
+  madmom's own `resample()` output, both sides invoking the literal same
+  system `ffmpeg` binary.
+- `madmom_infer/audio/spectrogram.py`: `SemitoneBandpassSpectrogram` -- own
+  composition class (not a `FilteredSpectrogram` subclass: no STFT stage,
+  a time-domain IIR filterbank instead). Measured (not bit-identical):
+  matches real madmom's output to within ~1e-5 absolute across the 3 usable
+  test-wav cases when run under a different scipy version than the one that
+  recorded the reference fixture (`scipy.signal.filtfilt`'s recursive
+  nature amplifies tiny per-version `ellip()` coefficient differences) --
+  documented plainly rather than claimed exact.
+- `madmom_infer/audio/chroma.py` (new module): `PitchClassProfile`/
+  `HarmonicPitchClassProfile` (composition subclasses of `Spectrogram`, not
+  upstream's ndarray-view hierarchy), `DeepChromaProcessor`, `CLPChroma`/
+  `CLPChromaProcessor`. Found and fixed a genuine latent bug in wave 4c's
+  own `SyncronizeFeaturesProcessor` (`features/downbeats.py`), surfaced by
+  actually exercising `RNNBarProcessor` end-to-end for the first time: it
+  called `features.T` directly, which works on upstream's `np.ndarray`-
+  subclass spectrograms but raises `AttributeError` on this project's own
+  composition-style ones -- fixed with an explicit `np.asarray(features).T`.
+- `madmom_infer/features/chords.py` (new module): `majmin_targets_to_chord_
+  labels`, `DeepChromaChordRecognitionProcessor`, `CNNChordFeatureProcessor`
+  (`nn_file=` override added, not in upstream, for testability -- matches
+  the `nn_files=`/`models=` convention `CNNKeyRecognitionProcessor`/
+  `DeepChromaProcessor` already establish), `CRFChordRecognitionProcessor`.
+  Confirmed by reading upstream directly: NEITHER chord-recognition path
+  touches `CLPChroma` at all, so full audio-in chord recognition is
+  achievable and EXACT-testable independent of the CLP-chroma precision
+  caveat above.
+- `madmom_infer/models.py`: `chroma_dnn()`/`CHROMA_DNN`, `chords_dccrf()`/
+  `CHORDS_DCCRF`, `chords_cnn_feat()`/`CHORDS_CNN_FEAT`, `chords_cfcrf()`/
+  `CHORDS_CFCRF` -- 4 sha256-pinned registry entries, cross-checked against
+  both a fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and
+  the local `../madmom-upstream` submodule checkout (identical).
+- **`RNNBarProcessor` (wave 4c, `features/downbeats.py`) is now instantiable
+  and provably correct end-to-end from raw audio**, closing the loop that
+  wave was left open. `tests/test_downbeats_rnn.py`'s new "RNNBarProcessor
+  end-to-end" section: decoded beat times EXACT, decoded downbeat activation
+  within ~4e-8 absolute (both in-process and cross-BLAS) -- the GRU
+  ensemble's own forward pass was already proven bit-exact in wave 4c
+  independent of this wave's CLP-chroma feature-extraction noise.
+- 35 new tests total (`tests/test_crf.py`: 4; `tests/test_chroma.py`: 22;
+  `tests/test_chords.py`: 9; `tests/test_downbeats_rnn.py`: +2; `tests/
+  test_fixtures_exist.py`: +7 more) and `tools/generate_chroma_chord_
+  fixtures.py` (the fixture-generation script, reference-venv-only).
+  Faithfulness proofs: `tests/test_crf.py`/`test_chords.py`'s cross-BLAS
+  tests reproduce real madmom's CRF-decoded chord label sequences AND
+  segment boundaries with **zero differing elements**, both recognition
+  paths, all 3 cases; `tests/test_chroma.py`'s `DeepChromaProcessor`
+  cross-BLAS test likewise **zero differing elements**. Full offline suite
+  now 205 passed, 1 skipped, 40 deselected (was 174/1/25); network suite 40
+  passed, 1 skipped, 205 deselected, all green.
+
+**Wave 4c of the complete-port campaign (`feat/complete-port` branch): beat
+tracking + tempo estimation + GRU support.** Adds `RNNBeatProcessor`,
+`DBNBeatTrackingProcessor` (beat-only), `MultiModelSelectionProcessor`,
+the full tempo histogram family (`TempoEstimationProcessor`, `acf`/`comb`/
+`dbn` modes), a numpy port of `audio/comb_filters.pyx`, and `GRULayer`/
+`GRUCell` (the shipped `DOWNBEATS_BGRU` models' layer family, an audit
+correction -- see CLAUDE.md).
+
+### Added
+- `madmom_infer/audio/comb_filters.py` (new module): `feed_forward_comb_filter`,
+  `feed_backward_comb_filter` (+ 1D/2D helpers), `comb_filter`,
+  `CombFilterbankProcessor` -- numpy port of `audio/comb_filters.pyx`,
+  proven **bit-identical** to real madmom (`np.array_equal`, both
+  in-process and cross-BLAS, no tolerance needed at all -- neither function
+  touches BLAS). Found and reproduced two real precision quirks, both
+  confirmed empirically against the reference venv: (1) real madmom's
+  `feed_backward_comb_filter` silently rounds `alpha` to float32 precision
+  before its accumulation loop (a Cython `cdef ... float alpha` parameter
+  coercion); (2) `comb_filter`'s per-tau dispatch extracting `alpha[i]`
+  from a numpy array is a numpy-2.x-vs-1.23.5 scalar-promotion divergence
+  (NEP 50) -- fixed with an explicit `float(alpha[i])` cast, same class of
+  fix as `features/onsets.py`'s `normalized_weighted_phase_deviation`.
+- `madmom_infer/ml/nn/layers.py`: `GRUCell`, `GRULayer` -- the layer family
+  all 12 `downbeats_bgru_{harmonic,rhythmic}_[0-5].pkl` files need
+  (confirmed by `pickletools`). Found the real shipped files use an
+  OLDER pickle format than every other target `.pkl` in this project
+  (loading one emits real madmom's own "please update your GRU models"
+  `RuntimeWarning`) -- ported `GRULayer.__setstate__`'s legacy
+  `hid_init` -> `init` rename branch verbatim (initially dropped as
+  presumed-dead code; empirically NOT dead, all 12 real files exercise it).
+- `madmom_infer/ml/nn/unpickle.py`: 4 new `ALLOWED_GLOBALS` entries --
+  `GRUCell`, `GRULayer`, plus 2 generic old-style-class reconstruction
+  primitives (`copy_reg._reconstructor` -> `copyreg._reconstructor`,
+  `__builtin__.object` -> `builtins.object`) the older-format
+  `downbeats_bgru_*.pkl` files also reference.
+- `madmom_infer/features/beats.py` (new module): `RNNBeatProcessor`
+  (online + offline LSTM/BLSTM ensembles), `DBNBeatTrackingProcessor`
+  (beat-only, offline-only -- reuses `beats_hmm.py`'s existing
+  `BeatStateSpace`/`BeatTransitionModel`/`RNNBeatTrackingObservationModel`),
+  `MultiModelSelectionProcessor`. Found and fixed a genuine Phase-2 latent
+  bug this wave surfaced: `RNNBeatTrackingObservationModel.log_densities`
+  (`features/beats_hmm.py`) called `np.asarray(observations, ndmin=1)`,
+  which is not valid on ANY numpy version (`asarray` has no `ndmin`
+  parameter) -- a previous wave's numpy-2.x-compat note wrongly claimed
+  this worked; never exercised until `DBNBeatTrackingProcessor` (this
+  class was the only caller). Fixed as `np.array(observations, ndmin=1)`.
+  `CRFBeatDetectionProcessor` stays out of scope (wave 4f); `BeatTrackingProcessor`/
+  `BeatDetectionProcessor`/`detect_beats` are real upstream classes with no
+  wave assignment in the audit table (flagged, not silently ported).
+- `madmom_infer/features/tempo.py` (new module): `smooth_histogram`,
+  `interval_histogram_acf`, `interval_histogram_comb`, `dominant_interval`,
+  `detect_tempo`, `TempoHistogramProcessor`, `ACFTempoHistogramProcessor`,
+  `CombFilterTempoHistogramProcessor`, `DBNTempoHistogramProcessor`,
+  `TempoEstimationProcessor` -- all offline-only (`OnlineProcessor` stays a
+  permanent exclusion). `TCNTempoHistogramProcessor` stays EXCLUDED (only
+  consumes `TCNBeatProcessor` output, which cannot exist -- `BEATS_TCN` is
+  not shipped by a real madmom install).
+- `madmom_infer/features/downbeats.py`: `SyncronizeFeaturesProcessor`
+  (pure numpy, proven bit-identical), `RNNBarProcessor` (ported verbatim,
+  but cannot be instantiated end-to-end from raw audio until wave 4d ports
+  `CLPChromaProcessor` -- its GRU-ensemble forward pass is instead proven
+  bit-exact via a golden intermediate-feature fixture captured from real
+  madmom, not a full audio-in run).
+- `madmom_infer/ml/nn/__init__.py`: fixed a genuine numpy-2.x-vs-1.23.5
+  DTYPE divergence in `average_predictions` (not upstream's fault) --
+  averaging a list of 0-DIMENSIONAL float32 arrays (an ensemble fed a
+  single-frame input, as `RNNBarProcessor`'s GRU ensembles can be)
+  silently stays float32 on numpy >= 2.0 (NEP 50) but real madmom's own
+  `sum(pred) / len(pred)` upcasts to float64 on numpy < 2.0 (its
+  value-based casting treats 0-d "scalar-kind" arrays differently from
+  N-d ones) -- fixed with an explicit branch reproducing the old
+  (real-madmom-recorded) dtype on every numpy version; N-d predictions
+  (every other model family, including the already-shipped
+  `DOWNBEATS_BLSTM` ensemble) are unaffected, already matched on both.
+- `madmom_infer/models.py`: `beats_lstm()`/`BEATS_LSTM` (8 files),
+  `beats_blstm()`/`BEATS_BLSTM` (8 files), `downbeats_bgru_rhythmic()`/
+  `downbeats_bgru_harmonic()`/`downbeats_bgru()`/`DOWNBEATS_BGRU` (12
+  files, `[rhythmic, harmonic]` list-of-lists matching upstream's own
+  shape) -- 28 sha256-pinned registry entries, cross-checked against both
+  a fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and the
+  local `../madmom-upstream` submodule checkout (identical).
+- 66 new tests (`tests/test_comb_filters.py`: 17; `tests/test_beats.py`:
+  15; `tests/test_tempo.py`: 15; `tests/test_downbeats_rnn.py`: +13 GRU/
+  sync-features tests; `tests/test_fixtures_exist.py`: +6 more) and
+  `tools/generate_beat_tempo_fixtures.py` (the fixture-generation script,
+  reference-venv-only). Faithfulness proof: `tests/test_beats.py::
+  test_full_pipeline_is_exact_under_original_blas` reproduces real
+  madmom's `RNNBeatProcessor`(online=False/True) + `DBNBeatTrackingProcessor`
+  activations AND decoded beat times with **zero differing elements**;
+  `tests/test_comb_filters.py`/`tests/test_tempo.py` are bit-identical
+  even IN-PROCESS (no BLAS involved); `tests/test_downbeats_rnn.py::
+  test_downbeats_bgru_ensembles_are_exact_under_original_blas` proves the
+  GRU forward pass itself bit-identical. Full offline suite now 174
+  passed, 1 skipped, 25 deselected (was 123/1/20); network suite 25
+  passed, 1 skipped, 174 deselected, all green.
+
+**Wave 4b of the complete-port campaign (`feat/complete-port` branch):
+onset detection.** Adds the complete spectral-flux/phase-deviation/
+complex-domain onset detection DSP function family, `SpectralOnsetProcessor`,
+`RNNOnsetProcessor` (online + offline RNN ensembles), `CNNOnsetProcessor`,
+and `OnsetPeakPickingProcessor` end-to-end (spectrogram frontend -> onset
+activation function -> decoded onset times).
+
+### Added
+- `madmom_infer/audio/stft.py`: `phase`, `Phase`, `local_group_delay`/`lgd`,
+  `LocalGroupDelay`/`LGD`, `ShortTimeFourierTransform.phase()` -- the
+  phase-vocoder-style analysis chain the onset phase-deviation family reads
+  off `spectrogram.stft.phase()`/`...phase().lgd()`. Faithfully reproduces a
+  real upstream bug: `LocalGroupDelay.__new__`'s "reuse an existing `Phase`"
+  branch is never actually reachable (an undefined-name reference resolves
+  to the module's own `stft()` function instead of the `phase` argument),
+  so it always rebuilds -- ported bug-for-bug, not silently fixed.
+- `madmom_infer/audio/filters.py`: `hz2mel`, `mel2hz`, `mel_frequencies`,
+  `MelFilterbank` -- pulled forward from wave 4g (`CNNOnsetProcessor`'s
+  80-band mel input needs it now; 4g's MFCC work will reuse this).
+- `madmom_infer/audio/spectrogram.py`: `SuperFluxProcessor`,
+  `Spectrogram.diff()`/`.filter()`/`.log()` convenience methods,
+  `SpectrogramProcessor.__init__(self, **kwargs): pass` (matches upstream).
+- `madmom_infer/audio/signal.py`: `smooth()` (needed by `peak_picking`;
+  corrects a Phase-1 audit-table overstatement -- it was listed as already
+  PORTED but was not actually present), and a `**kwargs` catch-all added to
+  `FramedSignalProcessor.__init__` (matches upstream's own signature,
+  needed for `SpectralOnsetProcessor`'s kwargs-forwarding design).
+- `madmom_infer/utils.py` (new module): `segment_axis` (narrow carve-out --
+  only the case `StrideLayer` needs) and `combine_events` (full port) --
+  two real, non-speculative dependencies found while porting this wave,
+  not a general `madmom.utils` port.
+- `madmom_infer/ml/nn/layers.py`: `StrideLayer` -- the one new layer class
+  `onsets_cnn.pkl` needs beyond wave 4a's CNN set (confirmed by
+  `pickletools`, not guessed).
+- `madmom_infer/ml/nn/unpickle.py`: 2 new `ALLOWED_GLOBALS` entries
+  (`madmom.ml.nn.layers.StrideLayer`, `numpy.core.multiarray.scalar`).
+- `madmom_infer/models.py`: `onsets_rnn()`/`ONSETS_RNN` (8 files),
+  `onsets_brnn()`/`ONSETS_BRNN` (8 files), `onsets_cnn()`/`ONSETS_CNN`
+  (1 file) -- 17 sha256-pinned registry entries, cross-checked against both
+  a fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and the
+  local `../madmom-upstream` submodule checkout (identical).
+- `madmom_infer/features/onsets.py` (new module): the complete DSP function
+  family (`wrap_to_pi`, `correlation_diff`, `high_frequency_content`,
+  `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`,
+  `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`,
+  `normalized_weighted_phase_deviation`, `complex_domain`,
+  `rectified_complex_domain`), `SpectralOnsetProcessor`, `RNNOnsetProcessor`,
+  `CNNOnsetProcessor`, `peak_picking`, `OnsetPeakPickingProcessor` (offline
+  only -- `OnlineProcessor` stays a permanent exclusion). `correlation_diff`
+  is a faithful port of a function that crashes under Python 3 in REAL
+  madmom too (confirmed against the reference venv), pinned by a
+  `pytest.raises(TypeError)` test rather than a golden output. Fixed one
+  genuine numpy-2.x-vs-1.23.5 dtype-promotion divergence (not upstream's
+  fault): `normalized_weighted_phase_deviation` silently upcast `float32`
+  to `float64` under numpy >= 2.0's NEP 50 scalar-promotion rules; an
+  explicit `.astype(np.float32)` reproduces real madmom's actual dtype on
+  every numpy version.
+- 31 new tests (`tests/test_onsets.py`: 20 offline + 6 `pytest.mark.network`;
+  `tests/test_fixtures_exist.py`: 5 more) and
+  `tools/generate_onset_fixtures.py` (the fixture-generation script,
+  reference-venv-only). Faithfulness proof: `tests/test_onsets.py::
+  test_full_pipeline_is_exact_under_original_blas` reproduces real madmom's
+  `RNNOnsetProcessor`(online=False/True) + `CNNOnsetProcessor` +
+  `OnsetPeakPickingProcessor` activations AND decoded onset times with
+  **zero differing elements**. In-process ULP drift measured at up to 17
+  ULP for the pure-DSP functions (asserted at a 64-ULP margin) and up to 62
+  ULP for the RNN/BRNN/CNN activations (asserted at a 256-ULP margin) --
+  decoded onset times are EXACT despite that drift. Full offline suite now
+  123 passed, 1 skipped, 20 deselected (was 98/1/14).
+
+**Wave 4a of the complete-port campaign (`feat/complete-port` branch): CNN
+runtime + key detection.** Adds `CNNKeyRecognitionProcessor` end-to-end
+(audio in, 24-class major/minor key probabilities + decoded label out) and
+the 5 CNN-era layer classes it -- and every other CNN-based madmom model --
+needs.
+
+### Added
+- `madmom_infer/ml/nn/layers.py`: `ConvolutionalLayer`, `MaxPoolLayer`,
+  `BatchNormLayer`, `PadLayer`, `AverageLayer` -- ported from
+  `madmom.ml.nn.layers`, verified against `key_cnn.pkl`'s actual
+  `pickletools`-walked global references (exactly these 5 classes plus the
+  already-ported `elu`/`linear` activations -- no `ReshapeLayer`/
+  `TransposeLayer`/`StrideLayer` needed for this model). Only the
+  `scipy.ndimage.convolve` backend of `ConvolutionalLayer`'s `convolve()`
+  helper is implemented (no `opencv-python` dependency; the reference venv
+  that recorded this wave's fixtures has no `cv2` installed either, so this
+  is the real, not a speculative, code path).
+- `madmom_infer/ml/nn/unpickle.py`: 5 new `ALLOWED_GLOBALS` entries mapping
+  `madmom.ml.nn.layers.{ConvolutionalLayer,MaxPoolLayer,BatchNormLayer,
+  PadLayer,AverageLayer}` onto the classes above.
+- `madmom_infer/models.py`: `key_cnn()` / `KEY_CNN` registry entry
+  (`key/2018/key_cnn.pkl`, sha256-pinned, cross-checked against both a
+  fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and the
+  local `../madmom-upstream` submodule checkout -- identical bytes).
+- `madmom_infer/features/key.py` (new module): `CNNKeyRecognitionProcessor`,
+  `key_prediction_to_label`, `add_axis`, `KEY_LABELS` -- the full
+  SignalProcessor -> FramedSignalProcessor(8192, fps=5) ->
+  ShortTimeFourierTransformProcessor -> FilteredSpectrogramProcessor(24
+  bands, 65-2100Hz) -> LogarithmicSpectrogramProcessor -> CNN ensemble ->
+  softmax pipeline.
+- 9 new tests (`tests/test_key.py`, 6 offline + 3 `pytest.mark.network`): 5
+  per-layer-type golden-fixture tests (fully offline, real trained weights
+  embedded in the fixture itself, no network/unpickling needed),
+  unpickled-model structural-digest match, end-to-end activation match
+  (measured worst case 4 ULP, `float32` view-as-`int32` bit-pattern
+  distance, asserted at a 16-ULP margin), exact decoded-label match, and a
+  cross-BLAS exactness proof against the reference venv (zero differing
+  elements). Plus 4 new `tests/test_fixtures_exist.py` checks (2 new test
+  functions + 2 new parametrized fixture-file cases) and
+  `tools/generate_key_fixtures.py` (the fixture-generation script,
+  reference-venv-only, no network needed since `key_cnn.pkl` is already
+  vendored as that venv's package data). 13 new tests total; full offline
+  suite now 98 passed, 1 skipped, 14 deselected (was 88/1/11).
+
 ## [0.2.0] - 2026-07-12
 
 **Phase 3a: optional, differentiable torch spectrogram frontend.** The

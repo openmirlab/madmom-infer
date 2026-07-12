@@ -14,18 +14,17 @@ verified by the harness itself (run twice, hash-compare) rather than assumed.
 
 HOW TO RUN (this script needs the real `madmom` package, which is not, and
 will never be, a madmom_infer dependency -- see this repo's README "What this
-project will NEVER bundle"). A working madmom 0.17.dev0 install already
-exists in the sibling all-in-one-fix project's venv (Python 3.10.18, numpy
-1.23.5, scipy 1.15.3) -- see tests/fixtures/README.md for full provenance.
+project will NEVER bundle"). A working madmom 0.17.dev0 install exists in
+the reference venv at `madmom-reference/.venv` (Python 3.10.18, numpy
+1.23.5, scipy 1.15.3), rebuilt 2026-07-12 (Wave 4.0) from
+`../madmom-upstream` after the original `all-in-one-fix/.venv` this
+package's fixtures were first recorded from stopped existing on this
+machine -- see tests/fixtures/README.md for full provenance.
 Run this script with THAT interpreter, from anywhere (paths below are
 resolved relative to this file, not the cwd):
 
-    /home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python \\
+    /home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python \\
         tools/generate_fixtures.py
-
-    # or, equivalently, via uv:
-    uv run --project /home/worzpro/Desktop/dev/openmirlab/all-in-one-fix \\
-        python tools/generate_fixtures.py
 
 For a fully-reproducible from-scratch environment (no dependency on that
 checkout existing), see docs/DESIGN.md section C.4 for the pinned
@@ -611,10 +610,7 @@ def build_manifest(error_case: dict) -> dict:
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
         "python_version": platform.python_version(),
-        "generation_command": (
-            "/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python "
-            "tools/generate_fixtures.py"
-        ),
+        "generation_command": f"{sys.executable} tools/generate_fixtures.py",
         "seeds": {
             "wav_seed": WAV_SEED,
             "hmm_toy_seed": HMM_TOY_SEED,
@@ -655,7 +651,7 @@ def main() -> None:
     except ImportError as exc:
         print(
             "ERROR: this script needs the real `madmom` package (not madmom_infer).\n"
-            "Run it with the all-in-one-fix venv's interpreter -- see this file's "
+            "Run it with the madmom-reference venv's interpreter -- see this file's "
             "module docstring for the exact command.",
             file=sys.stderr,
         )

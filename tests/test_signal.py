@@ -3,7 +3,9 @@
 Accuracy is the overriding rule for this port (docs/DESIGN.md, CLAUDE.md):
 these tests assert BIT-IDENTICAL output (`np.array_equal` + exact dtype
 match), not float tolerance, against a real madmom 0.17.dev0 install
-(`all-in-one-fix/.venv`, Python 3.10.18, numpy 1.23.5, scipy 1.15.3).
+(`madmom-reference/.venv`, Python 3.10.18, numpy 1.23.5, scipy 1.15.3 --
+rebuilt 2026-07-12 to the same recorded versions as the original, now-gone
+`all-in-one-fix/.venv`).
 
 Self-sufficient by design (per the task brief, this workstream does not
 depend on any other workstream's fixture harness): this file writes its own
@@ -35,7 +37,7 @@ from madmom_infer.audio.signal import (
 )
 
 REFERENCE_PYTHON = (
-    "/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python"
+    "/home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python"
 )
 REFERENCE_GEN_SCRIPT = str(
     __import__("pathlib").Path(__file__).parent / "reference_gen.py"
@@ -48,7 +50,7 @@ def _reference_python_available():
 
 pytestmark = pytest.mark.skipif(
     not _reference_python_available(),
-    reason="reference madmom install (all-in-one-fix/.venv) not found on "
+    reason="reference madmom install (madmom-reference/.venv) not found on "
            "this machine; A/B comparison tests require it",
 )
 

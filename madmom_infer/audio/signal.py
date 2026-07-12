@@ -17,19 +17,74 @@ allin1_infer/spectrogram.py:19-22,90-104`.
 indexing arithmetic (`signal.py:860-962,974-1393`) -- see `signal_frame()`
 below for the origin/padding trap this stage exists to get exactly right.
 
-Deliberately NOT ported (out of phase-1 scope, no ffmpeg/PyAudio dependency
-in this project): `resample()`'s ffmpeg-based resampling
-(`signal.py:226-263`), the `dtype`-driven implicit rescale that
+Deliberately NOT ported: the `dtype`-driven implicit rescale that
 `load_wave_file` falls back to ffmpeg for on mismatch (`madmom-upstream/
 madmom/io/audio.py:622-625`), and the online/live-audio `Stream` class plus
 `FramedSignalProcessor`'s `'stream'`-origin PyAudio integration
 (`signal.py:1396-1504`, `processors.py:836-906`). Where madmom would silently
-fall back to ffmpeg, this port raises a clear `NotImplementedError` instead
-of guessing.
+fall back to ffmpeg for a file-load sample-rate/dtype mismatch, this port
+still raises a clear `NotImplementedError` instead of guessing.
 
-Reads: numpy, scipy.io.wavfile, madmom_infer.processors.Processor; read by:
-madmom_infer/audio/stft.py (planned, via `FramedSignal.signal.dtype` for the
-int16 window-scaling convention).
+**Wave 4d policy correction, not silently overridden**: `resample()`'s
+ffmpeg-based resampling (`signal.py:226-263`) was excluded through Phase 1-4c
+as "no ffmpeg dependency in this project" -- that stance does not survive
+`audio/filters.py`'s `SemitoneBandpassFilterbank` (Wave 4d, feeds
+`audio/spectrogram.py`'s `SemitoneBandpassSpectrogram` /
+`audio/chroma.py`'s `CLPChroma`/`CLPChromaProcessor`): every one of its ~78
+semitone bands filters at a FIXED sample rate (882, 4410, or 22050 Hz,
+picked by frequency), all three unconditionally different from this
+project's fixed 44100 Hz input convention -- so resampling isn't an optional
+convenience feature here, it's load-bearing on every single call, with no
+narrower carve-out available (unlike `utils.segment_axis`'s "only the one
+case a caller needs" pattern). `resample()` below is a narrow port: only the
+exact call shape `SemitoneBandpassFilterbank`'s caller uses (an already-
+loaded `Signal`, `dtype`/`num_channels` unchanged, no `skip`/`max_len`/
+`channel`/`replaygain` options) -- NOT upstream's full `_ffmpeg_call`
+generality. It shells out to the system `ffmpeg` binary (`shutil.which`
+checked, clear `RuntimeError` if absent) with the exact same command shape
+`madmom.io.audio._ffmpeg_call`/`decode_to_pipe` builds for a `Signal` input
+(`io/audio.py:72-164, 249-320`): raw PCM bytes piped to stdin at the
+signal's own dtype/rate, raw PCM bytes read back from stdout at the target
+rate. Because both this project and the reference venv invoke the exact
+same system `ffmpeg` binary with the exact same arguments (not a
+reimplementation of ffmpeg's resampling filter), the two sides' output is
+expected to be genuinely bit-identical, not merely ULP-close -- verified
+empirically, see `tests/test_chroma.py`.
+
+Wave 4b addition: `smooth()` (Hamming-window or custom-kernel 1D/2D
+convolution smoothing) -- needed by `features/onsets.py`'s `peak_picking`,
+which imports it as `smooth_signal`. Not a Phase-1 module, but lives here
+because it's `madmom.audio.signal.smooth` upstream.
+
+**Wave 4g: resolves the 4b TO-VERIFY audit-table flag.** 4b found `smooth`
+missing and downgraded the whole rest of this row (`attenuate`, `rescale`,
+`root_mean_square`, `sound_pressure_level`, `energy`, `trim`, plus
+`Stream`/`LoadAudioFileError`/`load_wave_file`/`write_wave_file`) to
+TO-VERIFY rather than trusting the Phase-1 audit's overstated PORTED claim.
+Re-auditing that full list against `../madmom-upstream/madmom/audio/
+signal.py`'s actual public surface (`grep -n '^def \|^class '`) found: six
+real, pure-numpy functions genuinely missing and now added above
+(`attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`,
+`sound_pressure_level` -- verbatim ports, no numpy-2.x-vs-1.23.5 dtype traps
+found in any of them, confirmed by this wave's own fixtures). The rest of
+that list is a DELIBERATE non-port, not a gap: `Stream` is madmom's
+online/live-audio (PyAudio) class, already covered by this project's stated
+permanent online-processing exclusion (see this file's "Deliberately NOT
+ported" paragraph above); `LoadAudioFileError`/`load_wave_file`/
+`write_wave_file`/`load_audio_file` in upstream `audio/signal.py` are
+themselves nothing but deprecated-since-0.16 shims that immediately
+`warnings.warn()` and delegate to `madmom.io.audio.*` (confirmed by reading
+`signal.py:442-493` directly) -- `io/*` is this project's own separate,
+already-documented permanent EXCLUDE (see `CLAUDE.md`'s audit table), so
+porting these four would mean porting `io.audio` under a different name.
+None of these 4 are referenced by grepping any `../madmom-upstream/madmom/
+{audio,features,ml}/*` file this project ports from -- confirmed, not
+assumed.
+
+Reads: numpy, scipy.io.wavfile, scipy.signal (smooth's 2D path),
+madmom_infer.processors.Processor; read by: madmom_infer/audio/stft.py
+(via `FramedSignal.signal.dtype` for the int16 window-scaling convention),
+madmom_infer/features/onsets.py (`smooth`, as `smooth_signal`).
 """
 
 import numpy as np
@@ -129,6 +184,258 @@ def adjust_gain(signal, gain):
             "positive gain adjustments are only supported for float dtypes."
         )
     return np.asarray(signal * gain, dtype=signal.dtype)
+
+
+def attenuate(signal, attenuation):
+    """Attenuate `signal` [dB].
+
+    Verbatim port of `madmom.audio.signal.attenuate` (`signal.py:106-131`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header). Just `adjust_gain(signal,
+    -attenuation)`, short-circuited to a no-op for `attenuation == 0` (not
+    merely an optimization -- matches upstream exactly, including that a
+    zero-attenuation call skips `adjust_gain`'s dtype/sign checks entirely).
+    """
+    if attenuation == 0:
+        return signal
+    return adjust_gain(signal, -attenuation)
+
+
+def smooth(signal, kernel):
+    """Smooth `signal` along its first axis with `kernel`.
+
+    Verbatim port of `madmom.audio.signal.smooth` (`signal.py:20-68`) -- Wave
+    4b addition, not Phase 1 (the earlier 4.0 audit table mis-listed this as
+    already PORTED; it was not actually present in this module until
+    `features/onsets.py`'s `peak_picking` needed it, see CLAUDE.md's audit
+    table correction). If `kernel` is a plain (non-numpy) integer, a Hamming
+    window of that length is used; if it's already a numpy array, it's used
+    as-is directly as the convolution kernel.
+    """
+    if kernel is None:
+        return signal
+    elif isinstance(kernel, (int, np.integer)):
+        if kernel == 0:
+            return signal
+        elif kernel > 1:
+            kernel = np.hamming(kernel)
+        else:
+            raise ValueError(
+                "can't create a smoothing kernel of size %d" % kernel
+            )
+    elif isinstance(kernel, np.ndarray):
+        kernel = kernel
+    else:
+        raise ValueError("can't smooth signal with %s" % kernel)
+    if signal.ndim == 1:
+        return np.convolve(signal, kernel, "same")
+    elif signal.ndim == 2:
+        from scipy.signal import convolve2d
+
+        return convolve2d(signal, kernel[:, np.newaxis], "same")
+    else:
+        raise ValueError("signal must be either 1D or 2D")
+
+
+def _ffmpeg_fmt(dtype):
+    """Convert a numpy dtype to the raw-PCM format string `ffmpeg`
+    understands (e.g. `'s16le'`, `'f32le'`).
+
+    Verbatim port of `madmom.io.audio._ffmpeg_fmt` (`io/audio.py:42-69`).
+    """
+    dtype = np.dtype(dtype)
+    fmt = {"u": "u", "i": "s", "f": "f"}.get(dtype.kind)
+    fmt += str(8 * dtype.itemsize)
+    if dtype.byteorder == "=":
+        import sys
+
+        fmt += sys.byteorder[0] + "e"
+    else:
+        fmt += {"|": "", "<": "le", ">": "be"}.get(dtype.byteorder)
+    return str(fmt)
+
+
+def resample(signal, sample_rate, **kwargs):
+    """Resample `signal` to `sample_rate` [Hz] by shelling out to the system
+    `ffmpeg` binary.
+
+    Narrow port of `madmom.audio.signal.resample` (`signal.py:226-263`) --
+    see this module's header for why this project's "no ffmpeg dependency"
+    stance had to be revisited for `SemitoneBandpassFilterbank`'s sake, and
+    exactly which subset of upstream's ffmpeg-invocation generality this
+    implements (only what that one caller needs: an already-loaded `Signal`,
+    unchanged `dtype`/`num_channels`, no `skip`/`max_len`/`channel`/
+    `replaygain` options).
+
+    Parameters
+    ----------
+    signal : Signal
+        Signal to be resampled.
+    sample_rate : int
+        Target sample rate [Hz].
+    kwargs : dict, optional
+        `dtype`/`num_channels` overrides (default: `signal`'s own).
+
+    Returns
+    -------
+    Signal
+        Resampled signal (a NEW `Signal`, unlike a no-op same-rate call,
+        which returns `signal` itself unchanged -- matching upstream).
+    """
+    import shutil
+    import subprocess
+
+    if not isinstance(signal, Signal):
+        raise ValueError(
+            "only Signals can be resampled, not %s" % type(signal)
+        )
+    if signal.sample_rate == sample_rate:
+        return signal
+    dtype = kwargs.get("dtype", signal.dtype)
+    num_channels = kwargs.get("num_channels", signal.num_channels)
+
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError(
+            "resample() needs the `ffmpeg` binary on PATH -- required by "
+            "madmom_infer.audio.filters.SemitoneBandpassFilterbank (in turn "
+            "audio.spectrogram.SemitoneBandpassSpectrogram / "
+            "audio.chroma.CLPChroma), see madmom_infer/audio/signal.py's "
+            "module header for why this one dependency is unavoidable."
+        )
+
+    in_fmt = _ffmpeg_fmt(signal.dtype)
+    out_fmt = _ffmpeg_fmt(dtype)
+    call = [
+        ffmpeg, "-v", "quiet", "-y",
+        "-f", in_fmt, "-ac", str(int(signal.num_channels)),
+        "-ar", str(int(signal.sample_rate)),
+        "-i", "pipe:0",
+        "-f", out_fmt, "-ac", str(int(num_channels)),
+        "-ar", str(int(sample_rate)),
+        "pipe:1",
+    ]
+    raw_in = np.ascontiguousarray(signal.data).tobytes()
+    proc = subprocess.run(call, input=raw_in, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            "ffmpeg resample failed (exit %d): %s"
+            % (proc.returncode, proc.stderr.decode(errors="replace"))
+        )
+    out = np.frombuffer(proc.stdout, dtype=dtype)
+    if num_channels and num_channels > 1:
+        out = out.reshape((-1, num_channels))
+    return Signal(out, sample_rate=sample_rate)
+
+
+def rescale(signal, dtype=np.float32):
+    """Rescale `signal` to range [-1, 1] and return as a float dtype.
+
+    Verbatim port of `madmom.audio.signal.rescale` (`signal.py:266-292`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header).
+    """
+    if not np.issubdtype(dtype, np.floating):
+        raise ValueError(
+            "only float dtypes are supported, not %s." % dtype
+        )
+    # `np.asarray(...)` rather than a bare `.astype()` call -- unlike
+    # upstream's ndarray-subclass `Signal` (where `.astype` comes free),
+    # this project's composition `Signal` (audio/signal.py's own class) has
+    # no `.astype` method of its own; `np.asarray` works uniformly for both
+    # a `Signal` (via `__array__`) and a plain ndarray.
+    if np.issubdtype(signal.dtype, np.floating):
+        return np.asarray(signal).astype(dtype)
+    elif np.issubdtype(signal.dtype, np.integer):
+        return np.asarray(signal).astype(dtype) / np.iinfo(signal.dtype).max
+    else:
+        raise ValueError("unsupported signal dtype: %s." % signal.dtype)
+
+
+def trim(signal, where="fb"):
+    """Trim leading and/or trailing all-zero rows of `signal`.
+
+    Verbatim port of `madmom.audio.signal.trim` (`signal.py:295-329`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header). `where` is a string with
+    `'f'` to trim from the front and/or `'b'` to trim from the back
+    (default `'fb'`, both). Works on 1D or 2D (per-frame) input alike, since
+    it sums each element/row via `np.sum` before comparing to zero.
+    """
+    first = 0
+    where = where.upper()
+    if "F" in where:
+        for i in signal:
+            if np.sum(i) != 0.0:
+                break
+            else:
+                first += 1
+    last = len(signal)
+    if "B" in where:
+        for i in signal[::-1]:
+            if np.sum(i) != 0.0:
+                break
+            else:
+                last -= 1
+    return signal[first:last]
+
+
+def energy(signal):
+    """Compute the energy of a (framed) signal.
+
+    Verbatim port of `madmom.audio.signal.energy` (`signal.py:332-365`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header). If `signal` is a
+    `FramedSignal`, the energy is computed for each frame individually
+    (recursing on each frame, matching upstream exactly).
+    """
+    if isinstance(signal, FramedSignal):
+        return np.array([energy(frame) for frame in signal])
+    if not isinstance(signal, np.ndarray):
+        raise TypeError("Invalid type for signal, must be a numpy array.")
+    if np.iscomplex(signal).any():
+        signal = np.abs(signal)
+    if signal.dtype != float:
+        signal = signal.astype(float)
+    return np.dot(signal.flatten(), signal.flatten())
+
+
+def root_mean_square(signal):
+    """Compute the root mean square of a (framed) signal (a power measure).
+
+    Verbatim port of `madmom.audio.signal.root_mean_square`
+    (`signal.py:368-392`) -- Wave 4g addition, resolving part of the
+    Phase-1-audit-table TO-VERIFY flag 4b left open (see this module's
+    header). If `signal` is a `FramedSignal`, computed per-frame.
+    """
+    if isinstance(signal, FramedSignal):
+        return np.array([root_mean_square(frame) for frame in signal])
+    return np.sqrt(energy(signal) / signal.size)
+
+
+def sound_pressure_level(signal, p_ref=None):
+    """Compute the sound pressure level of a (framed) signal [dB].
+
+    Verbatim port of `madmom.audio.signal.sound_pressure_level`
+    (`signal.py:395-438`) -- Wave 4g addition, resolving part of the
+    Phase-1-audit-table TO-VERIFY flag 4b left open (see this module's
+    header). If `p_ref` is `None`, defaults to the dtype's max integer
+    value (integer dtypes) or `1.0` (float dtypes). If `signal` is a
+    `FramedSignal`, computed per-frame. `-inf` (from `log10(0)`, a silent
+    zero-signal edge case) is replaced with the smallest finite float,
+    matching `np.nan_to_num`'s default behavior exactly.
+    """
+    if isinstance(signal, FramedSignal):
+        return np.array([sound_pressure_level(frame) for frame in signal])
+    rms = root_mean_square(signal)
+    if p_ref is None:
+        if np.issubdtype(signal.dtype, np.integer):
+            p_ref = float(np.iinfo(signal.dtype).max)
+        else:
+            p_ref = 1.0
+    with np.errstate(divide="ignore"):
+        return np.nan_to_num(20.0 * np.log10(rms / p_ref))
 
 
 def _load_wave_file(filename, sample_rate=None, num_channels=None,
@@ -588,7 +895,18 @@ class FramedSignalProcessor(Processor):
     """
 
     def __init__(self, frame_size=FRAME_SIZE, hop_size=HOP_SIZE, fps=FPS,
-                 origin=ORIGIN, end=END_OF_SIGNAL, num_frames=NUM_FRAMES):
+                 origin=ORIGIN, end=END_OF_SIGNAL, num_frames=NUM_FRAMES,
+                 **kwargs):
+        # pylint: disable=unused-argument
+        # Wave 4b: `**kwargs` catch-all added to match upstream's own
+        # `FramedSignalProcessor.__init__` signature exactly (`signal.py:
+        # 1298-1300`, which this port had dropped) -- needed so
+        # `features/onsets.py`'s `SpectralOnsetProcessor` can blindly
+        # kwargs-forward one shared dict across its whole pre-processing
+        # chain (`SignalProcessor`/`FramedSignalProcessor`/
+        # `ShortTimeFourierTransformProcessor`/... all silently absorb keys
+        # meant for a different stage), exactly like upstream's own
+        # equivalently-loose processors do.
         self.frame_size = frame_size
         self.hop_size = hop_size
         self.fps = fps  # not converted here, forwarded to FramedSignal

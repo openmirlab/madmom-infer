@@ -13,10 +13,28 @@ Phase-2 addition: `SpectrogramDifference`/`SpectrogramDifferenceProcessor`
 (SuperFlux-style temporal first-order difference), needed because
 `RNNDownBeatProcessor` (`madmom_infer/features/downbeats.py`) stacks a
 diff-of-log-spectrogram feature onto each of its 3 frame-size branches
-(`madmom-upstream/madmom/features/downbeats.py:84-87`). Still deliberately
-NOT ported (no phase-2 call site either, `madmom-upstream/madmom/audio/
-spectrogram.py`): `SuperFluxProcessor`, `MultiBandSpectrogram`/
-`MultiBandSpectrogramProcessor`, `SemitoneBandpassSpectrogram`,
+(`madmom-upstream/madmom/features/downbeats.py:84-87`).
+
+Wave 4b addition: `SuperFluxProcessor` (`features/onsets.py`'s `superflux`
+onset detection function needs its exact default parameterization), plus
+`Spectrogram.diff()`/`.filter()`/`.log()` convenience methods (the pure-DSP
+onset functions call `spectrogram.diff(...)` directly) and
+`SpectrogramProcessor.__init__(self, **kwargs): pass` (needed for
+`SuperFluxProcessor` to construct it with forwarded kwargs).
+
+Wave 4d addition: `SemitoneBandpassSpectrogram` -- feeds `audio/chroma.py`'s
+`CLPChroma`/`CLPChromaProcessor`. NOT a `FilteredSpectrogram` subclass (its
+own composition class instead, see that class's docstring for why): it has
+no STFT stage at all, `filters.SemitoneBandpassFilterbank` is a TIME-domain
+IIR filterbank, and it needs `audio/signal.py`'s ffmpeg-subprocess `resample`
+(also new this wave) for every one of its ~78 semitone bands.
+
+Wave 4f addition: `MultiBandSpectrogram`/`MultiBandSpectrogramProcessor` --
+IS a `FilteredSpectrogram` subclass (same `np.dot(spectrogram, filterbank)`
+shape, just always built from `filters.RectangularFilterbank` rather than
+the default `LogarithmicFilterbank`), feeds `features/downbeats.py`'s
+`PatternTrackingProcessor`. Still NOT ported (no call site so far,
+`madmom-upstream/madmom/audio/spectrogram.py`):
 `LogarithmicFilteredSpectrogram`/`LogarithmicFilteredSpectrogramProcessor`
 (the fused filter+log convenience class -- this project composes the same
 pipeline via two separate stages instead, exactly like `build_spec_processor()`
@@ -41,7 +59,7 @@ import inspect
 import numpy as np
 from scipy.ndimage import maximum_filter
 
-from ..processors import BufferProcessor, Processor
+from ..processors import BufferProcessor, Processor, SequentialProcessor
 from .filters import (
     FMAX,
     FMIN,
@@ -52,7 +70,7 @@ from .filters import (
     NORM_FILTERS,
     UNIQUE_FILTERS,
 )
-from .stft import ShortTimeFourierTransform
+from .stft import ShortTimeFourierTransform, ShortTimeFourierTransformProcessor
 
 FILTERBANK = LogarithmicFilterbank
 
@@ -148,6 +166,24 @@ class Spectrogram:
         """Bin frequencies."""
         return self.stft.bin_frequencies
 
+    # -- Wave 4b addition: convenience constructors, needed by
+    # features/onsets.py's spectral_diff/spectral_flux/superflux (each calls
+    # `spectrogram.diff(...)`) -----------------------------------------
+    def diff(self, **kwargs):
+        """Return the `SpectrogramDifference` of this spectrogram. Port of
+        `Spectrogram.diff` (`spectrogram.py:164-179`)."""
+        return SpectrogramDifference(self, **kwargs)
+
+    def filter(self, **kwargs):
+        """Return the `FilteredSpectrogram` of this spectrogram. Port of
+        `Spectrogram.filter` (`spectrogram.py:181-196`)."""
+        return FilteredSpectrogram(self, **kwargs)
+
+    def log(self, **kwargs):
+        """Return the `LogarithmicSpectrogram` of this spectrogram. Port of
+        `Spectrogram.log` (`spectrogram.py:198-213`)."""
+        return LogarithmicSpectrogram(self, **kwargs)
+
 
 class SpectrogramProcessor(Processor):
     """Processor wrapper: compute the magnitude `Spectrogram` of an STFT.
@@ -156,7 +192,17 @@ class SpectrogramProcessor(Processor):
     (`spectrogram.py:239-264`). Not on all-in-one-infer's own chain (which
     goes straight from STFT to `FilteredSpectrogramProcessor`, which builds
     its own internal `Spectrogram`), kept for API completeness/composability.
+    `__init__(self, **kwargs): pass` (Wave 4b addition, matching upstream's
+    own `SpectrogramProcessor.__init__` exactly) -- needed because
+    `SuperFluxProcessor` instantiates `SpectrogramProcessor(**kwargs)` with
+    whatever extra kwargs its own caller passed through; the base
+    `Processor`/`object.__init__` has no catch-all and would raise
+    `TypeError` on any non-empty kwargs otherwise.
     """
+
+    def __init__(self, **kwargs):
+        # pylint: disable=unused-argument
+        pass
 
     def process(self, data, **kwargs):
         return Spectrogram(data, **kwargs)
@@ -484,3 +530,223 @@ class SpectrogramDifferenceProcessor(Processor):
         return self.stack_diffs(
             (np.asarray(diff.spectrogram)[self.diff_frames:], diff_arr)
         )
+
+
+# ---------------------------------------------------------------------------
+# SuperFluxProcessor -- Wave 4b addition (features/onsets.py's superflux)
+# ---------------------------------------------------------------------------
+class SuperFluxProcessor(SequentialProcessor):
+    """Spectrogram processor with the default values suitable for the
+    SuperFlux onset detection algorithm.
+
+    Port of `madmom.audio.spectrogram.SuperFluxProcessor`
+    (`spectrogram.py:1230-1262`): un-normalized `LogarithmicFilterbank`
+    (24 bands/octave), max-filtered (`diff_max_bins=3`), positive-only
+    temporal difference. Its own chain starts at the STFT stage (no
+    `SignalProcessor`/`FramedSignalProcessor`) -- callers pass in anything
+    `ShortTimeFourierTransformProcessor.process()` can turn into a
+    `ShortTimeFourierTransform` (a raw file path included, via
+    `FramedSignal`'s own `Signal(...)` auto-conversion fallback).
+    """
+
+    def __init__(self, **kwargs):
+        # set the default values (can be overwritten if set)
+        # we need an un-normalized LogarithmicFilterbank with 24 bands
+        filterbank = kwargs.pop("filterbank", FILTERBANK)
+        num_bands = kwargs.pop("num_bands", 24)
+        norm_filters = kwargs.pop("norm_filters", False)
+        # we want max filtered diffs
+        diff_ratio = kwargs.pop("diff_ratio", 0.5)
+        diff_max_bins = kwargs.pop("diff_max_bins", 3)
+        positive_diffs = kwargs.pop("positive_diffs", True)
+        # processing chain
+        stft = ShortTimeFourierTransformProcessor(**kwargs)
+        spec = SpectrogramProcessor(**kwargs)
+        filt = FilteredSpectrogramProcessor(
+            filterbank=filterbank, num_bands=num_bands,
+            norm_filters=norm_filters, **kwargs)
+        log = LogarithmicSpectrogramProcessor(**kwargs)
+        diff = SpectrogramDifferenceProcessor(
+            diff_ratio=diff_ratio, diff_max_bins=diff_max_bins,
+            positive_diffs=positive_diffs, **kwargs)
+        super().__init__((stft, spec, filt, log, diff))
+
+
+# ---------------------------------------------------------------------------
+# MultiBandSpectrogram -- Wave 4f addition (feeds features/downbeats.py's
+# PatternTrackingProcessor)
+# ---------------------------------------------------------------------------
+class MultiBandSpectrogram(FilteredSpectrogram):
+    """A `Spectrogram` combined into multiple contiguous bands via a
+    `filters.RectangularFilterbank`.
+
+    Composition port of `madmom.audio.spectrogram.MultiBandSpectrogram`
+    (`spectrogram.py:1265-1338`) -- same `np.dot(spectrogram, filterbank)`
+    shape as `FilteredSpectrogram` (which this subclasses), just always
+    built from a `RectangularFilterbank` rather than the default
+    `LogarithmicFilterbank`.
+    """
+
+    def __init__(self, spectrogram, crossover_frequencies, fmin=FMIN,
+                 fmax=FMAX, norm_filters=NORM_FILTERS,
+                 unique_filters=UNIQUE_FILTERS, **kwargs):
+        # pylint: disable=super-init-not-called
+        from .filters import RectangularFilterbank
+
+        if not isinstance(spectrogram, Spectrogram):
+            spectrogram = Spectrogram(spectrogram, **kwargs)
+        filterbank = RectangularFilterbank(
+            spectrogram.bin_frequencies, crossover_frequencies, fmin=fmin,
+            fmax=fmax, norm_filters=norm_filters,
+            unique_filters=unique_filters)
+        self.data = np.dot(np.asarray(spectrogram), np.asarray(filterbank))
+        self.filterbank = filterbank
+        self.stft = spectrogram.stft
+        self.spectrogram = spectrogram
+        self.crossover_frequencies = crossover_frequencies
+
+    @property
+    def bin_frequencies(self):
+        """Bin frequencies (the filterbank's center frequencies)."""
+        return self.filterbank.center_frequencies
+
+
+class MultiBandSpectrogramProcessor(Processor):
+    """Processor wrapper: combine a `Spectrogram`'s magnitudes into multiple
+    contiguous bands.
+
+    Port of `madmom.audio.spectrogram.MultiBandSpectrogramProcessor`
+    (`spectrogram.py:1341-1398`).
+    """
+
+    def __init__(self, crossover_frequencies, fmin=FMIN, fmax=FMAX,
+                 norm_filters=NORM_FILTERS, unique_filters=UNIQUE_FILTERS,
+                 **kwargs):
+        # pylint: disable=unused-argument
+        self.crossover_frequencies = np.array(crossover_frequencies)
+        self.fmin = fmin
+        self.fmax = fmax
+        self.norm_filters = norm_filters
+        self.unique_filters = unique_filters
+
+    def process(self, data, **kwargs):
+        """Create a `MultiBandSpectrogram` from the given data."""
+        args = dict(crossover_frequencies=self.crossover_frequencies,
+                    fmin=self.fmin, fmax=self.fmax,
+                    norm_filters=self.norm_filters,
+                    unique_filters=self.unique_filters)
+        args.update(kwargs)
+        return MultiBandSpectrogram(data, **args)
+
+
+# ---------------------------------------------------------------------------
+# SemitoneBandpassSpectrogram -- Wave 4d addition (feeds audio/chroma.py's
+# CLPChroma/CLPChromaProcessor)
+# ---------------------------------------------------------------------------
+class SemitoneBandpassSpectrogram:
+    """Semitone spectrogram built from a time-domain filterbank of bandpass
+    filters, as described in [1]_.
+
+    Composition port of `madmom.audio.spectrogram.SemitoneBandpassSpectrogram`
+    (`spectrogram.py:1401-1487`) -- NOT a `FilteredSpectrogram` subclass
+    (unlike upstream's ndarray-view hierarchy): this class has no STFT
+    stage at all (`filters.SemitoneBandpassFilterbank` is a TIME-domain
+    filterbank of IIR filters, `scipy.signal.filtfilt`-applied directly to
+    the signal, not `np.dot`-multiplied against a spectrogram matrix like
+    every OTHER filterbank in this project) -- see
+    `audio/filters.py`'s `SemitoneBandpassFilterbank` docstring. Needs
+    `audio/signal.py`'s `resample` (Wave 4d's ffmpeg-subprocess addition) --
+    every one of its ~78 semitone bands is filtered at a FIXED sample rate
+    (882/4410/22050 Hz), all three unconditionally different from this
+    project's 44100 Hz input convention.
+
+    Parameters
+    ----------
+    signal : Signal
+        Signal instance (or anything `Signal(..., num_channels=1)` accepts).
+    fps : float, optional
+        Frame rate of the spectrogram [Hz].
+    fmin : float, optional
+        Lowest frequency of the spectrogram [Hz].
+    fmax : float, optional
+        Highest frequency of the spectrogram [Hz].
+
+    References
+    ----------
+    .. [1] Meinard Mueller, "Information retrieval for music and motion",
+           Springer, 2007.
+    """
+
+    def __init__(self, signal, fps=50.0, fmin=27.5, fmax=4200.0, **kwargs):
+        from scipy.signal import filtfilt
+
+        from .filters import SemitoneBandpassFilterbank
+        from .signal import FramedSignal, Signal, resample
+
+        # check if we got a mono Signal
+        if not isinstance(signal, Signal) or signal.num_channels != 1:
+            signal = Signal(signal, num_channels=1, **kwargs)
+        sample_rate = float(signal.sample_rate)
+        # keep a reference to the original signal
+        signal_ = signal
+        # determine how many frames the filtered signal will have
+        num_frames = int(np.round(len(signal) * fps / sample_rate) + 1)
+        # compute the energy of the frames of the bandpass filtered signal
+        filterbank = SemitoneBandpassFilterbank(fmin=fmin, fmax=fmax)
+        bands = []
+        for filt, band_sample_rate in zip(filterbank.filters,
+                                          filterbank.band_sample_rates):
+            # frames should overlap 50%
+            frame_size = np.round(2 * band_sample_rate / float(fps))
+            # down-sample audio if needed
+            if band_sample_rate != signal.sample_rate:
+                signal = resample(signal_, band_sample_rate)
+            # filter the signal
+            b, a = filt
+            filtered_signal = filtfilt(b, a, signal)
+            # normalise the signal if it has an integer dtype
+            try:
+                filtered_signal = filtered_signal / np.iinfo(signal.dtype).max
+            except ValueError:
+                pass
+            # compute the energy of the filtered signal
+            # Note: 1) the energy of the signal is computed with respect to
+            #          the reference sampling rate as in the MATLAB chroma
+            #          toolbox
+            #       2) we do not sum here, but rather after splitting the
+            #          signal into overlapping frames to avoid doubled
+            #          computation due to the overlapping frames
+            filtered_signal = filtered_signal ** 2 / band_sample_rate * 22050.0
+            # split into overlapping frames
+            frames = FramedSignal(filtered_signal, frame_size=frame_size,
+                                  fps=fps, sample_rate=band_sample_rate,
+                                  num_frames=num_frames)
+            # finally sum the energy of all frames
+            bands.append(np.sum(frames, axis=1))
+        # stack the bands: (num_frames, num_bands)
+        self.data = np.vstack(bands).T
+        self.filterbank = filterbank
+        self.fps = fps
+        self.bin_frequencies = filterbank.center_frequencies
+
+    # -- numpy interop, mirroring audio/signal.py's Signal -----------------
+    def __array__(self, dtype=None):
+        return np.asarray(self.data, dtype=dtype)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def dtype(self):
+        return self.data.dtype
+
+    @property
+    def ndim(self):
+        return self.data.ndim

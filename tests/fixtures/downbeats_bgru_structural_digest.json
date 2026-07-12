@@ -1,0 +1,728 @@
+{
+  "downbeats_bgru_harmonic_0": [
+    {
+      "bwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3564a69b1851d27301cde78774148f17fa03bbec1ae74b84d2d64d93d7f8de7f",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "e03669a9e67b93943b5d0a5836f2d2668ec3ed2264c22aa997ff066c93638bb2",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3595d0114fd5e24768847033e6a3151f512dfc1a9598cd3e464e153873fb78fc",
+            "shape": [
+              24,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "f7ad2f203e3fda529de7491e493a7ccff1f34fcf2048f0ddcbeddd77427a84b5",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "5ff556681c8aecdc560221214c16a71ea9e3a997427d0a4b61b7b334e00dc219",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "bce92f9ee67feb333257f65c019564a413622d173768b103e0234c56655f3921",
+            "shape": [
+              24,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "d61a6c0bc25b338b1e5e2e260be1c3da33c3099a03cc6c6fc9a41a962657a90a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "79ca9a1279bed712a3518610bde2fc4f93507728b04706e738c556fb5b1bc545",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "8a68dea1f066a585f80f1b54282692f9b1b4d3242de8039c9d5e664c8038eb14",
+            "shape": [
+              24,
+              25
+            ]
+          }
+        }
+      },
+      "fwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "3ecd59c171416cb7b9ef20368d7161493bbe59a79e029e84f435c6e96b7b831b",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "74adf27f1022c29e9f89f1f611a7724d02cffedc360b6f6cd6322bcc757e0eab",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "da73e65f6af545351954d3b1c97972903c1b2b1242a17836631479f304601986",
+            "shape": [
+              24,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "aed043ed03463dcfcc4cde13f859264110a8423560274beabc13deb2f8b4e013",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "613104303d5ec0e2a466041320101fbdb90264748bc3b17975749900498e44d9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "771632ea0805da61aee2c930b8f3a0b11592f31596e93e5373a347876c311bfe",
+            "shape": [
+              24,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "a140761379bbaa3db425313a7a3c7c2075271bfe313521d36fbdba44c18923d0",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ea94f4c4f59ce1ea942e2882e1645573ed079a8c470d57224df59dfb5039b35c",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "58f0ca1150d71272c013915f0f365dbcac34f94f73e90ae9ee9ff5dd3c35afb1",
+            "shape": [
+              24,
+              25
+            ]
+          }
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1d30e6aa24137a2ae38d28c47dcac72e95845f852f383dae98e71a90038cefd2",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "78973f8a1ddf69def3065d30b3436cee0b204be63aeaa6db26eb256fa668b0a3",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f0e2ce64d81e1aa4813d0c390e9a99a816a578744e83a6881e5c7684cc4102d3",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "4a736b39c8a86299c509f06bebe53ef47e5d8e63d04f6b031d49e7bc1637cdd3",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "def1474fc21c6775cb4a3ee71fd8e0f20bcaddc123f9cf356fbdcc065b9b76ff",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f10c87f7c2e18457fc28739c9c528ee59cad46c2f359da85265516b5a5df6fba",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "944bcf8fea84cc60a6abecfb8c0b4cd1a63b9e916d73609e3f2a68f0d764fa77",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "f194c85bc2edc509c22754ff242a5f61e6cc191226f8d5d9ae39d3c3733a40c9",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "17591069464f06ec4d27f102ab770032d57946ab60b32e325c7411a94c92aa08",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        }
+      },
+      "fwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "bd5cbd29db5dff30192b48a96b62230eddc8636d6e22b05696f6697c9c301175",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c4e67ab6c51543f9cde81d2dd0e2c94140c7246683b593583136f8469e442f2f",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "ec5fd123e9410b6684e6b104a34592546f386ec3a6824097b115fff65783fb42",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "57debc69ff2f472ef214ab49061f463e950a9ddddc75e6aa9bf5643bd65836a7",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "4b0ec97dabd36e748f7fddaf307a23a0abeb87b0060589c5f1c02a6afcce08c5",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "6a8c7cc740bdd2b043d3fa4f6d519d58edb003d0d6a17f5ca0d2875ed8f1094d",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "4ae210a4664384b4b3a127af041ffefdef70eaa25dfef965719756770e4fa5cd",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "c2d5a917cbed1448221fbd2303603deb0aaf7f38f426b0a0726d6e0f8957ea55",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "f92f9ea7cf0adb0d63540d389fa2adafa073d9a4e8e1553fd340b41f51d96ef8",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "61d47f02fe5b04aacde51f52e18b5e456e9c4db148d5c38ca88c278df4f78df6",
+        "shape": [
+          1
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "0e48a24e584e338fb367a7fd358ff8ccf4595f87ac77c66713129fe3f73261d9",
+        "shape": [
+          50,
+          1
+        ]
+      }
+    }
+  ],
+  "downbeats_bgru_rhythmic_0": [
+    {
+      "bwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "eb6c2c8a1203539a7bb534f20e980dbda19934b41dbe1bcde563d7c4ff74be73",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "231435d055786852c70b2cf34274ec2c012615c0c22a02e4775cdb3bc6e45790",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "3d269e0efcc51087212ecc75e9a22f8e174560707c31b0aeb14f333959a16fdc",
+            "shape": [
+              180,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "530037a79366ba7cf785497047c9cb474c9bab00801b57a51d767bcbc84f0045",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "7cdc0103214dc9c14f5a85a43006ce8dc4ae6bef5903196edcadd0a201b781c5",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "059133444334ce8c393cc8bdf80586d90fc4ec68e5db862a887a61d24f675240",
+            "shape": [
+              180,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "95c90a106226495276c36bc61a8e1afd0264bfa5127b9fe044933eeea2aa97e3",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "ef96dadd850977097824120432919ecbea66a3268eb73a05bf5aa3c42512518e",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "644f1deb40da8a12a283cf8a8921fc20dc8256443f5c83644337cf0020a9d801",
+            "shape": [
+              180,
+              25
+            ]
+          }
+        }
+      },
+      "fwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "8f94613195b2a750766d385d052f77dfc50b57865f7270fe626c171d8745fd7a",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "1acdf3d767c549a09542283315c58e20de0e8a48171adeb8fd7096296222a423",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "aea679c86968955c6bb7bc995072b3b243f3eac0e04a42bf540919e51ab696e7",
+            "shape": [
+              180,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "2cf2ae32b7a95416a5d1e0e2fea3c9164f384e08405f95ba895f783de0e17281",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "2c8778932c46a4acf9f3cc5e71a0d199a22273686dcd9e8606f120264d219bbc",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "01a5b76b59f51515f894f6183cd5de5e19561159c7a198b20830b029c6214752",
+            "shape": [
+              180,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "10262d0b3f5bd5cd61136dad490f3204fe992708d590a8d1a2a8cc2b0587361b",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8073b4fef1ed2bc2a35d19e4d5fbaf4997fc018689b49f03ba296251ed5cf338",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "35733c5ac844550e37e1f6ebed72cd0cb607138f247859bac5d9f1e8aa0158c9",
+            "shape": [
+              180,
+              25
+            ]
+          }
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "1c520124be3ad6b53622bb90452e1eaaee7364479d4dcd96390a2d476adab78d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "0f8689a0e8ee0361c1060c595477a087087b4e502ff9a2fe297f43ef12ac2bc4",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "694afb2511772e9a03b6950b93de367a4ca3f659dd1602e7bfdbe8e9f2d15e3b",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "c712c3e66c73005211b61191cd59c77251e35a11abaa8d4ae9e464656c16343d",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "9b984209b3c7d37f567b878eb7b56b79f0ed5bc8c20ad32ddff5d3c405bce587",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "761d3e292c1f6026a1e771244d62dcaf3e917ad64b917a0c5c2df2aeb58ddc6e",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "4e2d866fc4dc35841693564f10785fddf6ca0e43bbaa2734ea5fbbd27457e7f1",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "18a353fdbb2f2326b344fdc9985bb242cf80f522d1d9d54bddfb3e9327d9c609",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "565723f30b022c8a5211f29404b2d4c6826b1d61c75abdefa4d6e427f9e461c2",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        }
+      },
+      "fwd_layer": {
+        "cell": {
+          "activation_fn": "tanh",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "50282f59dd39dbbacaaba80340346f5c9c33eb98efc5bc1d01fea1b14730359c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "8353f50a72691443e81932c462974432d8a7d1ab80a59578e96f1ba20a0079e4",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "GRUCell",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "db639b19ab1a0f0a712e733792148f04f029edc622a5ac54c8d34dcd2812fa66",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "reset_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "fbff5b9ed0ab4889eafbb0ac1293897e34cd4f8573165b0a610a83941bcb6c77",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "474598690f92ffb6ed18b690469a1cb3a3b311979fa23839c41e6d02398f1971",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "df8c463e6ed72b346fa62afa01790d8ce0c57e2f43ae27cfb9d12d12f3bb694d",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        },
+        "type": "GRULayer",
+        "update_gate": {
+          "activation_fn": "sigmoid",
+          "bias": {
+            "dtype": "float32",
+            "sha256": "918a00a5ff6f7c29659577b8c0d22d2e692afcf8ab1a4cfa2455f827d53cdc7c",
+            "shape": [
+              25
+            ]
+          },
+          "recurrent_weights": {
+            "dtype": "float32",
+            "sha256": "97be0daa7ce755da28c74165da4b845f400a17c57c33f4ef200e38646409701f",
+            "shape": [
+              25,
+              25
+            ]
+          },
+          "type": "Gate",
+          "weights": {
+            "dtype": "float32",
+            "sha256": "9979a153cfad98420a03d42f9a22edb90e5495070e6118c9700a746399243202",
+            "shape": [
+              50,
+              25
+            ]
+          }
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "0be52c0f67090edfe083aff7f3d647e41714e2026b1b6a20002b0fcef2af0863",
+        "shape": [
+          1
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "4314e90fe039a394df665bb2acff0765f5dfa1db9ad2f68a19e5d24697029712",
+        "shape": [
+          50,
+          1
+        ]
+      }
+    }
+  ]
+}

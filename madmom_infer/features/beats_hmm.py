@@ -7,19 +7,43 @@ lives in ml/hmm.py.
 
 This is a near-mechanical, near-line-for-line port of the pure-Python original
 (class names/attributes preserved). The one non-mechanical change: madmom's
-`RNNDownBeatTrackingObservationModel.log_densities` inherited from
-`RNNBeatTrackingObservationModel` at `beats_hmm.py:564` does
-`np.array(observations, copy=False, subok=True, ndmin=1)`, which raises under
-numpy >= 2.0 (the old "copy if needed, else don't" meaning of `copy=False` was
-replaced by "never copy, raise if a copy is required" -- the old behavior is
-now spelled `copy=None`). Ported here as `np.asarray(observations, ndmin=1)`,
-which is copy-only-if-needed on every numpy version (there is no `subok`
-knob to preserve, since `madmom_infer` doesn't use `Signal`-style ndarray
-subclasses, per docs/DESIGN.md C.2). `GMMPatternTrackingObservationModel`,
-`MultiPatternStateSpace`/`MultiPatternTransitionModel` are out of phase-1 scope
-(pattern-tracking-only) and intentionally not ported.
+`RNNBeatTrackingObservationModel.log_densities` (`beats_hmm.py:395-419`,
+used by 4c's `DBNBeatTrackingProcessor`) does `np.array(observations,
+copy=False, subok=True, ndmin=1)`, which raises under numpy >= 2.0 (the old
+"copy if needed, else don't" meaning of `copy=False` was replaced by "never
+copy, raise if a copy is required" -- the old behavior is now spelled
+`copy=None`). **Correction (Wave 4c): the previous version of this note
+claimed this was ported as `np.asarray(observations, ndmin=1)` -- that was
+simply wrong, `np.asarray` has never accepted an `ndmin` keyword at all (it
+raises `TypeError` unconditionally, on every numpy version, not just >=
+2.0) -- a latent bug that shipped in Phase 2 and went undetected because no
+processor exercised `RNNBeatTrackingObservationModel` until 4c's
+`DBNBeatTrackingProcessor`.** (It also wrongly claimed
+`RNNDownBeatTrackingObservationModel.log_densities` *inherits* this method
+from `RNNBeatTrackingObservationModel` -- it does not; it defines its own
+`log_densities` below, which never calls this line, which is exactly why
+Phase 2's `DBNDownBeatTrackingProcessor` never hit the bug.) Fixed here as
+plain `np.array(observations, ndmin=1)` (default `copy=True`, valid on
+every numpy version) -- there is no `subok` knob to preserve either, since
+`madmom_infer` doesn't use `Signal`-style ndarray subclasses (docs/
+DESIGN.md C.2); confirmed against the reference venv that real madmom's own
+`copy=False` fast path returns the SAME VALUES (just avoids a redundant
+copy when none is needed), so this fix is numerically identical, not just
+error-free.
 
-Reads: madmom_infer/ml/hmm.py (ObservationModel, TransitionModel);
+**Wave 4f addition**: `MultiPatternStateSpace`, `MultiPatternTransitionModel`,
+`GMMPatternTrackingObservationModel` -- the pattern-tracking HMM machinery,
+backing `features/downbeats.py`'s `PatternTrackingProcessor` (rhythmic
+patterns modeled as a set of independent `BarStateSpace`/`BarTransitionModel`
+instances stacked into one joint state space, with a GMM-based -- not
+RNN-based -- observation model) and `DBNBarTrackingProcessor` (different bar
+lengths treated as different "patterns" of the same joint machinery, with
+`RNNBeatTrackingObservationModel` reused as-is rather than a GMM). Both are
+near-line-for-line ports; `GMMPatternTrackingObservationModel.log_densities`
+needs `ml/gmm.py`'s `GMM.score` (this wave's own numpy GMM port).
+
+Reads: madmom_infer/ml/hmm.py (ObservationModel, TransitionModel),
+madmom_infer/ml/gmm.py (GMM.score, GMMPatternTrackingObservationModel only);
 read by: madmom_infer/features/downbeats.py
 """
 
@@ -413,12 +437,12 @@ class RNNBeatTrackingObservationModel(ObservationModel):
         """
         # cast as 1-dimensional array
         # Note: in online mode, observations are just float values
-        # numpy 2.x: madmom's `np.array(observations, copy=False, subok=True,
-        # ndmin=1)` (beats_hmm.py:564) raises under numpy >= 2.0, since
-        # `copy=False` there means "never copy, raise if one is required"
-        # (the pre-2.0 "copy only if needed" meaning is now `copy=None`).
-        # `np.asarray(..., ndmin=1)` is copy-only-if-needed on every version.
-        observations = np.asarray(observations, ndmin=1)
+        # numpy 2.x fix -- see this module's header (Wave 4c correction):
+        # `np.asarray(..., ndmin=1)` is not valid on ANY numpy version
+        # (`asarray` has no `ndmin` parameter); plain `np.array(...,
+        # ndmin=1)` (default copy=True) is version-safe and numerically
+        # identical to real madmom's `copy=False` fast path.
+        observations = np.array(observations, ndmin=1)
         # init densities
         log_densities = np.empty((len(observations), 2), dtype=float)
         # Note: it's faster to call np.log 2 times instead of once on the
@@ -491,5 +515,255 @@ class RNNDownBeatTrackingObservationModel(ObservationModel):
                                      (self.observation_lambda - 1))
         log_densities[:, 1] = np.log(observations[:, 0])
         log_densities[:, 2] = np.log(observations[:, 1])
+        # return the densities
+        return log_densities
+
+
+# ---------------------------------------------------------------------------
+# Wave 4f addition: pattern-tracking HMM machinery
+# ---------------------------------------------------------------------------
+class MultiPatternStateSpace(object):
+    """
+    State space for rhythmic pattern tracking with a HMM.
+
+    Model a joint state space with the given `state_spaces` by stacking the
+    individual state spaces.
+
+    Verbatim port of `madmom.features.beats_hmm.MultiPatternStateSpace`
+    (`beats_hmm.py:172-217`).
+
+    Parameters
+    ----------
+    state_spaces : list
+        List with state spaces to model.
+
+    References
+    ----------
+    .. [1] Florian Krebs, Sebastian Böck and Gerhard Widmer,
+           "An Efficient State Space Model for Joint Tempo and Meter
+           Tracking", Proceedings of the 16th International Society for
+           Music Information Retrieval Conference (ISMIR), 2015.
+    """
+
+    def __init__(self, state_spaces):
+        # combine the given state spaces in a single state space
+        self.num_patterns = len(state_spaces)
+        self.state_spaces = state_spaces
+        self.state_positions = np.empty(0)
+        self.state_intervals = np.empty(0, dtype=int)
+        self.state_patterns = np.empty(0, dtype=int)
+        self.num_states = 0
+        # save the first and last states of the individual patterns in a list
+        self.first_states = []
+        self.last_states = []
+        # stack the individual state spaces
+        for p, pss in enumerate(state_spaces):
+            # define position, interval and pattern states
+            self.state_positions = np.hstack((self.state_positions,
+                                              pss.state_positions))
+            self.state_intervals = np.hstack((self.state_intervals,
+                                              pss.state_intervals))
+            self.state_patterns = np.hstack((self.state_patterns,
+                                             np.repeat(p, pss.num_states)))
+            # append the first and last states of each pattern
+            self.first_states.append(pss.first_states[0] + self.num_states)
+            self.last_states.append(pss.last_states[-1] + self.num_states)
+            # finally increase the number of states
+            self.num_states += pss.num_states
+
+
+class MultiPatternTransitionModel(TransitionModel):
+    """
+    Transition model for pattern tracking with a HMM.
+
+    Add transitions with the given probability between the individual
+    transition models. These transition models must correspond to the state
+    spaces forming a :class:`MultiPatternStateSpace`.
+
+    Verbatim port of `madmom.features.beats_hmm.MultiPatternTransitionModel`
+    (`beats_hmm.py:403-509`).
+
+    Parameters
+    ----------
+    transition_models : list
+        List with :class:`TransitionModel` instances.
+    transition_prob : numpy array or float, optional
+        Probabilities to change the pattern at pattern boundaries. If an
+        array is given, the first dimension corresponds to the origin
+        pattern, the second to the destination pattern. If a single value is
+        given, a uniform transition distribution to all other patterns is
+        assumed. Set to None to stay within the same pattern.
+    """
+
+    def __init__(self, transition_models, transition_prob=None):
+        # save attributes
+        self.transition_models = transition_models
+        self.transition_prob = transition_prob
+        num_patterns = len(transition_models)
+        # first stack all transition models
+        first_states = []
+        last_states = []
+        for p, tm in enumerate(self.transition_models):
+            # set/update the probabilities, states and pointers
+            offset = 0
+            if p == 0:
+                # for the first pattern, just use the TM arrays
+                states = tm.states
+                pointers = tm.pointers
+                probabilities = tm.probabilities
+            else:
+                # for all consecutive patterns, stack the TM arrays after
+                # applying an offset
+                # Note: len(pointers) = len(states) + 1, because of the CSR
+                #       format of the TM (please see ml.hmm.TransitionModel)
+                offset = len(pointers) - 1
+                # states: offset = length of the pointers - 1
+                states = np.hstack((states, tm.states + len(pointers) - 1))
+                # pointers: offset = current maximum of the pointers
+                #           start = tm.pointers[1:]
+                pointers = np.hstack((pointers, tm.pointers[1:] +
+                                      max(pointers)))
+                # probabilities: just stack them
+                probabilities = np.hstack((probabilities, tm.probabilities))
+            # save the first/last states
+            first_states.append(tm.state_space.first_states[0] + offset)
+            last_states.append(tm.state_space.last_states[-1] + offset)
+        # retrieve a dense representation in order to add transitions
+        # TODO: operate directly on the sparse representation?
+        states, prev_states, probabilities = self.make_dense(states, pointers,
+                                                             probabilities)
+        # translate float transition_prob value to transition_prob matrix
+        if isinstance(transition_prob, float) and transition_prob:
+            # create a pattern transition probability matrix
+            self.transition_prob = np.ones((num_patterns, num_patterns))
+            # if there is more than 1 pattern, create transitions between them
+            if num_patterns > 1:
+                # transition to other patterns
+                self.transition_prob *= transition_prob / (num_patterns - 1)
+                # transition to same pattern
+                diag = np.diag_indices_from(self.transition_prob)
+                self.transition_prob[diag] = 1. - transition_prob
+        else:
+            self.transition_prob = transition_prob
+        # update/add transitions between patterns
+        if self.transition_prob is not None and num_patterns > 1:
+            new_states = []
+            new_prev_states = []
+            new_probabilities = []
+            for p in range(num_patterns):
+                # indices of states/prev_states/probabilities
+                idx = np.logical_and(np.isin(prev_states, last_states[p]),
+                                     np.isin(states, first_states[p]))
+                # transition probability
+                prob = probabilities[idx]
+                # update transitions to same pattern with new probability
+                probabilities[idx] *= self.transition_prob[p, p]
+                # distribute that part among all other patterns
+                for p_ in np.setdiff1d(range(num_patterns), p):
+                    idx_ = np.logical_and(
+                        np.isin(prev_states, last_states[p_]),
+                        np.isin(states, first_states[p_]))
+                    # make sure idx and idx_ have same length
+                    if len(np.nonzero(idx)[0]) != len(np.nonzero(idx_)[0]):
+                        raise ValueError('Cannot add transition between '
+                                         'patterns with different number of '
+                                         'entering/exiting states.')
+                    # use idx for the states and idx_ for prev_states
+                    new_states.extend(states[idx])
+                    new_prev_states.extend(prev_states[idx_])
+                    new_probabilities.extend(prob *
+                                             self.transition_prob[p, p_])
+            # extend the arrays by these new transitions
+            states = np.append(states, new_states)
+            prev_states = np.append(prev_states, new_prev_states)
+            probabilities = np.append(probabilities, new_probabilities)
+        # make the transitions sparse
+        transitions = self.make_sparse(states, prev_states, probabilities)
+        # instantiate a TransitionModel
+        super(MultiPatternTransitionModel, self).__init__(*transitions)
+
+
+class GMMPatternTrackingObservationModel(ObservationModel):
+    """
+    Observation model for GMM based beat tracking with a HMM.
+
+    Verbatim port of
+    `madmom.features.beats_hmm.GMMPatternTrackingObservationModel`
+    (`beats_hmm.py:641-721`).
+
+    Parameters
+    ----------
+    pattern_files : list
+        List with fitted GMMs, one entry (a list of `ml.gmm.GMM` instances)
+        per pattern.
+    state_space : :class:`MultiPatternStateSpace` instance
+        Multi pattern state space.
+
+    References
+    ----------
+    .. [1] Florian Krebs, Sebastian Böck and Gerhard Widmer,
+           "Rhythmic Pattern Modeling for Beat and Downbeat Tracking in
+           Musical Audio", Proceedings of the 14th International Society for
+           Music Information Retrieval Conference (ISMIR), 2013.
+    """
+
+    def __init__(self, pattern_files, state_space):
+        # save the parameters
+        self.pattern_files = pattern_files
+        self.state_space = state_space
+        # define the pointers of the log densities
+        pointers = np.zeros(state_space.num_states, dtype=np.uint32)
+        patterns = self.state_space.state_patterns
+        positions = self.state_space.state_positions
+        # Note: the densities of all GMMs are just stacked on top of each
+        #       other, so we have to to keep track of the total number of
+        #       GMMs
+        densities_idx_offset = 0
+        for p, gmms in enumerate(pattern_files):
+            # number of fitted GMMs for this pattern
+            num_gmms = len(gmms)
+            # number of beats in this pattern
+            # TODO: save the number of beats in the pattern files so we
+            #       don't need to save references to all state spaces
+            num_beats = self.state_space.state_spaces[p].num_beats
+            # distribute the observation densities defined by the GMMs
+            # uniformly across the entire state space (for this pattern)
+            # since the densities are just stacked, add the offset
+            # Note: we have to divide by the number of beats, since the
+            #       positions range is [0, num_beats]
+            pointers[patterns == p] = (positions[patterns == p] * num_gmms /
+                                       num_beats + densities_idx_offset)
+            # increase the offset by the number of GMMs
+            densities_idx_offset += num_gmms
+        # instantiate a ObservationModel with the pointers
+        super(GMMPatternTrackingObservationModel, self).__init__(pointers)
+
+    def log_densities(self, observations):
+        """
+        Compute the log densities of the observations using (a) GMM(s).
+
+        Parameters
+        ----------
+        observations : numpy array
+            Observations (i.e. multi-band spectral flux features).
+
+        Returns
+        -------
+        numpy array, shape (N, num_gmms)
+            Log densities of the observations, the columns represent the
+            observation log probability densities for the individual GMMs.
+
+        """
+        # number of GMMs of all patterns
+        num_gmms = sum([len(pattern) for pattern in self.pattern_files])
+        # init the densities
+        log_densities = np.empty((len(observations), num_gmms), dtype=float)
+        # define the observation densities
+        i = 0
+        for pattern in self.pattern_files:
+            for gmm in pattern:
+                # get the predictions of each GMM for the observations
+                log_densities[:, i] = gmm.score(observations)
+                i += 1
         # return the densities
         return log_densities
