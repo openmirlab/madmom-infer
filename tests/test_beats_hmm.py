@@ -6,6 +6,22 @@ exact DBN parameters (beats_per_bar 3 and 4, min_bpm=55, max_bpm=215,
 num_tempi=60, transition_lambda=100, observation_lambda=16), per
 docs/DESIGN.md C.4 and this workstream's task brief.
 
+Integer/structural arrays (state indices, CSR `states`/`pointers`, interval
+counts) are compared with strict `assert_array_equal` -- these come from
+`np.arange`/`np.cumsum`/`np.setdiff1d` etc. and are bit-identical on any
+IEEE754-conformant platform. `BarTransitionModel.probabilities`, however, is
+computed at runtime via `exponential_transition`'s `np.exp()` (see
+madmom_infer/features/beats_hmm.py), and libm's `exp` implementation is not
+guaranteed bit-identical across CPU/OS/libc builds. Observed on GitHub
+Actions' py3.11 runner (run 29173379978): `test_bar_transition_model_csr_exact`
+differed from the fixture by exactly 1 float64 ULP (max abs diff 1.11e-16) in
+536/21648 elements, while passing bit-exact on the local dev machine -- same
+class of env-dependence as the org constitution art.2 clause and test_stft.py/
+test_spectrogram.py's ULP-tolerance precedent. That one assertion uses
+`np.testing.assert_array_max_ulp(maxulp=4)` (4x the measured 1-ULP worst case,
+matching the repo's margin convention); every other assertion in this file
+stays exact.
+
 Reads: tests/fixtures/bar_state_spaces.npz,
 tests/fixtures/rnn_downbeat_observation_model.npz; madmom_infer/features/beats_hmm.py
 """
@@ -26,6 +42,10 @@ MAX_BPM = 215.
 NUM_TEMPI = 60
 TRANSITION_LAMBDA = 100
 FPS = 100.
+
+# measured worst case was exactly 1 ULP (see module header); 4x that, matching
+# test_stft.py/test_spectrogram.py's own margin convention.
+MAX_ULP = 4
 
 
 @pytest.fixture(scope="module")
@@ -62,8 +82,12 @@ def test_bar_transition_model_csr_exact(beats_per_bar, bar_fixtures):
     np.testing.assert_array_equal(tm.states, bar_fixtures[prefix + "states"])
     np.testing.assert_array_equal(tm.pointers,
                                   bar_fixtures[prefix + "pointers"])
-    np.testing.assert_array_equal(tm.probabilities,
-                                  bar_fixtures[prefix + "probabilities"])
+    # runtime np.exp() output (exponential_transition): libm's last bit can
+    # differ across CPU/libc builds -- CI (py3.11) observed exactly 1 ULP
+    # here vs. this file's fixture (see module header); not exact-equality-safe.
+    np.testing.assert_array_max_ulp(tm.probabilities,
+                                    bar_fixtures[prefix + "probabilities"],
+                                    maxulp=MAX_ULP)
 
 
 def test_rnn_downbeat_observation_model_exact(bar_fixtures=None):
