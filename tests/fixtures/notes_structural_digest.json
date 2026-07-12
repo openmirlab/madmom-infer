@@ -1,0 +1,498 @@
+{
+  "notes_brnn": [
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "99fd0688b17dd2624c1c87d80eca04ef369fb69f6d458d54a225a2955a4f5c33",
+          "shape": [
+            88
+          ]
+        },
+        "recurrent_weights": {
+          "dtype": "float32",
+          "sha256": "250f510901a8b75570b422476127ed87df35e84c17f8c23eccf8c22a647a6556",
+          "shape": [
+            88,
+            88
+          ]
+        },
+        "type": "RecurrentLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "3bfa677f24974721c81590beb66c19f1f9122e329c5daa6a2b4768f3e948db5d",
+          "shape": [
+            482,
+            88
+          ]
+        }
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "81fc137035c0b24a7c1c842b4b7d9c62032cebd703646779bd99edee8a69efea",
+          "shape": [
+            88
+          ]
+        },
+        "recurrent_weights": {
+          "dtype": "float32",
+          "sha256": "3426ab079d62452b02af384ea81929ddaf4089021db8f474b94afe6c46459cef",
+          "shape": [
+            88,
+            88
+          ]
+        },
+        "type": "RecurrentLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "43bd42a216af119e3ed438b1f7b2608b9baf797d257149880f5faa2d1ced9184",
+          "shape": [
+            482,
+            88
+          ]
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "c90f001c3170bfbd36ce57cc86b8b2a03138c4d141f03a68618abd7402069b83",
+          "shape": [
+            88
+          ]
+        },
+        "recurrent_weights": {
+          "dtype": "float32",
+          "sha256": "e0a984cc756fb2e6835f4cf9bd2a388efa66e40aad33a1fc677be6efd52ed83c",
+          "shape": [
+            88,
+            88
+          ]
+        },
+        "type": "RecurrentLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "addc4d436c10a0b41b6a630c60d47c3a60424897d037947b0ab208a72d38f1fa",
+          "shape": [
+            176,
+            88
+          ]
+        }
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "8151e64273071276d3b2a5b3fca323fc009445e7edeec666ba13134186ee7ffa",
+          "shape": [
+            88
+          ]
+        },
+        "recurrent_weights": {
+          "dtype": "float32",
+          "sha256": "d3dfac3bb179c2481be65304d893c34df7f8f505044d5fbdeb599a8c375b4351",
+          "shape": [
+            88,
+            88
+          ]
+        },
+        "type": "RecurrentLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "bc8702caf4dfca254b16fa06f07bd93ca1c70f1a91f0bf377e21b698f63756c3",
+          "shape": [
+            176,
+            88
+          ]
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "bwd_layer": {
+        "activation_fn": "tanh",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "75c47647f0ac718afed198d47f5cfb14f06e53bb38b94a658c22cc67b51e7d21",
+          "shape": [
+            88
+          ]
+        },
+        "recurrent_weights": {
+          "dtype": "float32",
+          "sha256": "862c35b27949de123676c12bf4d63a3fec3824d4ad2c6b8b98320b4be95317b3",
+          "shape": [
+            88,
+            88
+          ]
+        },
+        "type": "RecurrentLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "6ce94932a597ca59dc67f28dca2698a1720e6c9a32d48a572f05613eec8dfdd3",
+          "shape": [
+            176,
+            88
+          ]
+        }
+      },
+      "fwd_layer": {
+        "activation_fn": "tanh",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "af751a6fbec420bd186e55c1357e8da4b935f2ea307dc94bbd4ae1f98caeef2c",
+          "shape": [
+            88
+          ]
+        },
+        "recurrent_weights": {
+          "dtype": "float32",
+          "sha256": "74865644b83209c03384338839d6270a0f99080aa6a729679a0e52848c91a042",
+          "shape": [
+            88,
+            88
+          ]
+        },
+        "type": "RecurrentLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "842836fda480bbe6daff8e74c003c719d8c27cadb994bcdfc326684b790856a3",
+          "shape": [
+            176,
+            88
+          ]
+        }
+      },
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "cff0273dbe7b18bd6fafa4e712c3318f9eb13dd7207f54b099f5c34289c8e02a",
+        "shape": [
+          88
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "5f4df7ac0100aa1d6f9aa41308107d1285fe759e3ad8faad663b133fbb23a1db",
+        "shape": [
+          176,
+          88
+        ]
+      }
+    }
+  ],
+  "notes_cnn": {
+    "processors": [
+      {
+        "activation_fn": "linear",
+        "beta": {
+          "dtype": "float32",
+          "sha256": "96db2eed59cf7123ceb16a324b4580bd6904957e162eda66abe42df29c3f7895",
+          "shape": [
+            1
+          ]
+        },
+        "gamma": {
+          "dtype": "float32",
+          "sha256": "bf0749444163dbd4e6021bc60b4140aef0e6688a6334e5ed259eaa1983d2ed5e",
+          "shape": [
+            1
+          ]
+        },
+        "inv_std": {
+          "dtype": "float32",
+          "sha256": "a2f93e1bf64df850d48753c134340b97eda324ceefaa80ed1660279d2a24c1d1",
+          "shape": [
+            1
+          ]
+        },
+        "mean": {
+          "dtype": "float32",
+          "sha256": "be608cd7a7788b307f97ca8b81631da58fb411b0898f0a5fa72bd3753a160469",
+          "shape": [
+            1
+          ]
+        },
+        "type": "BatchNormLayer"
+      },
+      {
+        "activation_fn": "elu",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "0efea832b1c7b4d5b9e0fa641dddfec2f8fe24ff08104bf3706347d60e4a9f65",
+          "shape": [
+            30
+          ]
+        },
+        "pad": "valid",
+        "stride": 1,
+        "type": "ConvolutionalLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "2458d35481111b33bfce9530bfcf528851adf48e894e120943e38096adfb28c4",
+          "shape": [
+            1,
+            30,
+            3,
+            3
+          ]
+        }
+      },
+      {
+        "activation_fn": "elu",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "42a790a5f975a532c8e8395a37ca1e370786931eabf7e7534e1c04303a0623b8",
+          "shape": [
+            30
+          ]
+        },
+        "pad": "valid",
+        "stride": 1,
+        "type": "ConvolutionalLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "c68ee18bd8603f23db63b996c2ae23ffc03d29285e2edddb61c6937a8e6358d6",
+          "shape": [
+            30,
+            30,
+            1,
+            35
+          ]
+        }
+      },
+      {
+        "activation_fn": "elu",
+        "bias": {
+          "dtype": "float32",
+          "sha256": "01f02ac2c27bfe66021fc82833329fd7ddcae010272aaaecd02522c98559a04f",
+          "shape": [
+            30
+          ]
+        },
+        "pad": "valid",
+        "stride": 1,
+        "type": "ConvolutionalLayer",
+        "weights": {
+          "dtype": "float32",
+          "sha256": "f2e887eab8027f278f145e47d20a289440c5508fd6a84dde4882f304720a5e56",
+          "shape": [
+            30,
+            30,
+            7,
+            1
+          ]
+        }
+      },
+      {
+        "processors": [
+          {
+            "processors": [
+              {
+                "activation_fn": "elu",
+                "bias": {
+                  "dtype": "float32",
+                  "sha256": "0220a1a8048fd136b387f6c6c9a3614dc90fdcffe0cdf31ccc7a70358240c6c9",
+                  "shape": [
+                    10
+                  ]
+                },
+                "pad": "valid",
+                "stride": 1,
+                "type": "ConvolutionalLayer",
+                "weights": {
+                  "dtype": "float32",
+                  "sha256": "51d14e88a4ec6b902cbedd3bf32e2bfde0fa72ce0549c9b3a0395dbbc2c5d22e",
+                  "shape": [
+                    30,
+                    10,
+                    3,
+                    3
+                  ]
+                }
+              },
+              {
+                "axes": [
+                  0,
+                  2,
+                  1
+                ],
+                "type": "TransposeLayer"
+              },
+              {
+                "newshape": [
+                  -1,
+                  1060
+                ],
+                "order": "C",
+                "type": "ReshapeLayer"
+              },
+              {
+                "activation_fn": "sigmoid",
+                "bias": {
+                  "dtype": "float32",
+                  "sha256": "cd07152f0f975ba076ea6d8ab18ff1342056828c49e674ba88d5df74df83155e",
+                  "shape": [
+                    88
+                  ]
+                },
+                "type": "FeedForwardLayer",
+                "weights": {
+                  "dtype": "float32",
+                  "sha256": "945b31517fb3f4c33ef61c48227619165fec59376acb0e11789cf6bd5db3f070",
+                  "shape": [
+                    1060,
+                    88
+                  ]
+                }
+              }
+            ],
+            "type": "SequentialProcessor"
+          },
+          {
+            "processors": [
+              {
+                "activation_fn": "elu",
+                "bias": {
+                  "dtype": "float32",
+                  "sha256": "74ffba157dbc99f740cb5e1d4f7bf37e1b6cc1f34ee514abbd5af4fd6cf4baa4",
+                  "shape": [
+                    10
+                  ]
+                },
+                "pad": "valid",
+                "stride": 1,
+                "type": "ConvolutionalLayer",
+                "weights": {
+                  "dtype": "float32",
+                  "sha256": "1e1eb465fbc8a928bdf3e7abbd3845a36eb44ec5e036d38b956c3d00da25efbe",
+                  "shape": [
+                    30,
+                    10,
+                    3,
+                    3
+                  ]
+                }
+              },
+              {
+                "axes": [
+                  0,
+                  2,
+                  1
+                ],
+                "type": "TransposeLayer"
+              },
+              {
+                "newshape": [
+                  -1,
+                  1060
+                ],
+                "order": "C",
+                "type": "ReshapeLayer"
+              },
+              {
+                "activation_fn": "sigmoid",
+                "bias": {
+                  "dtype": "float32",
+                  "sha256": "88687ffce527526f5996502fd3ca40b17b96dd089f0eef6c6716dad69ce4c256",
+                  "shape": [
+                    88
+                  ]
+                },
+                "type": "FeedForwardLayer",
+                "weights": {
+                  "dtype": "float32",
+                  "sha256": "2e21826ab01c1f52c59786328bb48986aacbe771c3d478786c7e1738546c62ca",
+                  "shape": [
+                    1060,
+                    88
+                  ]
+                }
+              }
+            ],
+            "type": "SequentialProcessor"
+          },
+          {
+            "processors": [
+              {
+                "activation_fn": "elu",
+                "bias": {
+                  "dtype": "float32",
+                  "sha256": "e54e9b318f31fbe2d9a1b4a3879e4c945782c2129dd59bebee3a3bf39691ac64",
+                  "shape": [
+                    10
+                  ]
+                },
+                "pad": "valid",
+                "stride": 1,
+                "type": "ConvolutionalLayer",
+                "weights": {
+                  "dtype": "float32",
+                  "sha256": "101dbe7cf2f8984dc8ec2c2b30b56cd0492aab3e3adfe36ff8c75bc12c9cd802",
+                  "shape": [
+                    30,
+                    10,
+                    3,
+                    3
+                  ]
+                }
+              },
+              {
+                "axes": [
+                  0,
+                  2,
+                  1
+                ],
+                "type": "TransposeLayer"
+              },
+              {
+                "newshape": [
+                  -1,
+                  1060
+                ],
+                "order": "C",
+                "type": "ReshapeLayer"
+              },
+              {
+                "activation_fn": "sigmoid",
+                "bias": {
+                  "dtype": "float32",
+                  "sha256": "5e5ba719ae6016b8d2db22ded946a7eb7c031f8df7c959e540173264e08f0369",
+                  "shape": [
+                    88
+                  ]
+                },
+                "type": "FeedForwardLayer",
+                "weights": {
+                  "dtype": "float32",
+                  "sha256": "a8eccf512778f6df1518f897bed65e777c42ddf52b4d187ef24f147e4b0ae3c1",
+                  "shape": [
+                    1060,
+                    88
+                  ]
+                }
+              }
+            ],
+            "type": "SequentialProcessor"
+          }
+        ],
+        "type": "ParallelProcessor"
+      },
+      {
+        "name": "dstack",
+        "type": "function"
+      }
+    ],
+    "type": "SequentialProcessor"
+  }
+}

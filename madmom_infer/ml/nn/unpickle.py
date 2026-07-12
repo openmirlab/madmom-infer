@@ -123,13 +123,68 @@ global set beyond numpy's own array-reconstruction primitives):
 |-------------------------------------------|--------------------------------------------------|
 | `madmom.ml.crf.ConditionalRandomField`    | `madmom_infer.ml.crf.ConditionalRandomField`      |
 
+4e target: `notes/2013/notes_brnn.pkl` (`NOTES_BRNN`) references only
+already-allowed globals (`NeuralNetwork`, `BidirectionalLayer`,
+`FeedForwardLayer`, `RecurrentLayer`, `tanh`, `linear`) -- no table changes
+needed, confirming the 4.0 audit's own prediction. `notes/2019/notes_cnn.pkl`
+(`NOTES_CNN`) -- plus `notes/2018/notes_cnn_{1,2}.pkl` (`NOTES_CNN_MIREX`,
+walked for completeness even though no ported processor loads them, same
+"real but unused, no registry entry" status as 4b's `ONSETS_BRNN_PP`) --
+is a REAL SURPRISE, found only by actually `pickletools.dis()`-walking the
+file (not guessed, not assumable from `key_cnn.pkl`'s precedent): it does
+**not** pickle a bare `NeuralNetwork` the way every other target `.pkl` in
+this project does. It pickles an entire
+`madmom.processors.SequentialProcessor`/`ParallelProcessor` OBJECT GRAPH
+directly -- the model's own multi-task (note/onset/offset) branch-and-merge
+structure is baked straight into the pickle, not built by
+`CNNPianoNoteProcessor.__init__` the way `CNNKeyRecognitionProcessor`
+builds its pipeline around a bare `NeuralNetwork`. Confirmed by actually
+loading the file with real madmom (`pickle.load`, reference venv) and
+inspecting `type(obj)`/`obj.__dict__` recursively: `SequentialProcessor([
+BatchNormLayer, ConvolutionalLayer x3, ParallelProcessor([3x
+SequentialProcessor(ConvolutionalLayer, TransposeLayer, ReshapeLayer,
+FeedForwardLayer)]), numpy.dstack])` -- the 3 parallel branches are the
+note/onset/offset heads, `numpy.dstack` is the final multi-task merge. This
+needs 8 new allowlist entries, not 2:
+
+| pickled path (madmom original)             | mapped to (madmom_infer)                          |
+|------------------------------------------------|--------------------------------------------------------|
+| `madmom.ml.nn.layers.ReshapeLayer`              | `madmom_infer.ml.nn.layers.ReshapeLayer`                |
+| `madmom.ml.nn.layers.TransposeLayer`            | `madmom_infer.ml.nn.layers.TransposeLayer`              |
+| `madmom.processors.SequentialProcessor`         | `madmom_infer.processors.SequentialProcessor`           |
+| `madmom.processors.ParallelProcessor`           | `madmom_infer.processors.ParallelProcessor`             |
+| `numpy.dstack`                                  | (unchanged -- plain function reference; `notes_cnn.pkl` itself pickles it as `('numpy', 'dstack')`) |
+| `numpy.lib.shape_base.dstack`                   | `numpy.dstack` (same function; `notes_cnn_{1,2}.pkl`, an older pickle, spells its module path differently -- both resolve to numpy's one real `dstack`) |
+| `_codecs.encode`                                | (unchanged -- stdlib, part of an old-format numpy `ndarray`/`dtype` byte-payload reconstruction, same "safe, mechanical, no arbitrary code execution" category as `numpy.core.multiarray._reconstruct`/`scalar` above) |
+| `itertools.imap`                                | Python 3's builtin `map` |
+
+The last one is its own small finding: Python 3's stdlib `pickle.Unpickler.
+find_class` normally auto-remaps a handful of Python-2-only module paths via
+`pickle._compat_pickle.NAME_MAPPING` (e.g. `('itertools', 'imap') ->
+('builtins', 'map')`) whenever the pickle's protocol is < 4 -- which is
+exactly how real madmom's own bare `pickle.load` transparently resolves
+this old `ParallelProcessor.__init__`'s `self.map = it.imap` (an older
+madmom that imported `itertools as it`, before it simplified to plain
+`self.map = map`) into today's builtin `map`. `SafeUnpickler.find_class`
+does its own raw `(module, name)` lookup and does NOT consult
+`_compat_pickle` at all, so this remapping needs an explicit allowlist
+entry to reproduce -- same shape of gap 4c's `copy_reg._reconstructor`/
+`__builtin__.object` entries already closed for the older-format
+`downbeats_bgru_*.pkl` files. (This unpickled `self.map` value is inert in
+this port either way -- `madmom_infer.processors.ParallelProcessor.process`
+never reads `self.map`, always runs its sub-processors with a plain list
+comprehension, see `processors.py`'s module header -- but the allowlist
+entry is still required for the unpickle to succeed at all.)
+
 Reads: pickle (stdlib), numpy, madmom_infer.ml.nn.{NeuralNetwork},
 madmom_infer.ml.nn.layers.*, madmom_infer.ml.nn.activations.*,
-madmom_infer.ml.crf.ConditionalRandomField; read by: madmom_infer/ml/nn/
+madmom_infer.ml.crf.ConditionalRandomField, madmom_infer.processors.{
+SequentialProcessor,ParallelProcessor}; read by: madmom_infer/ml/nn/
 __init__.py (NeuralNetwork.load), madmom_infer/ml/crf.py
 (ConditionalRandomField.load), madmom_infer/models.py (cache-then-load flow).
 """
 
+import _codecs
 import copyreg
 import io
 import pickle
@@ -141,6 +196,7 @@ from . import NeuralNetwork
 from . import activations as _activations
 from . import layers as _layers
 from ..crf import ConditionalRandomField
+from ...processors import ParallelProcessor, SequentialProcessor
 
 # -- the full, closed allowlist (module, name) -> object -------------------
 ALLOWED_GLOBALS = {
@@ -160,7 +216,13 @@ ALLOWED_GLOBALS = {
     ("madmom.ml.nn.layers", "StrideLayer"): _layers.StrideLayer,
     ("madmom.ml.nn.layers", "GRUCell"): _layers.GRUCell,
     ("madmom.ml.nn.layers", "GRULayer"): _layers.GRULayer,
+    ("madmom.ml.nn.layers", "ReshapeLayer"): _layers.ReshapeLayer,
+    ("madmom.ml.nn.layers", "TransposeLayer"): _layers.TransposeLayer,
     ("madmom.ml.crf", "ConditionalRandomField"): ConditionalRandomField,
+    # 4e: notes_cnn.pkl pickles a whole SequentialProcessor/ParallelProcessor
+    # graph, not a bare NeuralNetwork -- see this module's header.
+    ("madmom.processors", "SequentialProcessor"): SequentialProcessor,
+    ("madmom.processors", "ParallelProcessor"): ParallelProcessor,
     ("madmom.ml.nn.activations", "linear"): _activations.linear,
     ("madmom.ml.nn.activations", "tanh"): _activations.tanh,
     ("madmom.ml.nn.activations", "sigmoid"): _activations.sigmoid,
@@ -174,10 +236,28 @@ ALLOWED_GLOBALS = {
     ("numpy.core.multiarray", "scalar"): _np_multiarray.scalar,
     ("numpy", "ndarray"): numpy.ndarray,
     ("numpy", "dtype"): numpy.dtype,
+    # 4e: notes_cnn.pkl's final multi-task merge stage is a plain function
+    # reference to numpy's own `dstack` -- two module-path spellings appear
+    # across the target pickles (see this module's header), both the same
+    # real function.
+    ("numpy", "dstack"): numpy.dstack,
+    ("numpy.lib.shape_base", "dstack"): numpy.dstack,
+    # 4e: `_codecs.encode` -- stdlib, part of an old-format numpy array/dtype
+    # byte-payload reconstruction inside notes_cnn.pkl, same "safe,
+    # mechanical" category as numpy's own _reconstruct/scalar above.
+    ("_codecs", "encode"): _codecs.encode,
     # old-style-class reconstruction primitives needed only by the
     # older-format DOWNBEATS_BGRU pickles (4c) -- see this module's header.
     ("copy_reg", "_reconstructor"): copyreg._reconstructor,
     ("__builtin__", "object"): object,
+    # 4e: notes_cnn.pkl's ParallelProcessor.__init__ pickles `self.map` as
+    # `itertools.imap` (an older madmom that used `itertools as it`) --
+    # Python 3's own pickle.Unpickler transparently remaps this via
+    # `_compat_pickle.NAME_MAPPING` for protocol < 4; SafeUnpickler doesn't
+    # consult that table, so this needs an explicit entry -- see this
+    # module's header. Inert either way (this port's own ParallelProcessor
+    # never reads `self.map`).
+    ("itertools", "imap"): map,
 }
 
 

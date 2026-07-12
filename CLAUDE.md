@@ -580,6 +580,156 @@ to refer to a specific chunk of already-shipped work:
       `tests/test_fixtures_exist.py`: +7). Full offline suite: 205 passed,
       1 skipped, 40 deselected (was 174/1/25 after 4c); network suite: 40
       passed, 1 skipped, 205 deselected, all green.
+  - **4e status: DONE (2026-07-13).** Ported everything the audit table's
+    `features/notes.py`/`features/notes_hmm.py` rows marked TO-PORT(4e):
+    - `madmom_infer/features/notes_hmm.py` (**new module**): `ADSRStateSpace`,
+      `ADSRTransitionModel`, `ADSRObservationModel` -- near-line-for-line port
+      on the existing Phase-1 `ml/hmm.py` `TransitionModel`/`ObservationModel`
+      base classes, same shape as `features/beats_hmm.py`. Nothing here hit a
+      numpy-2.x incompatibility (`ADSRObservationModel.log_densities` is
+      plain `np.ones`/`np.log` on an already-2D array, unlike
+      `beats_hmm.py`'s `RNNBeatTrackingObservationModel.log_densities`).
+    - `madmom_infer/ml/nn/layers.py`: `ReshapeLayer`, `TransposeLayer` --
+      confirmed by `pickletools`-walking all 4 target note-CNN pickles
+      (`notes/2019/notes_cnn.pkl` = `NOTES_CNN`, `notes/2018/
+      notes_cnn_{1,2}.pkl` = `NOTES_CNN_MIREX`, walked for completeness
+      though unused by any ported processor) to be exactly the 2 new layer
+      classes needed, confirming the 4.0/4b audit's own prediction.
+    - **Real, load-bearing surprise -- found by actually `pickletools`-
+      walking AND loading `notes_cnn.pkl` with real madmom, not guessed**:
+      it does NOT pickle a bare `NeuralNetwork` the way every other target
+      `.pkl` in this project does (`key_cnn.pkl`, `onsets_cnn.pkl`,
+      `chords_cnnfeat.pkl`, all `downbeats_blstm_*`/`beats_*`/
+      `downbeats_bgru_*`). It pickles the model's ENTIRE multi-task
+      `madmom.processors.SequentialProcessor`/`ParallelProcessor` OBJECT
+      GRAPH directly: `SequentialProcessor([BatchNormLayer,
+      ConvolutionalLayer x3, ParallelProcessor([3x SequentialProcessor(
+      ConvolutionalLayer, TransposeLayer, ReshapeLayer, FeedForwardLayer)]),
+      numpy.dstack])` -- the 3 parallel branches are the note/onset/offset
+      heads, `numpy.dstack` is the final multi-task merge, all baked
+      straight into the pickle rather than built by
+      `CNNPianoNoteProcessor.__init__` the way `CNNKeyRecognitionProcessor`
+      builds its pipeline around a bare `NeuralNetwork`. This turned out to
+      need ZERO new code in `madmom_infer/ml/nn/__init__.py`:
+      `NeuralNetworkEnsemble.load`/`NeuralNetwork.load` were already fully
+      generic (`unpickle.load_model` just returns whatever top-level object
+      type the pickle actually contains, matching upstream's own
+      `Processor.load`'s equally generic behavior verbatim), and
+      `average_predictions` already degrades to the identity function for a
+      length-1 ensemble list -- only `ml/nn/unpickle.py`'s allowlist needed
+      new entries: `madmom.processors.{SequentialProcessor,
+      ParallelProcessor}` (mapped to this project's own classes, which
+      already support NEWOBJ+dict-restore unpickling with no changes, same
+      "attribute names, not constructor-perfect `__init__`s" shape as the
+      layer classes), `numpy.dstack` (two module-path spellings across the
+      2019 vs. 2018 pickles: `('numpy', 'dstack')` and `('numpy.lib.
+      shape_base', 'dstack')`, both the one real function), and 2
+      Python-2-pickle-compat primitives real madmom's own bare `pickle.load`
+      resolves transparently via `pickle._compat_pickle.NAME_MAPPING`
+      (consulted automatically by the stdlib `Unpickler.find_class` for
+      protocol < 4) but this project's allowlist-only `SafeUnpickler.
+      find_class` does not consult at all: `_codecs.encode` (byte-payload
+      reconstruction, same "safe, mechanical" category as numpy's own
+      `_reconstruct`/`scalar`) and `itertools.imap` -> Python 3's builtin
+      `map` (an older madmom's `ParallelProcessor.__init__` used `self.map =
+      it.imap` before simplifying to `self.map = map`; inert in this port
+      either way, since `madmom_infer.processors.ParallelProcessor.process`
+      never reads `self.map`). Same shape of gap as 4c's
+      `copy_reg._reconstructor`/`__builtin__.object` entries for the
+      older-format `downbeats_bgru_*.pkl` files -- confirmed empirically
+      (unpickling succeeds end-to-end, structural digest matches real
+      madmom's own unpickling exactly), not assumed.
+    - `madmom_infer/ml/nn/unpickle.py`: 8 new `ALLOWED_GLOBALS` entries (the
+      6 above, i.e. `ReshapeLayer`/`TransposeLayer`/`SequentialProcessor`/
+      `ParallelProcessor`/`numpy.dstack`/`itertools.imap`, plus
+      `numpy.lib.shape_base.dstack` and `_codecs.encode`), found by the same
+      `pickletools` walk.
+    - New `madmom_infer/features/notes.py`: `RNNPianoNoteProcessor` (single
+      `NeuralNetwork` from `NOTES_BRNN`, pickle refs confirmed
+      `BidirectionalLayer`/`FeedForwardLayer`/`RecurrentLayer`, all already
+      ported -- no new classes at all), `NoteOnsetPeakPickingProcessor`
+      (subclasses `features/onsets.py`'s already-offline-only
+      `OnsetPeakPickingProcessor`, reuses its `peak_picking` function),
+      `NotePeakPickingProcessor` (upstream's own deprecated-since-0.17
+      alias, ported anyway -- the audit table lists it as a real public
+      class, not dead code this project gets to skip), `_cnn_pad`,
+      `CNNPianoNoteProcessor` (`NeuralNetworkEnsemble.load(NOTES_CNN)` --
+      see the surprise above for why this needed no new ensemble-handling
+      code), `ADSRNoteTrackingProcessor` (per-pitch independent
+      `HiddenMarkovModel.viterbi()` decode, `ml/hmm.py`'s Phase-1 machinery
+      unmodified).
+    - `madmom_infer/models.py`: `notes_brnn()`/`NOTES_BRNN` (1 file),
+      `notes_cnn()`/`NOTES_CNN` (1 file) -- 2 sha256s computed from the
+      local `../madmom-upstream` submodule checkout AND cross-checked
+      byte-for-byte against fresh `raw.githubusercontent.com/CPJKU/
+      madmom_models` downloads (network was available, both succeeded and
+      matched, confirmed 2026-07-13). `NOTES_CNN_MIREX` (`notes/2018/
+      notes_cnn_[12].pkl`) is real, `package_data`-shipped, and was
+      `pickletools`-walked for completeness -- but, like 4b's
+      `ONSETS_BRNN_PP`, no processor this project ports ever loads it
+      (confirmed by reading `CNNPianoNoteProcessor.__init__` directly: it
+      hardcodes `NOTES_CNN`, never `NOTES_CNN_MIREX`), so it has no
+      registry entry.
+    - New `tools/generate_notes_fixtures.py`: `notes_brnn.pkl`/
+      `notes_cnn.pkl` structural digests (the latter a recursive digest of
+      the nested `SequentialProcessor`/`ParallelProcessor` graph above),
+      self-contained `ReshapeLayer`/`TransposeLayer` golden (input, output)
+      fixtures (no trainable weights needed -- these layers have none),
+      `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` end-to-end activations
+      + decoded notes for all 3 usable 44.1kHz test-wav cases, and two
+      SYNTHETIC (hand-crafted, deterministic, no real audio) fixtures for
+      `ADSRNoteTrackingProcessor`/`NoteOnsetPeakPickingProcessor`'s decode
+      logic. **Found and fixed a real bug in this wave's OWN first draft of
+      the fixture generator, not the port**: an initial version reused one
+      shared `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` instance across
+      all 3 differing-dtype test wavs (same "shared-instance-in-order"
+      pattern other waves' fixture tools use successfully) -- this silently
+      made REAL MADMOM ITSELF produce a materially wrong `float32_44100`
+      activation array (max abs diff ~0.097 against a fresh-instance
+      recording of the exact same wav+weights, not BLAS-noise-scale), a
+      real upstream `FilteredSpectrogramProcessor`/
+      `ShortTimeFourierTransformProcessor` instance-reuse caching artifact
+      (same category already documented in those modules' headers and in
+      4d's `RNNBarProcessor` fixture) -- confirmed by comparing two
+      independently-recorded "real madmom" outputs for the same input
+      against each other, not by comparing against this port. Fixed by
+      switching to fresh instances per case (matching 4d's own precedent);
+      `tests/test_notes.py` uses the same fresh-per-case discipline
+      throughout, including its cross-BLAS subprocess script. Also found
+      (before committing the fixture, not after): the real-audio test wavs
+      decode to EMPTY output from BOTH `ADSRNoteTrackingProcessor` and
+      `NoteOnsetPeakPickingProcessor` on every one of the 3 cases -- a
+      technically-valid but weak golden fixture (masks real bugs, as the
+      caching artifact above demonstrated: the empty-decode test passed
+      even while the underlying activations were badly wrong) -- so 2
+      synthetic, hand-crafted activation-array fixtures (including one
+      deliberately INCOMPLETE note that must be discarded under
+      `complete=True`) were added specifically to exercise the decode
+      logic's branches, verified against real madmom before committing.
+    - **Faithfulness proof: PASSED.** `tests/test_notes.py::
+      test_full_pipeline_is_exact_under_original_blas` reproduces real
+      madmom's `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` activations
+      AND decoded notes (peak-picked onset events, ADSR-HMM-decoded note
+      segments) with **zero differing elements**, for all 3 44.1kHz
+      test-wav cases, both model families -- independently confirmed for
+      the synthetic ADSR fixture too
+      (`test_adsr_synthetic_decode_is_exact_under_original_blas`). In-process
+      (differing-BLAS-build) drift: CNN activations measured up to 247 ULP
+      (asserted at a 1024-ULP margin, ~4x observed, matching this repo's
+      convention); RNN activations -- a raw, near-zero-centered
+      linear-layer output (NOT a bounded-[0,1] probability like every other
+      model family's final activation in this project), where an ULP-view
+      metric is measurably unstable that close to zero (a tiny absolute
+      BLAS-noise-scale difference translates into millions of "ULPs" purely
+      because the float32 exponent is small) -- measured up to ~7.15e-7
+      absolute (asserted at `atol=1e-5`, ~14x observed, same "documented
+      absolute tolerance instead of ULP" precedent as 4d's
+      `SemitoneBandpassSpectrogram` finding, stated plainly rather than
+      forcing an ULP metric where it doesn't apply).
+    - 23 new tests total (`tests/test_notes.py`: 12 offline + 11 network;
+      `tests/test_fixtures_exist.py`: +6). Full offline suite: 223 passed,
+      1 skipped, 51 deselected (was 205/1/40 after 4d); network suite: 51
+      passed, 1 skipped, 223 deselected, all green.
 
 ### 4.0 audit result (2026-07-12)
 
@@ -654,7 +804,8 @@ EXCLUDE (why).
 | `ml/nn/layers.py` | `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` | PORTED (4a) | -- | confirmed pickletools-walked as exactly what `key_cnn.pkl` (`AverageLayer`,`BatchNormLayer`,`ConvolutionalLayer`,`MaxPoolLayer`,`PadLayer`,`elu`,`linear`) references; `onsets_cnn.pkl`, `notes_cnn*.pkl`, `chords_cnnfeat.pkl` also need this same set (reused by 4b/4d/4e, not re-ported) |
 | `ml/nn/layers.py` | `GRULayer`, `GRUCell` | PORTED (4c, scope addition -- see corrections above) | -- | `downbeats_bgru_*.pkl` (12 files) reference these; also needed 2 generic old-style-class-reconstruction unpickle allowlist entries the other target pickles don't (`copy_reg._reconstructor`, `__builtin__.object`) -- these 12 files are an OLDER pickle format than every other target `.pkl` in this project, confirmed by real madmom's own "please update your GRU models" `RuntimeWarning` firing on load |
 | `ml/nn/layers.py` | `StrideLayer` | PORTED (4b) | -- | `onsets_cnn.pkl` references it (confirmed by `pickletools`); needs `utils.segment_axis` (see `utils/*` row below) |
-| `ml/nn/layers.py` | `ReshapeLayer`, `TransposeLayer` | TO-PORT (4e, alongside the CNN infra that needs them) | -- | `notes_cnn.pkl` needs Reshape+Transpose; confirmed by 4b's own `pickletools` walk of `onsets_cnn.pkl` that it does NOT need either of these (only `StrideLayer`, above) |
+| `ml/nn/layers.py` | `ReshapeLayer`, `TransposeLayer` | PORTED (4e) | -- | `notes_cnn.pkl` needs Reshape+Transpose, confirmed by `pickletools`; confirmed by 4b's own `pickletools` walk of `onsets_cnn.pkl` that it does NOT need either of these (only `StrideLayer`, above) |
+| `madmom.processors` | `SequentialProcessor`, `ParallelProcessor` (as unpickle targets) | PORTED (4e, scope addition) | -- | `notes_cnn.pkl` pickles a whole processor graph directly, not a bare `NeuralNetwork` -- see 4e status for the full finding; this project's own `madmom_infer/processors.py` classes already worked as unpickle targets with no changes |
 | `ml/nn/layers.py` | `TCNBlock`, `TCNLayer` | EXCLUDE | -- | no shipped model references them (`BEATS_TCN` not in `package_data`; confirmed by attempted load, file absent from installed tree) |
 | `ml/nn/layers.py` | `MultiTaskLayer`, `ParallelLayer`, `SequentialLayer` | EXCLUDE | -- | only used by TCN multi-task models, which aren't shipped |
 | `ml/nn/activations.py` | `linear`, `tanh`, `sigmoid`, `relu`, `elu`, `softmax` | PORTED | -- | Phase 2 |
@@ -678,10 +829,10 @@ EXCLUDE (why).
 | `features/chords.py` | `CNNChordFeatureProcessor` | PORTED (4d) | `CHORDS_CNN_FEAT` | pickle refs confirmed: `ConvolutionalLayer`,`BatchNormLayer`,`MaxPoolLayer` (4a's set, no new classes) |
 | `features/chords.py` | `CRFChordRecognitionProcessor` | PORTED (4d) -- cross-BLAS-proven exact (decoded segments) | `CHORDS_CFCRF` | pickle confirmed no NN globals -- CRF-only |
 | `features/chords.py` | `majmin_targets_to_chord_labels` | PORTED (4d) | -- | label-decoding helper alongside the chord processors |
-| `features/notes_hmm.py` | `ADSRObservationModel`, `ADSRStateSpace`, `ADSRTransitionModel` | TO-PORT (4e) | -- | HMM state spaces on existing `ml/hmm.py` machinery |
-| `features/notes.py` | `RNNPianoNoteProcessor` | TO-PORT (4e) | `NOTES_BRNN` = `notes/2013/notes_brnn.pkl` | pickle refs: `BidirectionalLayer`,`FeedForwardLayer`,`RecurrentLayer` -- already PORTED, no new classes |
-| `features/notes.py` | `CNNPianoNoteProcessor` | TO-PORT (4e, reuses 4a's conv layers) | `NOTES_CNN`, `NOTES_CNN_MIREX` | pickle refs: `ConvolutionalLayer`,`BatchNormLayer`,`ReshapeLayer`(+`TransposeLayer` for `NOTES_CNN`) |
-| `features/notes.py` | `ADSRNoteTrackingProcessor`, `NotePeakPickingProcessor`, `NoteOnsetPeakPickingProcessor` | TO-PORT (4e) | -- | decode/peak-picking, no NN weights |
+| `features/notes_hmm.py` | `ADSRObservationModel`, `ADSRStateSpace`, `ADSRTransitionModel` | PORTED (4e) | -- | HMM state spaces on existing `ml/hmm.py` machinery |
+| `features/notes.py` | `RNNPianoNoteProcessor` | PORTED (4e) | `NOTES_BRNN` = `notes/2013/notes_brnn.pkl` | pickle refs confirmed: `BidirectionalLayer`,`FeedForwardLayer`,`RecurrentLayer` -- already PORTED, no new classes |
+| `features/notes.py` | `CNNPianoNoteProcessor` | PORTED (4e, reuses 4a's conv layers) | `NOTES_CNN` = `notes/2019/notes_cnn.pkl` | pickle refs confirmed: `ConvolutionalLayer`,`BatchNormLayer`,`ReshapeLayer`,`TransposeLayer` -- **also a real surprise**: the pickle is a whole `SequentialProcessor`/`ParallelProcessor` graph, not a bare `NeuralNetwork`, see 4e status; `NOTES_CNN_MIREX` (`notes/2018/notes_cnn_[12].pkl`) is real+shipped but unused by any ported processor (confirmed by reading `CNNPianoNoteProcessor.__init__` directly), no registry entry, same precedent as 4b's `ONSETS_BRNN_PP` |
+| `features/notes.py` | `ADSRNoteTrackingProcessor`, `NotePeakPickingProcessor`, `NoteOnsetPeakPickingProcessor` | PORTED (4e) | -- | decode/peak-picking, no NN weights |
 | **`evaluation/*`** | (entire subpackage) | EXCLUDE | -- | out of scope per this repo's stated scope (see top of this file) |
 | **`bin/*`** | (CLI scripts, installed as `console_scripts`-style `scripts=` entries by upstream `setup.py`) | EXCLUDE | -- | this package is a library, processors are the API (Permanent exclusions) |
 | **`io/*`, `utils/*`** | `io.audio`, `io.midi`, `utils.midi`, `utils.stats` | EXCLUDE (out of this audit's stated scope: `features/`, `audio/`, `ml/` only) | -- | I/O/annotation-file helpers, not inference algorithms; flagged here rather than silently dropped, revisit only if a TO-PORT processor is found to need one (none currently do) |

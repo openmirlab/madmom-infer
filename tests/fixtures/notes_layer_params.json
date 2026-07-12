@@ -1,0 +1,16 @@
+{
+  "ReshapeLayer": {
+    "newshape": [
+      -1,
+      1060
+    ],
+    "order": "C"
+  },
+  "TransposeLayer": {
+    "axes": [
+      0,
+      2,
+      1
+    ]
+  }
+}

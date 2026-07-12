@@ -250,6 +250,32 @@ EXPECTED_KEYS = {
         for case in ("mono_44100", "stereo_44100", "float32_44100")
         for suffix in ("beats", "bar_output")
     },
+    # Wave 4e -- ReshapeLayer/TransposeLayer golden (input, output) fixtures,
+    # self-contained (no weights -- these layers have no trainable params).
+    "notes_layers.npz": {
+        "TransposeLayer_input", "TransposeLayer_output",
+        "ReshapeLayer_input", "ReshapeLayer_output",
+    },
+    # Wave 4e -- RNNPianoNoteProcessor/CNNPianoNoteProcessor end-to-end
+    # activations + decoded notes, 44.1kHz-native cases only (no file-load
+    # resampling).
+    "notes_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in (
+            "rnn_activations", "cnn_activations", "onset_notes",
+            "deprecated_notes", "adsr_notes",
+        )
+    },
+    # Wave 4e -- synthetic (hand-crafted, deterministic) ADSRNoteTracking
+    # decode fixture -- exercises the segmentation logic non-trivially
+    # (unlike the real-audio fixture above, which decodes to empty on every
+    # case, see tools/generate_notes_fixtures.py's module header).
+    "notes_adsr_synthetic.npz": {"activations", "notes"},
+    # Wave 4e -- synthetic peak-picking fixture (same rationale).
+    "notes_peak_picking_synthetic.npz": {
+        "activations", "onset_notes", "deprecated_notes",
+    },
 }
 
 
@@ -398,3 +424,30 @@ def test_chroma_dnn_structural_digest_exists_and_loads():
     assert len(digest["chroma_dnn"]) == 4, (
         "chroma_dnn.pkl is expected to have exactly 4 FeedForwardLayers"
     )
+
+
+def test_notes_structural_digest_exists_and_loads():
+    """Wave 4e fixture (tools/generate_notes_fixtures.py): the unpickled
+    notes_brnn.pkl (flat layer list) and notes_cnn.pkl (nested
+    SequentialProcessor/ParallelProcessor graph, see madmom_infer/ml/nn/
+    unpickle.py's header) structural digests."""
+    path = FIXTURES_DIR / "notes_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"notes_brnn", "notes_cnn"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"notes_structural_digest.json missing keys: {sorted(missing)}"
+    assert len(digest["notes_brnn"]) == 4
+    assert digest["notes_cnn"]["type"] == "SequentialProcessor"
+    assert len(digest["notes_cnn"]["processors"]) == 6
+
+
+def test_notes_layer_params_exists_and_loads():
+    """Wave 4e fixture (tools/generate_notes_fixtures.py): non-array
+    hyperparameters for the 2 new layer-type fixtures in notes_layers.npz."""
+    path = FIXTURES_DIR / "notes_layer_params.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    params = json.loads(path.read_text())
+    expected_types = {"ReshapeLayer", "TransposeLayer"}
+    missing = expected_types - set(params.keys())
+    assert not missing, f"notes_layer_params.json missing types: {sorted(missing)}"

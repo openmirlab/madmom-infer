@@ -104,10 +104,28 @@ own `models/__init__.py` names the `chords_cnncrf.pkl`-backed constant
 CRF that decodes `CNNChordFeatureProcessor`'s output), not a typo for the
 filename.
 
-Every other model family madmom ships (`NOTES_CNN`, ...) would follow the
-exact same `_ModelFile`/`download()` pattern -- adding one is a matter of
-listing its relative paths + sha256s, not new machinery -- but is out of
-scope until a processor that needs it is ported (see CLAUDE.md's wave plan).
+4e addition: `NOTES_BRNN` (`notes/2013/notes_brnn.pkl`, single-network,
+`madmom_infer/features/notes.py`'s `RNNPianoNoteProcessor`) and `NOTES_CNN`
+(`notes/2019/notes_cnn.pkl`, single-network -- see that module's header for
+why it's still loaded through `NeuralNetworkEnsemble.load`, not
+`NeuralNetwork.load` -- `CNNPianoNoteProcessor`). Both sha256s were computed
+directly from the files already present locally at `../madmom-upstream/
+madmom/models/notes/{2013,2019}/*.pkl` (Wave 4.0's submodule checkout) and
+cross-checked byte-for-byte against fresh downloads from
+`https://raw.githubusercontent.com/CPJKU/madmom_models/master/notes/...` for
+both files -- identical, confirmed 2026-07-13, network was available.
+`NOTES_CNN_MIREX` (`notes/2018/notes_cnn_[12].pkl`) is real,
+`package_data`-shipped, and was `pickletools`-walked for completeness (see
+`ml/nn/unpickle.py`'s header) -- but, like 4b's `ONSETS_BRNN_PP`, no
+processor this project ports ever loads it (upstream's own
+`CNNPianoNoteProcessor.__init__` hardcodes `NOTES_CNN`, never
+`NOTES_CNN_MIREX`, confirmed by reading `madmom-upstream/madmom/features/
+notes.py:298-310` directly), so it has no registry entry here.
+
+Every other model family madmom ships would follow the exact same
+`_ModelFile`/`download()` pattern -- adding one is a matter of listing its
+relative paths + sha256s, not new machinery -- but is out of scope until a
+processor that needs it is ported (see CLAUDE.md's wave plan).
 
 Reads: urllib.request (stdlib, HTTPS GET), hashlib (stdlib, sha256), os/
 pathlib (stdlib, XDG cache resolution); read by:
@@ -119,7 +137,8 @@ madmom_infer/features/beats.py (RNNBeatProcessor.__init__),
 madmom_infer/audio/chroma.py (DeepChromaProcessor.__init__),
 madmom_infer/features/chords.py (DeepChromaChordRecognitionProcessor.
 __init__, CNNChordFeatureProcessor.__init__, CRFChordRecognitionProcessor.
-__init__).
+__init__), madmom_infer/features/notes.py (RNNPianoNoteProcessor.__init__,
+CNNPianoNoteProcessor.__init__).
 """
 
 import hashlib
@@ -590,3 +609,47 @@ def chords_cfcrf(cache_root: Path = None, force: bool = False):
     """
     return [download(f, cache_root=cache_root, force=force)
             for f in _CHORDS_CFCRF_FILES]
+
+
+# ---------------------------------------------------------------------------
+# NOTES_BRNN / NOTES_CNN: madmom's piano-note-transcription model families --
+# the 4e end-to-end targets. sha256s verified against BOTH a fresh raw-GitHub
+# download AND the copy already checked out locally under
+# ../madmom-upstream/madmom/models (identical, see this module's header).
+# ---------------------------------------------------------------------------
+_NOTES_BRNN_FILES = [
+    _ModelFile("notes/2013/notes_brnn.pkl",
+               "963cc5b21877d03a0a77636080fa62d6b66d7521ae0c90a6ad9f2f1923ac36ff"),
+]
+
+_NOTES_CNN_FILES = [
+    _ModelFile("notes/2019/notes_cnn.pkl",
+               "48ac7581cf5bb7d205d47fdb5b819a163e23250c22de3de5287a78dce9581f5d"),
+]
+
+
+def notes_brnn(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `notes_brnn.pkl`
+    (as a single-element list) -- madmom's `NOTES_BRNN` model list, used by
+    `RNNPianoNoteProcessor`.
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _NOTES_BRNN_FILES]
+
+
+def notes_cnn(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `notes_cnn.pkl`
+    (as a single-element list) -- madmom's `NOTES_CNN` model list, used by
+    `CNNPianoNoteProcessor` (via `NeuralNetworkEnsemble.load`, even though
+    it resolves to a single file -- see `features/notes.py`'s module header
+    for why that file itself pickles a whole multi-task processor graph,
+    not a bare `NeuralNetwork`).
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _NOTES_CNN_FILES]

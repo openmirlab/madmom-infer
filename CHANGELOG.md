@@ -7,6 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Wave 4e of the complete-port campaign (`feat/complete-port` branch): piano
+note transcription.** Adds `RNNPianoNoteProcessor` (RNN onset activations)
+and `CNNPianoNoteProcessor` (multi-task CNN note/onset/offset activations),
+`NoteOnsetPeakPickingProcessor`/`NotePeakPickingProcessor` (peak-picking
+decode, reusing the onset-detection family's `peak_picking`), and
+`ADSRNoteTrackingProcessor` (a new attack-decay-sustain-release HMM,
+`features/notes_hmm.py`, on the existing Phase-1 `ml/hmm.py` Viterbi
+decoder).
+
+### Added
+- `madmom_infer/features/notes_hmm.py` (new module): `ADSRStateSpace`,
+  `ADSRTransitionModel`, `ADSRObservationModel` -- a near-line-for-line port
+  of upstream's per-pitch ADSR HMM state space (silence -> attack -> decay ->
+  sustain -> release), built on the same `ml/hmm.py` `TransitionModel`/
+  `ObservationModel` base classes `features/beats_hmm.py` already uses.
+- `madmom_infer/ml/nn/layers.py`: `ReshapeLayer`, `TransposeLayer` --
+  confirmed by `pickletools`-walking all 4 target note-CNN pickles
+  (`notes_cnn.pkl` = `NOTES_CNN`, `notes_cnn_{1,2}.pkl` = `NOTES_CNN_MIREX`,
+  unused by any ported processor but walked anyway) to be exactly the 2 new
+  layer classes needed on top of already-ported ones.
+- **Real surprise, found by `pickletools`-walking `notes_cnn.pkl` directly,
+  not guessed**: it does not pickle a bare `NeuralNetwork` the way every
+  other target `.pkl` in this project does -- it pickles the model's ENTIRE
+  multi-task `madmom.processors.SequentialProcessor`/`ParallelProcessor`
+  branch-and-`dstack` graph directly (3 parallel note/onset/offset branches,
+  each `ConvolutionalLayer` -> `TransposeLayer` -> `ReshapeLayer` ->
+  `FeedForwardLayer`, merged by a plain `numpy.dstack` reference). This
+  turned out to need zero new code in `ml/nn/__init__.py` --
+  `NeuralNetworkEnsemble.load`/`NeuralNetwork.load` were already fully
+  generic (matching upstream's own equally generic `Processor.load`) -- only
+  new `ml/nn/unpickle.py` allowlist entries: `madmom.processors.
+  {SequentialProcessor,ParallelProcessor}`, `numpy.dstack` (two module-path
+  spellings across the target pickles), and two Python-2-pickle-compat
+  primitives (`_codecs.encode`, `itertools.imap` -> Python 3's builtin
+  `map`) that real madmom's own bare `pickle.load` resolves transparently
+  via `pickle._compat_pickle.NAME_MAPPING` but this project's
+  allowlist-only `SafeUnpickler.find_class` does not, needing explicit
+  entries (same shape of gap wave 4c's `copy_reg._reconstructor`/
+  `__builtin__.object` entries already closed for the older-format
+  `downbeats_bgru_*.pkl` files).
+- `madmom_infer/features/notes.py` (new module): `RNNPianoNoteProcessor`,
+  `NoteOnsetPeakPickingProcessor`, `NotePeakPickingProcessor` (upstream's
+  deprecated-since-0.17 alias, ported anyway -- the audit table lists it as
+  real, not dead code), `_cnn_pad`, `CNNPianoNoteProcessor`,
+  `ADSRNoteTrackingProcessor`.
+- `madmom_infer/models.py`: `notes_brnn()`/`NOTES_BRNN` (1 file),
+  `notes_cnn()`/`NOTES_CNN` (1 file) -- both sha256s computed from the local
+  `../madmom-upstream` submodule checkout AND cross-checked byte-for-byte
+  against fresh `raw.githubusercontent.com/CPJKU/madmom_models` downloads,
+  identical. `NOTES_CNN_MIREX` (`notes/2018/notes_cnn_[12].pkl`) is real,
+  `package_data`-shipped, and was `pickletools`-walked for completeness, but
+  -- like wave 4b's `ONSETS_BRNN_PP` -- no ported processor loads it
+  (upstream's own `CNNPianoNoteProcessor.__init__` hardcodes `NOTES_CNN`
+  only), so it has no registry entry.
+- New `tools/generate_notes_fixtures.py`: `notes_brnn.pkl`/`notes_cnn.pkl`
+  structural digests (the latter a recursive digest of the nested processor
+  graph above), self-contained `ReshapeLayer`/`TransposeLayer` golden
+  fixtures, `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` end-to-end
+  activations plus decoded notes for all 3 usable 44.1kHz test-wav cases
+  (fresh processor instances per case -- a shared instance across differing-
+  dtype wavs was found, empirically, to make REAL madmom itself silently
+  produce a materially wrong `float32_44100` RNN activation array, a real
+  upstream `FilteredSpectrogramProcessor`/`ShortTimeFourierTransformProcessor`
+  caching artifact, same category wave 4d already documented for
+  `RNNBarProcessor`), and two SYNTHETIC (hand-crafted, deterministic)
+  fixtures for `ADSRNoteTrackingProcessor`/`NoteOnsetPeakPickingProcessor`'s
+  decode logic -- the real-audio test wavs decode to EMPTY output on every
+  case, too weak a fixture to exercise the segmentation branches, so the
+  synthetic ones include a deliberately INCOMPLETE note that must be
+  discarded.
+- **Faithfulness proof: PASSED.** `tests/test_notes.py::
+  test_full_pipeline_is_exact_under_original_blas` reproduces real madmom's
+  `RNNPianoNoteProcessor`/`CNNPianoNoteProcessor` activations AND decoded
+  notes (peak-picked and ADSR-HMM-decoded) with **zero differing elements**,
+  for all 3 44.1kHz test-wav cases, both model families -- confirmed also
+  independently for the synthetic ADSR fixture
+  (`test_adsr_synthetic_decode_is_exact_under_original_blas`). In-process
+  (differing-BLAS-build) drift: CNN activations up to 247 ULP (asserted at a
+  1024-ULP margin, ~4x observed, matching this repo's convention); RNN
+  activations (a raw, near-zero-centered linear-layer output, not a
+  bounded-[0,1] probability -- an ULP-view metric is unstable that close to
+  zero) measured up to ~7.15e-7 absolute (asserted at `atol=1e-5`, ~14x
+  observed, same "documented absolute tolerance, not ULP" precedent as wave
+  4d's `SemitoneBandpassSpectrogram` finding).
+- 23 new tests (`tests/test_notes.py`: 12 offline + 11 network);
+  `tests/test_fixtures_exist.py`: +6 (2 new structural-digest/params test
+  functions + 4 new parametrized fixture-file cases). Full offline suite:
+  223 passed, 1 skipped, 51 deselected (was 205/1/40 after 4d); network
+  suite: 51 passed, 1 skipped, 223 deselected, all green.
+
 **Wave 4d of the complete-port campaign (`feat/complete-port` branch): chroma
 + chords, and closing wave 4c's `RNNBarProcessor` loop.** Adds a numpy
 Conditional Random Field decoder (`ml/crf.py`), all three chroma paths

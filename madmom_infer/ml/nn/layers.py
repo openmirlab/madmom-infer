@@ -1,8 +1,9 @@
 """Neural-network layers -- port of the subset of madmom.ml.nn.layers that
 the Phase-2 target ensemble (`DOWNBEATS_BLSTM`, 8x `downbeats_blstm_N.pkl`),
 the 4a target model (`KEY_CNN`, `key/2018/key_cnn.pkl`), the 4b onset
-models (`ONSETS_RNN`/`ONSETS_BRNN`/`ONSETS_CNN`), and the 4c beat/GRU
-models (`BEATS_LSTM`/`BEATS_BLSTM`, `DOWNBEATS_BGRU`) actually need,
+models (`ONSETS_RNN`/`ONSETS_BRNN`/`ONSETS_CNN`), the 4c beat/GRU
+models (`BEATS_LSTM`/`BEATS_BLSTM`, `DOWNBEATS_BGRU`), and the 4e note
+models (`NOTES_BRNN`, `NOTES_CNN`) actually need,
 enumerated by inspecting the pickled files themselves with `pickletools`
 (not guessed from reading source): every one of the 8 `downbeats_blstm_*`
 files references exactly `NeuralNetwork`, `BidirectionalLayer`,
@@ -23,19 +24,39 @@ BRNN family -- no new classes needed); `onsets_cnn.pkl` references
 `downbeats_bgru_{harmonic,rhythmic}_*.pkl` files (4c) reference exactly
 `NeuralNetwork`, `BidirectionalLayer`, `FeedForwardLayer`, `Gate`,
 `GRUCell`, `GRULayer` (plus `activations.sigmoid`/`tanh`) -- `GRUCell`/
-`GRULayer` are new this wave, everything else already ported -- see
+`GRULayer` are new this wave, everything else already ported; `notes_brnn.pkl`
+(4e, `NOTES_BRNN`) references only already-ported classes (`NeuralNetwork`,
+`BidirectionalLayer`, `FeedForwardLayer`, `RecurrentLayer`, plus
+`activations.tanh`/`linear` -- no new classes at all); `notes_cnn.pkl`
+(4e, `NOTES_CNN`, plus `notes_cnn_{1,2}.pkl` = `NOTES_CNN_MIREX`, walked for
+completeness though no ported processor loads them) references
+`BatchNormLayer`/`ConvolutionalLayer`/`FeedForwardLayer` (already ported)
+PLUS `ReshapeLayer`/`TransposeLayer` (new in 4e) -- see
 madmom_infer/ml/nn/unpickle.py's module header for the full class-path
 mapping table these findings produced.
 
-Deliberately NOT ported (no reference in any Phase-2/4a/4b/4c target
+4e addition: `ReshapeLayer`/`TransposeLayer` -- confirmed by `pickletools`-
+walking all 4 target note-CNN pickles (`notes/2019/notes_cnn.pkl` =
+`NOTES_CNN`, `notes/2018/notes_cnn_{1,2}.pkl` = `NOTES_CNN_MIREX`, unused by
+any ported processor but walked anyway for completeness) to be exactly the
+2 new layer classes needed, on top of 4a's already-ported CNN set
+(`ConvolutionalLayer`, `BatchNormLayer`) plus Phase-2's `FeedForwardLayer`.
+**Real, load-bearing surprise found by this same walk, documented in full in
+`unpickle.py`'s header (not here, to avoid duplicating the finding)**:
+`notes_cnn.pkl` does not pickle a bare `NeuralNetwork` the way every other
+target `.pkl` in this project does -- it pickles an entire
+`madmom.processors.SequentialProcessor`/`ParallelProcessor` graph directly
+(the multi-task onset/note/offset branch-and-`dstack` structure baked
+straight into the pickle), which is why `unpickle.py`'s allowlist needed
+`SequentialProcessor`/`ParallelProcessor` entries this wave, not just two
+more layer classes.
+
+Deliberately NOT ported (no reference in any Phase-2/4a/4b/4c/4e target
 pickle; left for a future wave that targets a model actually using them):
 `SequentialLayer`, `ParallelLayer`, `MultiTaskLayer` (composition-only
 wrappers, no pickled model targeted so far routes through them),
 `RecurrentLayer` is kept (it's `Gate`/`Cell`'s and `LSTMLayer`'s own base
-class), `TransposeLayer`/`ReshapeLayer` (needed by `notes_cnn.pkl`, not
-`onsets_cnn.pkl` -- confirmed by 4b's own pickletools walk of
-`onsets_cnn.pkl`, which references `StrideLayer` but neither of these;
-stays TO-PORT for 4e), `TCNBlock`/`TCNLayer` (temporal-conv-net -- e.g.
+class), `TCNBlock`/`TCNLayer` (temporal-conv-net -- e.g.
 `BEATS_TCN`, permanently EXCLUDED, no shipped model references them).
 
 `ConvolutionalLayer`'s `convolve()` helper: upstream tries `cv2.filter2D`
@@ -686,3 +707,43 @@ class StrideLayer(Layer):
 
         data = segment_axis(data, self.block_size, 1, axis=0, end="cut")
         return data.reshape(len(data), -1)
+
+
+# -- multi-task CNN stuff (4e: notes_cnn.pkl's own layer family) --------
+class TransposeLayer(Layer):
+    """Transpose layer: `np.transpose(data, axes)`.
+
+    Verbatim port of `layers.TransposeLayer` (`madmom-upstream/madmom/ml/nn/
+    layers.py:1155-1185`) -- new in Wave 4e, `notes_cnn.pkl`'s own
+    multi-task branch stack (confirmed by `pickletools`, see module header).
+    Used between a branch's final `ConvolutionalLayer` and its
+    `ReshapeLayer` to move the per-pitch feature-map axis into the position
+    a following `FeedForwardLayer` expects.
+    """
+
+    def __init__(self, axes=None):
+        self.axes = axes
+
+    def activate(self, data, **kwargs):
+        """Activate TransposeLayer: `np.transpose(data, self.axes)` (default
+        `axes=None` reverses all axes, matching `np.transpose`'s own
+        default)."""
+        return np.transpose(data, self.axes)
+
+
+class ReshapeLayer(Layer):
+    """Reshape layer: `np.reshape(data, newshape, order=order)`.
+
+    Verbatim port of `layers.ReshapeLayer` (`madmom-upstream/madmom/ml/nn/
+    layers.py:1188-1223`) -- new in Wave 4e, alongside `TransposeLayer`
+    (same `notes_cnn.pkl` multi-task branch stack).
+    """
+
+    def __init__(self, newshape, order="C"):
+        self.newshape = newshape
+        self.order = order
+
+    def activate(self, data, **kwargs):
+        """Activate ReshapeLayer: `np.reshape(data, self.newshape,
+        order=self.order)`."""
+        return np.reshape(data, self.newshape, order=self.order)

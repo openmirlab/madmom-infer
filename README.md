@@ -126,6 +126,12 @@ This project targets madmom's **inference** code only:
   (beat-synchronous percussive + harmonic features, the harmonic branch built
   on `CLPChromaProcessor` above) as a full audio-in alternative to
   `RNNDownBeatProcessor`
+- Piano note transcription: `RNNPianoNoteProcessor` (RNN onset activations,
+  decoded by `NoteOnsetPeakPickingProcessor`/`NotePeakPickingProcessor`) and
+  `CNNPianoNoteProcessor` (a multi-task CNN producing per-pitch note/onset/
+  offset activations, decoded by `ADSRNoteTrackingProcessor`'s
+  attack-decay-sustain-release HMM, reusing the same Viterbi decoder as beat/
+  downbeat tracking)
 
 Out of scope, forever:
 
@@ -135,9 +141,9 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: note/piano transcription, CRF-based beat detection and
-pattern tracking, the remaining audio submodules (HPSS, cepstrogram/MFCC),
-and a torch reimplementation of the RNN ensemble forward pass itself
+Not yet ported: CRF-based beat detection and pattern tracking, the
+remaining audio submodules (HPSS, cepstrogram/MFCC), and a torch
+reimplementation of the RNN ensemble forward pass itself
 (blocked on a real design question -- madmom's LSTM layers use peephole
 connections `torch.nn.LSTM` does not implement, so this needs a custom
 cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
@@ -312,6 +318,41 @@ alternative chain (a learned CNN feature extractor instead of deep chroma,
 decoded by a separately-trained CRF model). Same runtime-download/sha256/
 caching story as the processors above, via `madmom_infer/models.py`'s
 `chords_dccrf()`/`chords_cnn_feat()`/`chords_cfcrf()`.
+
+### Piano note transcription
+
+```python
+from madmom_infer.features.notes import (
+    CNNPianoNoteProcessor,
+    ADSRNoteTrackingProcessor,
+)
+
+cnn_proc = CNNPianoNoteProcessor()
+activations = cnn_proc("track.wav")  # (num_frames, 88, 3): note/onset/offset
+
+adsr = ADSRNoteTrackingProcessor()
+notes = adsr(activations)  # (time, MIDI_pitch, duration) triples
+```
+
+An RNN alternative is also available -- `RNNPianoNoteProcessor()` produces a
+`(num_frames, 88)` onset activation function (one column per piano key,
+MIDI note 21..108), decoded by peak-picking instead of an HMM:
+
+```python
+from madmom_infer.features.notes import (
+    RNNPianoNoteProcessor,
+    NoteOnsetPeakPickingProcessor,
+)
+
+rnn_proc = RNNPianoNoteProcessor()
+activations = rnn_proc("track.wav")
+
+peak_pick = NoteOnsetPeakPickingProcessor(fps=100, pitch_offset=21)
+onsets = peak_pick(activations)  # (time, MIDI_pitch) pairs
+```
+
+Same runtime-download/sha256/caching story as the processors above, via
+`madmom_infer/models.py`'s `notes_brnn()`/`notes_cnn()`.
 
 ### Torch frontend
 
