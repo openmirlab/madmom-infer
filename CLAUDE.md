@@ -1,21 +1,30 @@
 # madmom-infer -- CLAUDE.md
 
-## Scope and roadmap
+## Scope and status
 
 madmom-infer is a from-scratch reimplementation of CPJKU/madmom's
 inference-relevant algorithms (not training-only code, not
-`madmom.evaluation.*`). Full scope and the phased roadmap (Phase 1: DSP
-pipeline + numpy Viterbi decoder, complete; Phase 2: forward-pass-only NN
-runtime + restricted model unpickling + runtime weights download +
-`RNNDownBeatProcessor` end-to-end, complete -- the pretrained-weights
-question is resolved as "never bundle, always download at runtime", see
-`madmom_infer/models.py`; Phase 3a: optional, differentiable torch
-spectrogram frontend (`madmom_infer/torch/`), complete; Phase 3b: torch NN
-forward pass, not started, blocked on madmom's LSTM peephole connections
-having no `torch.nn.LSTM` equivalent; further backlog: onset/tempo/chord/
-key/note feature extraction beyond `RNNDownBeatProcessor`, remaining audio
-submodules) are documented in [README.md](./README.md) -- read that first,
-don't re-derive the phasing here.
+`madmom.evaluation.*`). See [README.md](./README.md) for the public-facing
+scope and feature description -- it no longer uses phase framing, don't
+reintroduce it there.
+
+Internally, this file still tracks work by phase (matching test/script
+names like `tools/generate_phase2_fixtures.py`), since that's a stable way
+to refer to a specific chunk of already-shipped work:
+
+- **Phase 1** (complete): DSP pipeline (framing, STFT, filterbanks,
+  log-spectrograms) + numpy Viterbi decoder
+- **Phase 2** (complete): forward-pass-only NN runtime + restricted model
+  unpickling + runtime weights download + `RNNDownBeatProcessor`
+  end-to-end -- the pretrained-weights question is resolved as "never
+  bundle, always download at runtime", see `madmom_infer/models.py`
+- **Phase 3a** (complete): optional, differentiable torch spectrogram
+  frontend (`madmom_infer/torch/`)
+- **Phase 3b** (not started): torch NN forward pass, blocked on madmom's
+  LSTM peephole connections having no `torch.nn.LSTM` equivalent
+- Further backlog (not phased): onset/tempo/chord/key/note feature
+  extraction beyond `RNNDownBeatProcessor`, remaining audio submodules
+  (chroma, HPSS, cepstrogram)
 
 ## File-top header convention
 
