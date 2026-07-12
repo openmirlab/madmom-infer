@@ -4,15 +4,18 @@
 
 madmom-infer is a from-scratch reimplementation of CPJKU/madmom's
 inference-relevant algorithms (not training-only code, not
-`madmom.evaluation.*`). Full scope and the 3-phase roadmap (Phase 1: DSP
+`madmom.evaluation.*`). Full scope and the phased roadmap (Phase 1: DSP
 pipeline + numpy Viterbi decoder, complete; Phase 2: forward-pass-only NN
 runtime + restricted model unpickling + runtime weights download +
 `RNNDownBeatProcessor` end-to-end, complete -- the pretrained-weights
 question is resolved as "never bundle, always download at runtime", see
-`madmom_infer/models.py`; Phase 3: remaining odds and ends, incl. onset/
-tempo/chord/key/note feature extraction beyond `RNNDownBeatProcessor`) are
-documented in [README.md](./README.md) -- read that first, don't re-derive
-the phasing here.
+`madmom_infer/models.py`; Phase 3a: optional, differentiable torch
+spectrogram frontend (`madmom_infer/torch/`), complete; Phase 3b: torch NN
+forward pass, not started, blocked on madmom's LSTM peephole connections
+having no `torch.nn.LSTM` equivalent; further backlog: onset/tempo/chord/
+key/note feature extraction beyond `RNNDownBeatProcessor`, remaining audio
+submodules) are documented in [README.md](./README.md) -- read that first,
+don't re-derive the phasing here.
 
 ## File-top header convention
 
@@ -37,25 +40,35 @@ of the same shape -- don't pad it out artificially. Keep headers in sync as
 files change; this is what lets a future session (or the `/nav:sync` skill)
 grasp any file from its first ~12 lines without reading the whole thing.
 
-## Golden-fixture testing philosophy (numpy backend; torch is roadmap, not shipped)
+## Golden-fixture testing philosophy (numpy backend is the reference; torch frontend is Phase 3a, shipped)
 
 This project follows the same pattern established by the sibling
 all-in-one-infer package's pure-Python NATTEN replacement:
 
-- A **numpy backend** is the default, required, and *only* implementation
-  today, treated as the reference. It must be verified **bit-identical to
-  original madmom** using golden fixtures -- recorded input/output pairs
-  captured from running the real (compiled) madmom, checked against this
-  port's output in tests. Do not consider a Phase 1/2/3 module "done" until
-  it has a golden-fixture test, not just a hand-written unit test.
-- A **torch backend does not exist yet**: there is no `import torch`
-  anywhere in `madmom_infer/`, no `torch` extra in `pyproject.toml`. It is a
-  **planned Phase 3** item (see `docs/DESIGN.md` for the design proposal),
-  expected to help most at the spectrogram/STFT stage (trivially batches
-  across frames) and to help little or not at all for the Viterbi decoder
-  (inherently sequential). Don't write or imply present-tense torch-backend
-  claims in docs or commit messages until it's actually implemented; don't
-  oversell torch-backend speedups for sequential algorithms even when it is.
+- A **numpy backend** is the default and required implementation, treated as
+  the reference. It must be verified **bit-identical to original madmom**
+  using golden fixtures -- recorded input/output pairs captured from running
+  the real (compiled) madmom, checked against this port's output in tests.
+  Do not consider a Phase 1/2/3 module "done" until it has a golden-fixture
+  test, not just a hand-written unit test.
+- An **optional torch backend** (`madmom_infer/torch/`, gated behind the
+  `torch` extra, guarded/lazy -- `import madmom_infer` never touches torch)
+  exists as of Phase 3a: a batched, autograd-differentiable, device-agnostic
+  spectrogram frontend (framing/STFT/filterbank/log-compression/temporal-
+  diff), reusing the numpy backend's own window/filterbank-matrix/diff-
+  frame-count construction rather than re-deriving that DSP knowledge (see
+  `madmom_infer/torch/audio/frontend.py`'s module docstring for the exact
+  reuse boundary). Verified against the numpy backend per
+  `tests/test_torch_frontend.py` (float32 vs the real shipped numpy
+  processor chain, float64 vs a bespoke float64-throughout numpy test
+  harness -- since numpy's own classes hardcode a complex64/float32
+  ceiling and cannot produce a genuine float64 baseline), plus
+  `gradcheck`, batching, and CPU/CUDA device tests. The RNN ensemble
+  forward pass is NOT covered (Phase 3b, not started -- madmom's LSTM
+  peephole connections have no `torch.nn.LSTM` equivalent, needs a custom
+  cell), nor is Viterbi/DBN decoding (inherently sequential, discrete-state
+  -- no torch benefit expected there, ever). Don't oversell torch-backend
+  speedups for sequential algorithms in docs or commit messages.
 - Never bundle madmom's own pretrained weights (CC BY-NC-SA 4.0) -- see
   README.md's "What this project will NEVER bundle" section. This is a
   permanent policy, not a phase-gate detail to relax later. Phase 2
@@ -97,3 +110,22 @@ Regenerate the Phase-2 fixtures it and `test_ml_nn.py` depend on with:
 /home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python \
     tools/generate_phase2_fixtures.py
 ```
+
+## Phase-3a verification commands
+
+`tests/test_torch_frontend.py` needs torch (`uv sync --extra dev --extra
+torch` or `pip install "madmom-infer[dev,torch]"`); it uses
+`pytest.importorskip("torch")` at module scope, so plain `uv run pytest`
+skips it cleanly on a torch-less install rather than failing collection --
+don't be alarmed by that one skip in a core-only environment. Run it
+explicitly once torch is installed:
+
+```bash
+uv run pytest tests/test_torch_frontend.py -v
+```
+
+Before considering a Phase-3a torch-frontend change "done", also verify the
+opt-in boundary itself still holds -- both a torch-less venv (`import
+madmom_infer` works, `import madmom_infer.torch` raises a clear guarded
+`ImportError`) and the full non-network suite pass in both a torch-less and
+a torch-installed environment with identical non-torch test counts.

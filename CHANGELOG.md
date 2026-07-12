@@ -5,6 +5,58 @@ All notable changes to madmom-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-07-12
+
+**Phase 3a: optional, differentiable torch spectrogram frontend.** The
+numpy backend stays the default and is unchanged -- zero modifications to
+any existing `madmom_infer/` numpy module in this release, verified by
+running the full pre-existing suite unchanged before and after (68 passed,
+20 skipped, 11 deselected both times).
+
+### Added
+- `madmom_infer/torch/` (opt-in, `pip install "madmom-infer[torch]"`):
+  a batched, autograd-differentiable, device-agnostic torch reimplementation
+  of the framing -> STFT -> filterbank -> log-compression -> temporal-
+  difference chain (`madmom_infer.audio.{signal,stft,filters,spectrogram}`'s
+  tensor operations), plus a `rnn_downbeat_frontend()` factory mirroring
+  `RNNDownBeatProcessor`'s 3-branch (1024/2048/4096-sample,
+  3/6/12-bands-per-octave) pre-processing cascade exactly, producing the
+  same 314-dimensional feature vector real madmom's RNN ensemble consumes.
+  Reuses the numpy backend's own window (`np.hanning`), filterbank matrix
+  (`LogarithmicFilterbank`), bin frequencies (`fft_frequencies`), and
+  diff-frame count (`_diff_frames`) -- computed via the existing numpy code
+  and converted to tensors, not re-derived. `import madmom_infer` never
+  imports torch; `import madmom_infer.torch` raises a clear, actionable
+  `ImportError` if torch is not installed.
+  - Explicitly NOT covered (see module docstrings, README "Torch frontend
+    (Phase 3a)"): the RNN ensemble forward pass (madmom's LSTM peephole
+    connections have no `torch.nn.LSTM` equivalent -- Phase 3b, not
+    started) and Viterbi/DBN decoding (sequential, discrete-state -- no
+    torch benefit expected, not planned).
+  - 50 new tests (`tests/test_torch_frontend.py`), `pytest.importorskip
+    ("torch")`-gated so they skip cleanly on a torch-less install:
+    framing-index correctness against `FramedSignal.__getitem__` directly;
+    float32 parity against the real, shipped numpy processor chain on
+    synthetic sine-mix/noise/click/silence signals across 4 signal lengths
+    (including non-multiples of the 441-sample hop) -- max absolute
+    difference ~2.3e-6, tolerance atol-dominated rather than ULP-based
+    (the temporal-difference stage's zero-clamping makes relative/ULP
+    metrics blow up on tiny absolute differences, a measurement artifact,
+    not a bigger error -- see that file's module docstring); float64
+    parity against a bespoke float64-throughout numpy test harness (numpy's
+    shipped classes hardcode a `complex64`/`float32` ceiling regardless of
+    input dtype and cannot produce a genuine float64 baseline) -- within
+    ~1e-10; `torch.autograd.gradcheck`-verified differentiability on a
+    small float64 instance; batched output matches per-item output to
+    float32 matmul/FFT batch-shape non-associativity tolerance; CPU and
+    (parametrized, skipped if unavailable) CUDA device tests; dtype/shape
+    mismatch error-handling tests.
+- Wheel-from-sdist install smoke test (org constitution art. 7): built via
+  `python -m build`, installed into a clean venv without torch (`import
+  madmom_infer` works, public symbol touch succeeds) and into a second
+  clean venv with the `torch` extra (`import madmom_infer.torch` works,
+  `rnn_downbeat_frontend()` runs).
+
 ## [0.1.1] - 2026-07-12
 
 ### Fixed

@@ -33,15 +33,25 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Core inference-only dependencies. numpy/scipy is the only backend that
-# exists today -- there is no torch dependency or extra anywhere in this
-# project (torch is a planned, not-yet-implemented Phase 3 item; see README.md).
+# Core inference-only dependencies. numpy/scipy is the always-available
+# backend; the optional [torch] extra below adds a differentiable spectrogram
+# frontend, but the core `madmom_infer` package never imports torch.
 dependencies = [
     "numpy",
     "scipy",
 ]
 
 [project.optional-dependencies]
+# Optional, differentiable, batched torch spectrogram frontend (Phase 3a) --
+# enables `import madmom_infer.torch`. The core `madmom_infer` package never
+# imports torch. Covers framing/STFT/filterbank/log-compression/temporal-diff,
+# reusing the numpy backend's own window and filterbank-matrix construction.
+# Does NOT (yet) cover the RNN forward pass (madmom's LSTMs use peephole
+# connections torch.nn.LSTM lacks) or Viterbi/DBN decoding (sequential,
+# discrete-state -- no GPU/batch benefit expected there); that's Phase 3b.
+torch = [
+    "torch>=2.0.0",
+]
 # Development dependencies
 dev = [
     "black",
