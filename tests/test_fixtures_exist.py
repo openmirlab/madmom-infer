@@ -129,6 +129,26 @@ EXPECTED_KEYS = {
         for case in ("mono_44100", "stereo_44100", "float32_44100")
         for suffix in ("activations", "beat_times")
     },
+    # Wave 4a (tools/generate_key_fixtures.py) -- 44.1kHz-native cases only,
+    # CNNKeyRecognitionProcessor has no resampling support (same reason as
+    # RNNDownBeatProcessor, see that file's module header).
+    "key_layers.npz": {"spec_input"} | {
+        f"{layer_type}_{suffix}"
+        for layer_type, suffixes in (
+            ("PadLayer", ("input", "output")),
+            ("ConvolutionalLayer", ("input", "output", "weights", "bias")),
+            ("BatchNormLayer",
+             ("input", "output", "beta", "gamma", "mean", "inv_std")),
+            ("MaxPoolLayer", ("input", "output")),
+            ("AverageLayer", ("input", "output")),
+        )
+        for suffix in suffixes
+    },
+    "key_activations.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("prediction", "label")
+    },
 }
 
 
@@ -152,6 +172,33 @@ def test_nn_structural_digest_exists_and_loads():
     expected_keys = {f"downbeats_blstm_{i}" for i in range(1, 9)}
     missing = expected_keys - set(digest.keys())
     assert not missing, f"nn_structural_digest.json missing keys: {sorted(missing)}"
+
+
+def test_key_structural_digest_exists_and_loads():
+    """Wave 4a fixture (tools/generate_key_fixtures.py): the unpickled
+    key_cnn.pkl structural digest."""
+    path = FIXTURES_DIR / "key_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    assert "key_cnn" in digest, "key_structural_digest.json missing 'key_cnn'"
+    assert len(digest["key_cnn"]) == 30, (
+        "key_cnn.pkl is expected to have exactly 30 layers"
+    )
+
+
+def test_key_layer_params_exists_and_loads():
+    """Wave 4a fixture (tools/generate_key_fixtures.py): non-array
+    hyperparameters for each of the 5 new layer-type fixtures in
+    key_layers.npz."""
+    path = FIXTURES_DIR / "key_layer_params.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    params = json.loads(path.read_text())
+    expected_types = {
+        "PadLayer", "ConvolutionalLayer", "BatchNormLayer", "MaxPoolLayer",
+        "AverageLayer",
+    }
+    missing = expected_types - set(params.keys())
+    assert not missing, f"key_layer_params.json missing types: {sorted(missing)}"
 
 
 def test_wav_fixtures_exist():

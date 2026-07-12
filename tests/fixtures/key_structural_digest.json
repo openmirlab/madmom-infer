@@ -1,0 +1,616 @@
+{
+  "key_cnn": [
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 2
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "f4652a7a9355ce63b56c138da237701df1c0a9ab553b1cd8b8aef0330a032bc4",
+        "shape": [
+          1,
+          24,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "d478739f6dee4a1d621432804c227c95bdfe02caa1e8fb5e85c2c4a8bd0afb24",
+        "shape": [
+          24
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "9fc63e8455389c0d049ce51431e1c59175e6d3514140e17095af2dfa0f6ae295",
+        "shape": [
+          24
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "75380c71efe3e6348e951b4c1eeea820786984bb19781da439cdb2c9481a6a7d",
+        "shape": [
+          24
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "43b0d7aacdfc7fe5867f667277b0481163bcf9256794128be21c9f42a642e4a3",
+        "shape": [
+          24
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "b260f65337dc5d076e57ea494795e5395c525a422643d84516c1af0478c0d2b3",
+        "shape": [
+          24,
+          24,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "e3a043b4f28b0a5f85e72f7843ea48335abe4907cfab7ab58e7ab7011e45c1e3",
+        "shape": [
+          24
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "0415e434e67560be53667165606e0dd96b1575207042124b9d398cdd0a5b62e3",
+        "shape": [
+          24
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "5dc5d375ad7641aba820dda629b21c11ba6dafb76fbc24f3548234801b98b210",
+        "shape": [
+          24
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "20f01973ef4ba18cb86e954f49dd0c2d5d872986b416551f4458cc09b9660178",
+        "shape": [
+          24
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axis": null,
+      "size": [
+        2,
+        2
+      ],
+      "stride": [
+        2,
+        2
+      ],
+      "type": "MaxPoolLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "f358d5929caf3e71be087b0aad077781d3b61aa82de59d556d16b3c19da684a8",
+        "shape": [
+          24,
+          48,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "0c7d0309d04e0fcb25ab6ad7bfa0ee7839169bd47b3b4cec5954ab2e9cdf4122",
+        "shape": [
+          48
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "5b1355d882f9cf4af44b6a86c631b6b9e8a7b5124094372477be8805d3cfd956",
+        "shape": [
+          48
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "13d2be68a8490d2d1774b5caa1835df4b20471b403951edcd7296c2db9219ea1",
+        "shape": [
+          48
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "92c872a91100daa0e5ab313e697b0f5972dd3b8f4a1a86a64d73936bbf26eb8e",
+        "shape": [
+          48
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "083a8041b5b37ee1f6265a6b8585f1fa238b16277619d6426a575ee901208003",
+        "shape": [
+          48,
+          48,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "dce35424fb0b39433d36a9d54f3b8931f172b13a2ced4adcadbfc91518d0e01f",
+        "shape": [
+          48
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "db6fd09020788ef9b526c006114ed447f96f2847456dfa50f9c386eda94ebad5",
+        "shape": [
+          48
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "198a061532ef1969177432029f044e6dffcec2051ee7614fee53784409596223",
+        "shape": [
+          48
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "bfff7f3437e7e3580d67342ce814663be390d454d4d849a392951596df017039",
+        "shape": [
+          48
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axis": null,
+      "size": [
+        2,
+        2
+      ],
+      "stride": [
+        2,
+        2
+      ],
+      "type": "MaxPoolLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "59078fa2067afd4a2c106432f0b8730aba0a2d34cc3ca638e3cf0a73824267c7",
+        "shape": [
+          48,
+          96,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "2d69651b29c5a610ed6642c5b829f5b52002b3142e5aec2a81600c134e1b82f7",
+        "shape": [
+          96
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "61fd233cbbbe270a2be6d97a4fc106922fa494ba8c5d8b9a5e0d0cc23900d6db",
+        "shape": [
+          96
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "a5e99982db531cec0fffd90d8d172cb05118646d7890577fec2f859d87e04127",
+        "shape": [
+          96
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "83071e8e811cf782095aca76f8a7bbaf27aa4efb790bf4f9c524afcca1a6d7b8",
+        "shape": [
+          96
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "72e871b243cbce4d3ca2a99f37e78ae26a38e4c050697181ca9ad81e20280e35",
+        "shape": [
+          96,
+          96,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "6bb2679de2e501d2ee9971d40fd93a9d7590323ba1857fe78de2aba1d3291202",
+        "shape": [
+          96
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "a5cac6a3ae62d0b9a01d672d92a2ebc58ccec2839b8c37e4714a3e0e3ee5d3d1",
+        "shape": [
+          96
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "e2be704e5aaa2f9ca02f86c8f0f3aa10d1ec1c8dde40b9227f1d4f2c61adb99d",
+        "shape": [
+          96
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "3e789cb1dc0842a618c71e43c1b3ca9b24d0540389d1c8797bba34a0453a49df",
+        "shape": [
+          96
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axis": null,
+      "size": [
+        2,
+        2
+      ],
+      "stride": [
+        2,
+        2
+      ],
+      "type": "MaxPoolLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "800c5ec5ff30b75cb950b3eb0e47ce590084d18a7bf2cb2eb5a71e8acdc84d1b",
+        "shape": [
+          96,
+          192,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "a49cfc779b3497700aa5de9f509be2d6b527a6000713bd4f0dcd70c2f5202ffb",
+        "shape": [
+          192
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "c042096fffe6f17f48e7e219685f7098fa29d1a70cdf2c16bad55406793385e1",
+        "shape": [
+          192
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "91b3d5aa1d7fba50f220e0ac8c30afe5533a494f29c26ec6623a356dfa53a84f",
+        "shape": [
+          192
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "ae2ec4fd247508b77494f28fcd1be7acf32a6190643cc513666f5b2a10af1d15",
+        "shape": [
+          192
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axes": [
+        0,
+        1
+      ],
+      "type": "PadLayer",
+      "value": 0.0,
+      "width": 1
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "829df11a5cbaeba034938ef6a1feb0b52f2af46933ab1b8cbb75540eab8c2a2d",
+        "shape": [
+          192,
+          192,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "0a78a569830e103fc0f357e0ca7be49acf6bd3d8bd1b2c0829335974bd20525a",
+        "shape": [
+          192
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "6e2aac5fa7057a3add39f536991617cee9fbaec000508a459e18c477d029f0a5",
+        "shape": [
+          192
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "75e89989602608304e57b8300756568c8f2afff5d6074144a4a34f1529d7e44f",
+        "shape": [
+          192
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "453d8135b44ff4ff58c9cf86b7974cc63dd4b301c1426189672d8c8ee40f1d00",
+        "shape": [
+          192
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "activation_fn": "linear",
+      "bias": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "35b802ebf039220758af1279414cc877a1599287c6a4d756e44060be43870edb",
+        "shape": [
+          192,
+          24,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "activation_fn": "elu",
+      "beta": {
+        "dtype": "float32",
+        "sha256": "af0eb0efb74b47dfecc551dbd3647d413896ec0a60980c728022f273fcf73acb",
+        "shape": [
+          24
+        ]
+      },
+      "gamma": {
+        "dtype": "float32",
+        "sha256": "17d17ee10cbe7d7f905cb4ec8eba5cfc3a54be8190b8b8b9a7eb90c9f037aeac",
+        "shape": [
+          24
+        ]
+      },
+      "inv_std": {
+        "dtype": "float32",
+        "sha256": "30da55085ca1ef3f0e4027b7b9ee23d54b0a53571f034f3dfa1c559c85d8e004",
+        "shape": [
+          24
+        ]
+      },
+      "mean": {
+        "dtype": "float32",
+        "sha256": "be575aeb4f663eb9bb4fc475b409ce1ef0267bead194e51d4352145a4334719f",
+        "shape": [
+          24
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "axis": [
+        0,
+        1
+      ],
+      "dtype": null,
+      "keepdims": false,
+      "type": "AverageLayer"
+    }
+  ]
+}

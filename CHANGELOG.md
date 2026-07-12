@@ -5,6 +5,52 @@ All notable changes to madmom-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+**Wave 4a of the complete-port campaign (`feat/complete-port` branch): CNN
+runtime + key detection.** Adds `CNNKeyRecognitionProcessor` end-to-end
+(audio in, 24-class major/minor key probabilities + decoded label out) and
+the 5 CNN-era layer classes it -- and every other CNN-based madmom model --
+needs.
+
+### Added
+- `madmom_infer/ml/nn/layers.py`: `ConvolutionalLayer`, `MaxPoolLayer`,
+  `BatchNormLayer`, `PadLayer`, `AverageLayer` -- ported from
+  `madmom.ml.nn.layers`, verified against `key_cnn.pkl`'s actual
+  `pickletools`-walked global references (exactly these 5 classes plus the
+  already-ported `elu`/`linear` activations -- no `ReshapeLayer`/
+  `TransposeLayer`/`StrideLayer` needed for this model). Only the
+  `scipy.ndimage.convolve` backend of `ConvolutionalLayer`'s `convolve()`
+  helper is implemented (no `opencv-python` dependency; the reference venv
+  that recorded this wave's fixtures has no `cv2` installed either, so this
+  is the real, not a speculative, code path).
+- `madmom_infer/ml/nn/unpickle.py`: 5 new `ALLOWED_GLOBALS` entries mapping
+  `madmom.ml.nn.layers.{ConvolutionalLayer,MaxPoolLayer,BatchNormLayer,
+  PadLayer,AverageLayer}` onto the classes above.
+- `madmom_infer/models.py`: `key_cnn()` / `KEY_CNN` registry entry
+  (`key/2018/key_cnn.pkl`, sha256-pinned, cross-checked against both a
+  fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and the
+  local `../madmom-upstream` submodule checkout -- identical bytes).
+- `madmom_infer/features/key.py` (new module): `CNNKeyRecognitionProcessor`,
+  `key_prediction_to_label`, `add_axis`, `KEY_LABELS` -- the full
+  SignalProcessor -> FramedSignalProcessor(8192, fps=5) ->
+  ShortTimeFourierTransformProcessor -> FilteredSpectrogramProcessor(24
+  bands, 65-2100Hz) -> LogarithmicSpectrogramProcessor -> CNN ensemble ->
+  softmax pipeline.
+- 9 new tests (`tests/test_key.py`, 6 offline + 3 `pytest.mark.network`): 5
+  per-layer-type golden-fixture tests (fully offline, real trained weights
+  embedded in the fixture itself, no network/unpickling needed),
+  unpickled-model structural-digest match, end-to-end activation match
+  (measured worst case 4 ULP, `float32` view-as-`int32` bit-pattern
+  distance, asserted at a 16-ULP margin), exact decoded-label match, and a
+  cross-BLAS exactness proof against the reference venv (zero differing
+  elements). Plus 4 new `tests/test_fixtures_exist.py` checks (2 new test
+  functions + 2 new parametrized fixture-file cases) and
+  `tools/generate_key_fixtures.py` (the fixture-generation script,
+  reference-venv-only, no network needed since `key_cnn.pkl` is already
+  vendored as that venv's package data). 13 new tests total; full offline
+  suite now 98 passed, 1 skipped, 14 deselected (was 88/1/11).
+
 ## [0.2.0] - 2026-07-12
 
 **Phase 3a: optional, differentiable torch spectrogram frontend.** The

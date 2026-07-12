@@ -1,10 +1,10 @@
-"""Phase-1 (beat/downbeat decoding) and Phase-2 (onset/tempo/chord/key/note
-feature extraction, gated) targets. Phase-1 here is limited to the HMM state
-spaces and DBN downbeat tracker that consume ml/hmm.py's Viterbi decoder;
-see beats_hmm.py and downbeats.py. Everything else in this subpackage
-(onset/tempo/chord/key/note extraction, and any neural-net forward pass) is
-Phase 2 and gated on the CC BY-NC-SA pretrained-weights question -- see
-README.md.
+"""Feature-extraction processors, ported incrementally by wave (see
+CLAUDE.md's Phase-4 audit table for the ground truth): `beats_hmm.py`
+(state spaces feeding `ml/hmm.py`'s Viterbi decoder) and `downbeats.py`
+(`RNNDownBeatProcessor`/`DBNDownBeatTrackingProcessor`) are Phase 1/2;
+`key.py` (`CNNKeyRecognitionProcessor`) is Wave 4a. The remaining
+onset/tempo/chord/note processors are TO-PORT in later 4x waves -- see
+CLAUDE.md, not this docstring, for the current status of each.
 
-Reads: madmom_infer/features/beats_hmm.py, downbeats.py
+Reads: madmom_infer/features/beats_hmm.py, downbeats.py, key.py
 """

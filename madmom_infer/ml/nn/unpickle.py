@@ -10,11 +10,12 @@ ONLY the exact class/function paths the target models are known to
 reference, and raises loudly on anything else.
 
 **How the allowlist below was derived**: not by reading source and guessing,
-but by running `pickletools.dis()` over all 8 `downbeats_blstm_[1-8].pkl`
-files (madmom's `DOWNBEATS_BLSTM` ensemble, Phase 2's end-to-end target,
-`madmom_infer/models.py`) and collecting every `GLOBAL` opcode's
-`(module, name)` pair. All 8 files reference the IDENTICAL set (same
-architecture, different trained weights):
+but by running `pickletools.dis()` over the target `.pkl` files and
+collecting every `GLOBAL`/`STACK_GLOBAL` opcode's `(module, name)` pair.
+
+Phase 2 target: all 8 `downbeats_blstm_[1-8].pkl` files (madmom's
+`DOWNBEATS_BLSTM` ensemble, `madmom_infer/models.py`). All 8 reference the
+IDENTICAL set (same architecture, different trained weights):
 
 | pickled path (madmom original)             | mapped to (madmom_infer)                    |
 |---------------------------------------------|----------------------------------------------|
@@ -31,14 +32,34 @@ architecture, different trained weights):
 | `numpy.ndarray`                             | (unchanged)                                   |
 | `numpy.dtype`                               | (unchanged)                                   |
 
-`RecurrentLayer`, `linear`, `relu`, `elu` are allowed pre-emptively (they are
-`Gate`'s/`Cell`'s own base class, and cheap sibling activation functions
-respectively) even though no `downbeats_blstm_*.pkl` file happens to
-reference them directly, since a future model reusing the same layer family
-plausibly would; anything NOT in this table (arbitrary builtins, `os`,
-`subprocess`, `eval`, or ANY class outside madmom_infer's own `ml.nn`
-package plus numpy's array-reconstruction primitives) is rejected with a
-loud `pickle.UnpicklingError`, not silently allowed.
+4a target: `key/2018/key_cnn.pkl` (madmom's `KEY_CNN`,
+`madmom_infer/models.py`'s `key_cnn()`). `pickletools.dis()` against the
+actual file (not guessed from reading `features/key.py`) found exactly:
+
+| pickled path (madmom original)              | mapped to (madmom_infer)                       |
+|----------------------------------------------|-------------------------------------------------|
+| `madmom.ml.nn.layers.ConvolutionalLayer`      | `madmom_infer.ml.nn.layers.ConvolutionalLayer`   |
+| `madmom.ml.nn.layers.MaxPoolLayer`            | `madmom_infer.ml.nn.layers.MaxPoolLayer`         |
+| `madmom.ml.nn.layers.BatchNormLayer`          | `madmom_infer.ml.nn.layers.BatchNormLayer`       |
+| `madmom.ml.nn.layers.PadLayer`                | `madmom_infer.ml.nn.layers.PadLayer`             |
+| `madmom.ml.nn.layers.AverageLayer`            | `madmom_infer.ml.nn.layers.AverageLayer`         |
+| `madmom.ml.nn.activations.elu`                | (already allowed, Phase 2 pre-emptive addition)  |
+| `madmom.ml.nn.activations.linear`             | (already allowed, Phase 2 pre-emptive addition)  |
+
+(plus the same `NeuralNetwork`/numpy-array-reconstruction entries above --
+`key_cnn.pkl` does not reference `FeedForwardLayer` directly even though
+`ConvolutionalLayer` subclasses it: pickle only needs a `GLOBAL` for the
+leaf class actually instantiated, base-class behavior comes along via
+ordinary Python attribute resolution once `find_class` returns the leaf.)
+
+`RecurrentLayer`, `relu` are allowed pre-emptively (they are `Gate`'s/
+`Cell`'s own base class, and a cheap sibling activation function
+respectively) even though no target `.pkl` file happens to reference them
+directly, since a future model reusing the same layer family plausibly
+would; anything NOT in this table (arbitrary builtins, `os`, `subprocess`,
+`eval`, or ANY class outside madmom_infer's own `ml.nn` package plus numpy's
+array-reconstruction primitives) is rejected with a loud
+`pickle.UnpicklingError`, not silently allowed.
 
 Reads: pickle (stdlib), numpy, madmom_infer.ml.nn.{NeuralNetwork},
 madmom_infer.ml.nn.layers.*, madmom_infer.ml.nn.activations.*; read by:
@@ -66,6 +87,11 @@ ALLOWED_GLOBALS = {
     ("madmom.ml.nn.layers", "Gate"): _layers.Gate,
     ("madmom.ml.nn.layers", "Cell"): _layers.Cell,
     ("madmom.ml.nn.layers", "LSTMLayer"): _layers.LSTMLayer,
+    ("madmom.ml.nn.layers", "ConvolutionalLayer"): _layers.ConvolutionalLayer,
+    ("madmom.ml.nn.layers", "MaxPoolLayer"): _layers.MaxPoolLayer,
+    ("madmom.ml.nn.layers", "BatchNormLayer"): _layers.BatchNormLayer,
+    ("madmom.ml.nn.layers", "PadLayer"): _layers.PadLayer,
+    ("madmom.ml.nn.layers", "AverageLayer"): _layers.AverageLayer,
     ("madmom.ml.nn.activations", "linear"): _activations.linear,
     ("madmom.ml.nn.activations", "tanh"): _activations.tanh,
     ("madmom.ml.nn.activations", "sigmoid"): _activations.sigmoid,

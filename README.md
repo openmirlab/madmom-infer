@@ -41,7 +41,8 @@ scratch -- it does not exist without their work:
   DSP, HMM/DBN decoding, and RNN ensemble code re-derive (see Citation below)
 - **[CPJKU/madmom_models](https://github.com/CPJKU/madmom_models)** -- the
   official upstream repository this project downloads pretrained
-  `RNNDownBeatProcessor` weights from at runtime (never bundled, see
+  `RNNDownBeatProcessor`/`CNNKeyRecognitionProcessor` weights from at
+  runtime (never bundled, see
   [What this project will NEVER bundle](#what-this-project-will-never-bundle))
 
 See [NOTICE](./NOTICE) for the full attribution statement, including why this
@@ -95,6 +96,9 @@ This project targets madmom's **inference** code only:
 - Decoding algorithms (Viterbi-based HMM/DBN beat and downbeat tracking)
 - The NN runtime and `RNNDownBeatProcessor` end-to-end (spectrogram frontend ->
   BLSTM ensemble -> DBN decode)
+- The CNN runtime (convolution/max-pool/batch-norm/pad/global-average layers)
+  and `CNNKeyRecognitionProcessor` end-to-end (spectrogram frontend -> CNN ->
+  24-class major/minor key probabilities + decoded label)
 
 Out of scope, forever:
 
@@ -104,13 +108,13 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: onset/tempo/chord/key/note feature extraction beyond
-`RNNDownBeatProcessor`, the remaining audio submodules (chroma, HPSS,
-cepstrogram), and a torch reimplementation of the RNN ensemble forward pass
-itself (blocked on a real design question -- madmom's LSTM layers use peephole
-connections `torch.nn.LSTM` does not implement, so this needs a custom cell,
-not a drop-in swap). Viterbi/DBN decoding is sequential and discrete-state, so
-it is not planned for a torch port -- no GPU benefit to speak of.
+Not yet ported: onset/tempo/chord/note feature extraction, the remaining
+audio submodules (chroma, HPSS, cepstrogram), and a torch reimplementation of
+the RNN ensemble forward pass itself (blocked on a real design question --
+madmom's LSTM layers use peephole connections `torch.nn.LSTM` does not
+implement, so this needs a custom cell, not a drop-in swap). Viterbi/DBN
+decoding is sequential and discrete-state, so it is not planned for a torch
+port -- no GPU benefit to speak of.
 
 ---
 
@@ -146,6 +150,22 @@ repository on first use, sha256-verified, and cached locally -- no separate
 download step needed. See
 [What this project will NEVER bundle](#what-this-project-will-never-bundle)
 for the licensing terms that apply to those weights.
+
+### Key detection
+
+```python
+from madmom_infer.features.key import (
+    CNNKeyRecognitionProcessor,
+    key_prediction_to_label,
+)
+
+key_proc = CNNKeyRecognitionProcessor()
+prediction = key_proc("track.wav")  # (1, 24) major/minor key probabilities
+key_prediction_to_label(prediction)  # e.g. "E major"
+```
+
+Same runtime-download/sha256/caching story as `RNNDownBeatProcessor` above,
+via `madmom_infer/models.py`'s `key_cnn()`.
 
 ### Torch frontend
 

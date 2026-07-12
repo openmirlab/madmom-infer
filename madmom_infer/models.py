@@ -35,17 +35,33 @@ the copy already vendored inside a real, pip-installed madmom 0.17.dev0
 wheel (`all-in-one-fix/.venv`), confirming the raw-GitHub copy and the
 PyPI-wheel-vendored copy are identical.
 
-Only `DOWNBEATS_BLSTM` (the Phase-2 end-to-end target, `RNNDownBeatProcessor`)
-has a populated, sha256-pinned file list today. Every other model family
-madmom ships (`BEATS_LSTM`, `ONSETS_RNN`, `CHORDS_DCCRF`, `NOTES_CNN`, ...)
-would follow the exact same `_ModelFile`/`download()` pattern -- adding one
-is a matter of listing its relative paths + sha256s, not new machinery --
-but is out of Phase-2 scope (see README's roadmap) until a processor that
-needs it is ported.
+4a addition: `KEY_CNN` (`key/2018/key_cnn.pkl`, `CNNKeyRecognitionProcessor`'s
+single-network model, `madmom_infer/features/key.py`). Its sha256 was
+computed directly from the file already present locally at
+`../madmom-upstream/madmom/models/key/2018/key_cnn.pkl` (populated by Wave
+4.0's `madmom/models` submodule checkout) and cross-checked byte-for-byte
+against a fresh download from
+`https://raw.githubusercontent.com/CPJKU/madmom_models/master/key/2018/key_cnn.pkl`
+(both hash to `c58ba553be1048877662a663a2670c0051b3c2c66d109b6042ba722ed0bfc7a6`
+-- confirmed 2026-07-12, network was available). `../madmom-upstream/madmom/
+models/__init__.py`'s `KEY_CNN = models('key/2018/key_cnn.pkl')` resolves to
+a single-element list (no glob wildcard -- unlike `DOWNBEATS_BLSTM`'s
+8-file ensemble, `key/2017/*` exists in the submodule checkout but is not
+`package_data`-shipped by a real madmom install and has no effect here, see
+CLAUDE.md's 4.0 audit corrections), so `key_cnn()` below returns a
+single-path list, matching `NeuralNetworkEnsemble.load()`'s expected input
+shape for an ensemble of size 1.
+
+Every other model family madmom ships (`BEATS_LSTM`, `ONSETS_RNN`,
+`CHORDS_DCCRF`, `NOTES_CNN`, ...) would follow the exact same
+`_ModelFile`/`download()` pattern -- adding one is a matter of listing its
+relative paths + sha256s, not new machinery -- but is out of scope until a
+processor that needs it is ported (see CLAUDE.md's wave plan).
 
 Reads: urllib.request (stdlib, HTTPS GET), hashlib (stdlib, sha256), os/
 pathlib (stdlib, XDG cache resolution); read by:
-madmom_infer/features/downbeats.py (RNNDownBeatProcessor.__init__).
+madmom_infer/features/downbeats.py (RNNDownBeatProcessor.__init__),
+madmom_infer/features/key.py (CNNKeyRecognitionProcessor.__init__).
 """
 
 import hashlib
@@ -175,3 +191,30 @@ def downbeats_blstm(cache_root: Path = None, force: bool = False):
     """
     return [download(f, cache_root=cache_root, force=force)
             for f in _DOWNBEATS_BLSTM_FILES]
+
+
+# ---------------------------------------------------------------------------
+# KEY_CNN: madmom's single-network CNN key-recognition model, used by
+# CNNKeyRecognitionProcessor -- the 4a end-to-end target.
+# sha256 verified against BOTH a fresh raw-GitHub download AND the copy
+# already checked out locally under ../madmom-upstream/madmom/models
+# (identical, see this module's header).
+# ---------------------------------------------------------------------------
+_KEY_CNN_FILES = [
+    _ModelFile("key/2018/key_cnn.pkl",
+               "c58ba553be1048877662a663a2670c0051b3c2c66d109b6042ba722ed0bfc7a6"),
+]
+
+
+def key_cnn(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `key_cnn.pkl` (as a
+    single-element list) -- madmom's `KEY_CNN` model list
+    (`madmom-upstream/madmom/models/__init__.py`'s
+    `models('key/2018/key_cnn.pkl')`), the model
+    `madmom_infer.features.key.CNNKeyRecognitionProcessor` loads by default.
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _KEY_CNN_FILES]

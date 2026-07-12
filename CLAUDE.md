@@ -94,6 +94,46 @@ to refer to a specific chunk of already-shipped work:
     suite: 88 passed, 1 skipped (torch extra not installed, expected),
     11 deselected (network-marked). See the audit table below for the
     class-level gap inventory this wave produced.
+  - **4a status: DONE (2026-07-12).** Ported exactly the 5 layer classes
+    the 4.0 audit predicted (`ConvolutionalLayer`, `MaxPoolLayer`,
+    `BatchNormLayer`, `PadLayer`, `AverageLayer`) -- `key_cnn.pkl`'s
+    real `pickletools`-walked globals confirmed no `ReshapeLayer`/
+    `TransposeLayer`/`StrideLayer` are needed for THIS model (those stay
+    TO-PORT for 4b/4e's onset/notes CNNs, which do reference them), and
+    `elu`/`linear` were already ported in Phase 2. Added 5
+    `unpickle.py` allowlist entries (minimal, explicit, one per class,
+    no `find_class` widening) and `models.py`'s `key_cnn()` registry
+    entry (`key/2018/key_cnn.pkl`, sha256
+    `c58ba553be1048877662a663a2670c0051b3c2c66d109b6042ba722ed0bfc7a6`,
+    cross-checked identical against a live `raw.githubusercontent.com/
+    CPJKU/madmom_models` download AND the local `../madmom-upstream`
+    submodule checkout -- network was available, both checked, not just
+    one). New `madmom_infer/features/key.py`:
+    `CNNKeyRecognitionProcessor` end-to-end (audio in, 24-class
+    major/minor key probabilities + decoded label out), composing
+    `FilteredSpectrogramProcessor` -> `LogarithmicSpectrogramProcessor`
+    instead of upstream's fused `LogarithmicFilteredSpectrogramProcessor`
+    convenience class (numerically identical, same pattern
+    `RNNDownBeatProcessor` already established). **Faithfulness proof:
+    PASSED** -- `tests/test_key.py::
+    test_full_pipeline_is_exact_under_original_blas` (this port's own
+    `CNNKeyRecognitionProcessor`, run under the reference venv against
+    the local `key_cnn.pkl`) reproduces real madmom's activations AND
+    decoded key labels with **zero differing elements**, for all 3
+    usable 44.1kHz test-wav cases. In-process (differing-BLAS-build) ULP
+    drift measured at up to 4 ULP (`float32` view-as-`int32` bit-pattern
+    distance) end-to-end -- tests assert a 16-ULP margin (4x observed,
+    matching this repo's existing margin convention); the decoded key
+    label is EXACT in every case despite that drift. New
+    `tools/generate_key_fixtures.py` records per-layer-type golden
+    (input, output, real weights) fixtures for all 5 new layer classes
+    (fully self-contained -- offline tests reconstruct this port's own
+    layer instances directly from the fixture, no unpickling or network
+    needed) plus the unpickled structural digest and end-to-end
+    activations/labels. 13 new tests (`tests/test_key.py`: 6 offline + 3
+    network; `tests/test_fixtures_exist.py`: 4 more). Full offline suite:
+    98 passed, 1 skipped, 14 deselected (was 88/1/11 after 4.0); network
+    suite: 14 passed, 1 skipped, 98 deselected, all green.
 
 ### 4.0 audit result (2026-07-12)
 
@@ -160,7 +200,7 @@ EXCLUDE (why).
 | `ml/gmm.py` | `GMM`, `log_multivariate_normal_density`, `logsumexp`, `pinvh` | TO-PORT (4f) | -- | backs `GMMPatternTrackingObservationModel` |
 | `ml/nn/__init__.py` | `NeuralNetwork`, `NeuralNetworkEnsemble`, `average_predictions` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `Layer`, `FeedForwardLayer`, `RecurrentLayer`, `BidirectionalLayer`, `Gate`, `Cell`, `LSTMLayer` | PORTED | -- | Phase 2 |
-| `ml/nn/layers.py` | `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` | TO-PORT (4a) | -- | confirmed pickletools-walked as exactly what `key_cnn.pkl` (`AverageLayer`,`BatchNormLayer`,`ConvolutionalLayer`,`MaxPoolLayer`,`PadLayer`,`elu`,`linear`), `onsets_cnn.pkl`, `notes_cnn*.pkl`, `chords_cnnfeat.pkl` reference |
+| `ml/nn/layers.py` | `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` | PORTED (4a) | -- | confirmed pickletools-walked as exactly what `key_cnn.pkl` (`AverageLayer`,`BatchNormLayer`,`ConvolutionalLayer`,`MaxPoolLayer`,`PadLayer`,`elu`,`linear`) references; `onsets_cnn.pkl`, `notes_cnn*.pkl`, `chords_cnnfeat.pkl` also need this same set (reused by 4b/4d/4e, not re-ported) |
 | `ml/nn/layers.py` | `GRULayer`, `GRUCell` | TO-PORT (tentative 4c, scope addition -- see corrections above) | -- | `downbeats_bgru_*.pkl` (12 files) reference these; no wave currently plans them |
 | `ml/nn/layers.py` | `ReshapeLayer`, `TransposeLayer`, `StrideLayer` | TO-PORT (4a/4b, alongside the CNN infra that needs them) | -- | `notes_cnn.pkl` needs Reshape+Transpose; `onsets_cnn.pkl` needs Stride |
 | `ml/nn/layers.py` | `TCNBlock`, `TCNLayer` | EXCLUDE | -- | no shipped model references them (`BEATS_TCN` not in `package_data`; confirmed by attempted load, file absent from installed tree) |
@@ -180,7 +220,7 @@ EXCLUDE (why).
 | `features/onsets.py` | `SpectralOnsetProcessor`, `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`, `complex_domain`, `rectified_complex_domain`, `high_frequency_content`, `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`, `normalized_weighted_phase_deviation`, `correlation_diff`, `wrap_to_pi`, `peak_picking`, `OnsetPeakPickingProcessor` | TO-PORT (4b) | -- | pure DSP, no NN weights |
 | `features/onsets.py` | `RNNOnsetProcessor` | TO-PORT (4b) | `ONSETS_RNN`, `ONSETS_BRNN`, `ONSETS_BRNN_PP` | pickle refs: `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer` -- all already PORTED (Phase 2), no new layer classes |
 | `features/onsets.py` | `CNNOnsetProcessor` | TO-PORT (4b, reuses 4a's conv layers) | `ONSETS_CNN` | pickle refs: `ConvolutionalLayer`,`MaxPoolLayer`,`BatchNormLayer`,`StrideLayer` + `MelFilterbank` input |
-| `features/key.py` | `CNNKeyRecognitionProcessor`, `key_prediction_to_label`, `add_axis` | TO-PORT (4a) | `KEY_CNN` = `key/2018/key_cnn.pkl` | pickle refs confirmed above |
+| `features/key.py` | `CNNKeyRecognitionProcessor`, `key_prediction_to_label`, `add_axis` | PORTED (4a) | `KEY_CNN` = `key/2018/key_cnn.pkl` | pickle refs confirmed above; cross-BLAS-proven exact (`tests/test_key.py`) |
 | `features/chords.py` | `DeepChromaChordRecognitionProcessor` | TO-PORT (4d) | `CHORDS_DCCRF` | pickle has **no** NN globals -- CRF-only (`ml/crf.py`), confirms 4d's CRF-first framing |
 | `features/chords.py` | `CNNChordFeatureProcessor` | TO-PORT (4d) | `CHORDS_CNN_FEAT` | pickle refs: `ConvolutionalLayer`,`BatchNormLayer`,`MaxPoolLayer` (4a's set, no new classes) |
 | `features/chords.py` | `CRFChordRecognitionProcessor` | TO-PORT (4d) | `CHORDS_CFCRF` | pickle has no NN globals -- CRF-only |
