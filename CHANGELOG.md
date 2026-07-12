@@ -7,6 +7,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Wave 4c of the complete-port campaign (`feat/complete-port` branch): beat
+tracking + tempo estimation + GRU support.** Adds `RNNBeatProcessor`,
+`DBNBeatTrackingProcessor` (beat-only), `MultiModelSelectionProcessor`,
+the full tempo histogram family (`TempoEstimationProcessor`, `acf`/`comb`/
+`dbn` modes), a numpy port of `audio/comb_filters.pyx`, and `GRULayer`/
+`GRUCell` (the shipped `DOWNBEATS_BGRU` models' layer family, an audit
+correction -- see CLAUDE.md).
+
+### Added
+- `madmom_infer/audio/comb_filters.py` (new module): `feed_forward_comb_filter`,
+  `feed_backward_comb_filter` (+ 1D/2D helpers), `comb_filter`,
+  `CombFilterbankProcessor` -- numpy port of `audio/comb_filters.pyx`,
+  proven **bit-identical** to real madmom (`np.array_equal`, both
+  in-process and cross-BLAS, no tolerance needed at all -- neither function
+  touches BLAS). Found and reproduced two real precision quirks, both
+  confirmed empirically against the reference venv: (1) real madmom's
+  `feed_backward_comb_filter` silently rounds `alpha` to float32 precision
+  before its accumulation loop (a Cython `cdef ... float alpha` parameter
+  coercion); (2) `comb_filter`'s per-tau dispatch extracting `alpha[i]`
+  from a numpy array is a numpy-2.x-vs-1.23.5 scalar-promotion divergence
+  (NEP 50) -- fixed with an explicit `float(alpha[i])` cast, same class of
+  fix as `features/onsets.py`'s `normalized_weighted_phase_deviation`.
+- `madmom_infer/ml/nn/layers.py`: `GRUCell`, `GRULayer` -- the layer family
+  all 12 `downbeats_bgru_{harmonic,rhythmic}_[0-5].pkl` files need
+  (confirmed by `pickletools`). Found the real shipped files use an
+  OLDER pickle format than every other target `.pkl` in this project
+  (loading one emits real madmom's own "please update your GRU models"
+  `RuntimeWarning`) -- ported `GRULayer.__setstate__`'s legacy
+  `hid_init` -> `init` rename branch verbatim (initially dropped as
+  presumed-dead code; empirically NOT dead, all 12 real files exercise it).
+- `madmom_infer/ml/nn/unpickle.py`: 4 new `ALLOWED_GLOBALS` entries --
+  `GRUCell`, `GRULayer`, plus 2 generic old-style-class reconstruction
+  primitives (`copy_reg._reconstructor` -> `copyreg._reconstructor`,
+  `__builtin__.object` -> `builtins.object`) the older-format
+  `downbeats_bgru_*.pkl` files also reference.
+- `madmom_infer/features/beats.py` (new module): `RNNBeatProcessor`
+  (online + offline LSTM/BLSTM ensembles), `DBNBeatTrackingProcessor`
+  (beat-only, offline-only -- reuses `beats_hmm.py`'s existing
+  `BeatStateSpace`/`BeatTransitionModel`/`RNNBeatTrackingObservationModel`),
+  `MultiModelSelectionProcessor`. Found and fixed a genuine Phase-2 latent
+  bug this wave surfaced: `RNNBeatTrackingObservationModel.log_densities`
+  (`features/beats_hmm.py`) called `np.asarray(observations, ndmin=1)`,
+  which is not valid on ANY numpy version (`asarray` has no `ndmin`
+  parameter) -- a previous wave's numpy-2.x-compat note wrongly claimed
+  this worked; never exercised until `DBNBeatTrackingProcessor` (this
+  class was the only caller). Fixed as `np.array(observations, ndmin=1)`.
+  `CRFBeatDetectionProcessor` stays out of scope (wave 4f); `BeatTrackingProcessor`/
+  `BeatDetectionProcessor`/`detect_beats` are real upstream classes with no
+  wave assignment in the audit table (flagged, not silently ported).
+- `madmom_infer/features/tempo.py` (new module): `smooth_histogram`,
+  `interval_histogram_acf`, `interval_histogram_comb`, `dominant_interval`,
+  `detect_tempo`, `TempoHistogramProcessor`, `ACFTempoHistogramProcessor`,
+  `CombFilterTempoHistogramProcessor`, `DBNTempoHistogramProcessor`,
+  `TempoEstimationProcessor` -- all offline-only (`OnlineProcessor` stays a
+  permanent exclusion). `TCNTempoHistogramProcessor` stays EXCLUDED (only
+  consumes `TCNBeatProcessor` output, which cannot exist -- `BEATS_TCN` is
+  not shipped by a real madmom install).
+- `madmom_infer/features/downbeats.py`: `SyncronizeFeaturesProcessor`
+  (pure numpy, proven bit-identical), `RNNBarProcessor` (ported verbatim,
+  but cannot be instantiated end-to-end from raw audio until wave 4d ports
+  `CLPChromaProcessor` -- its GRU-ensemble forward pass is instead proven
+  bit-exact via a golden intermediate-feature fixture captured from real
+  madmom, not a full audio-in run).
+- `madmom_infer/ml/nn/__init__.py`: fixed a genuine numpy-2.x-vs-1.23.5
+  DTYPE divergence in `average_predictions` (not upstream's fault) --
+  averaging a list of 0-DIMENSIONAL float32 arrays (an ensemble fed a
+  single-frame input, as `RNNBarProcessor`'s GRU ensembles can be)
+  silently stays float32 on numpy >= 2.0 (NEP 50) but real madmom's own
+  `sum(pred) / len(pred)` upcasts to float64 on numpy < 2.0 (its
+  value-based casting treats 0-d "scalar-kind" arrays differently from
+  N-d ones) -- fixed with an explicit branch reproducing the old
+  (real-madmom-recorded) dtype on every numpy version; N-d predictions
+  (every other model family, including the already-shipped
+  `DOWNBEATS_BLSTM` ensemble) are unaffected, already matched on both.
+- `madmom_infer/models.py`: `beats_lstm()`/`BEATS_LSTM` (8 files),
+  `beats_blstm()`/`BEATS_BLSTM` (8 files), `downbeats_bgru_rhythmic()`/
+  `downbeats_bgru_harmonic()`/`downbeats_bgru()`/`DOWNBEATS_BGRU` (12
+  files, `[rhythmic, harmonic]` list-of-lists matching upstream's own
+  shape) -- 28 sha256-pinned registry entries, cross-checked against both
+  a fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and the
+  local `../madmom-upstream` submodule checkout (identical).
+- 66 new tests (`tests/test_comb_filters.py`: 17; `tests/test_beats.py`:
+  15; `tests/test_tempo.py`: 15; `tests/test_downbeats_rnn.py`: +13 GRU/
+  sync-features tests; `tests/test_fixtures_exist.py`: +6 more) and
+  `tools/generate_beat_tempo_fixtures.py` (the fixture-generation script,
+  reference-venv-only). Faithfulness proof: `tests/test_beats.py::
+  test_full_pipeline_is_exact_under_original_blas` reproduces real
+  madmom's `RNNBeatProcessor`(online=False/True) + `DBNBeatTrackingProcessor`
+  activations AND decoded beat times with **zero differing elements**;
+  `tests/test_comb_filters.py`/`tests/test_tempo.py` are bit-identical
+  even IN-PROCESS (no BLAS involved); `tests/test_downbeats_rnn.py::
+  test_downbeats_bgru_ensembles_are_exact_under_original_blas` proves the
+  GRU forward pass itself bit-identical. Full offline suite now 174
+  passed, 1 skipped, 25 deselected (was 123/1/20); network suite 25
+  passed, 1 skipped, 174 deselected, all green.
+
 **Wave 4b of the complete-port campaign (`feat/complete-port` branch):
 onset detection.** Adds the complete spectral-flux/phase-deviation/
 complex-domain onset detection DSP function family, `SpectralOnsetProcessor`,

@@ -7,17 +7,31 @@ lives in ml/hmm.py.
 
 This is a near-mechanical, near-line-for-line port of the pure-Python original
 (class names/attributes preserved). The one non-mechanical change: madmom's
-`RNNDownBeatTrackingObservationModel.log_densities` inherited from
-`RNNBeatTrackingObservationModel` at `beats_hmm.py:564` does
-`np.array(observations, copy=False, subok=True, ndmin=1)`, which raises under
-numpy >= 2.0 (the old "copy if needed, else don't" meaning of `copy=False` was
-replaced by "never copy, raise if a copy is required" -- the old behavior is
-now spelled `copy=None`). Ported here as `np.asarray(observations, ndmin=1)`,
-which is copy-only-if-needed on every numpy version (there is no `subok`
-knob to preserve, since `madmom_infer` doesn't use `Signal`-style ndarray
-subclasses, per docs/DESIGN.md C.2). `GMMPatternTrackingObservationModel`,
-`MultiPatternStateSpace`/`MultiPatternTransitionModel` are out of phase-1 scope
-(pattern-tracking-only) and intentionally not ported.
+`RNNBeatTrackingObservationModel.log_densities` (`beats_hmm.py:395-419`,
+used by 4c's `DBNBeatTrackingProcessor`) does `np.array(observations,
+copy=False, subok=True, ndmin=1)`, which raises under numpy >= 2.0 (the old
+"copy if needed, else don't" meaning of `copy=False` was replaced by "never
+copy, raise if a copy is required" -- the old behavior is now spelled
+`copy=None`). **Correction (Wave 4c): the previous version of this note
+claimed this was ported as `np.asarray(observations, ndmin=1)` -- that was
+simply wrong, `np.asarray` has never accepted an `ndmin` keyword at all (it
+raises `TypeError` unconditionally, on every numpy version, not just >=
+2.0) -- a latent bug that shipped in Phase 2 and went undetected because no
+processor exercised `RNNBeatTrackingObservationModel` until 4c's
+`DBNBeatTrackingProcessor`.** (It also wrongly claimed
+`RNNDownBeatTrackingObservationModel.log_densities` *inherits* this method
+from `RNNBeatTrackingObservationModel` -- it does not; it defines its own
+`log_densities` below, which never calls this line, which is exactly why
+Phase 2's `DBNDownBeatTrackingProcessor` never hit the bug.) Fixed here as
+plain `np.array(observations, ndmin=1)` (default `copy=True`, valid on
+every numpy version) -- there is no `subok` knob to preserve either, since
+`madmom_infer` doesn't use `Signal`-style ndarray subclasses (docs/
+DESIGN.md C.2); confirmed against the reference venv that real madmom's own
+`copy=False` fast path returns the SAME VALUES (just avoids a redundant
+copy when none is needed), so this fix is numerically identical, not just
+error-free. `GMMPatternTrackingObservationModel`, `MultiPatternStateSpace`/
+`MultiPatternTransitionModel` are out of phase-1 scope (pattern-tracking-
+only) and intentionally not ported.
 
 Reads: madmom_infer/ml/hmm.py (ObservationModel, TransitionModel);
 read by: madmom_infer/features/downbeats.py
@@ -413,12 +427,12 @@ class RNNBeatTrackingObservationModel(ObservationModel):
         """
         # cast as 1-dimensional array
         # Note: in online mode, observations are just float values
-        # numpy 2.x: madmom's `np.array(observations, copy=False, subok=True,
-        # ndmin=1)` (beats_hmm.py:564) raises under numpy >= 2.0, since
-        # `copy=False` there means "never copy, raise if one is required"
-        # (the pre-2.0 "copy only if needed" meaning is now `copy=None`).
-        # `np.asarray(..., ndmin=1)` is copy-only-if-needed on every version.
-        observations = np.asarray(observations, ndmin=1)
+        # numpy 2.x fix -- see this module's header (Wave 4c correction):
+        # `np.asarray(..., ndmin=1)` is not valid on ANY numpy version
+        # (`asarray` has no `ndmin` parameter); plain `np.array(...,
+        # ndmin=1)` (default copy=True) is version-safe and numerically
+        # identical to real madmom's `copy=False` fast path.
+        observations = np.array(observations, ndmin=1)
         # init densities
         log_densities = np.empty((len(observations), 2), dtype=float)
         # Note: it's faster to call np.log 2 times instead of once on the

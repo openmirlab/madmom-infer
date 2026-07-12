@@ -171,6 +171,41 @@ EXPECTED_KEYS = {
         for model in ("brnn", "rnn", "cnn")
         for suffix in ("activations", "onsets")
     },
+    # Wave 4c (tools/generate_beat_tempo_fixtures.py) -- comb-filter
+    # function fixtures, fed a real beat activation function
+    # (mono_44100.wav only, see that file's module header).
+    "beats_comb_filters.npz": {
+        "comb_filter_input_1d", "comb_filter_input_2d",
+        "comb_filter_bank_forward", "comb_filter_bank_backward",
+    } | {
+        f"feed_{direction}_tau{tau}"
+        for direction in ("forward", "backward")
+        for tau in (5, 17, 43)
+    } | {"feed_backward_2d_tau17"},
+    # Wave 4c -- 44.1kHz-native cases only, RNNBeatProcessor has no
+    # resampling support (same reason as RNNDownBeatProcessor/
+    # RNNOnsetProcessor).
+    "beats_activations.npz": {
+        f"{case}_{model}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for model in ("blstm", "lstm")
+        for suffix in ("activations", "beat_times")
+    },
+    "beats_multimodel_selection.npz": {
+        f"prediction_{i}" for i in range(8)
+    } | {"selected"},
+    "tempo_histograms.npz": {"tempo_input_activations"} | {
+        f"{method}_{suffix}"
+        for method in ("acf", "comb", "dbn")
+        for suffix in ("histogram_bins", "histogram_delays", "tempi")
+    },
+    "sync_features.npz": {
+        "sync_features_input", "sync_beats_input", "sync_features_output",
+    },
+    "downbeats_bgru_intermediate.npz": {
+        "beats", "perc_synced", "harm_synced", "perc_nn_out", "harm_nn_out",
+        "full_downbeat_activation",
+    },
 }
 
 
@@ -245,6 +280,37 @@ def test_onset_stride_layer_params_exists_and_loads():
     params = json.loads(path.read_text())
     assert "StrideLayer" in params
     assert "block_size" in params["StrideLayer"]
+
+
+def test_beats_structural_digest_exists_and_loads():
+    """Wave 4c fixture (tools/generate_beat_tempo_fixtures.py): the
+    unpickled beats_lstm_1/beats_blstm_1 structural digests."""
+    path = FIXTURES_DIR / "beats_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"beats_lstm_1", "beats_blstm_1"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"beats_structural_digest.json missing keys: {sorted(missing)}"
+    assert len(digest["beats_lstm_1"]) == 4
+    assert len(digest["beats_blstm_1"]) == 4
+
+
+def test_downbeats_bgru_structural_digest_exists_and_loads():
+    """Wave 4c fixture (tools/generate_beat_tempo_fixtures.py): the
+    unpickled downbeats_bgru_rhythmic_0/harmonic_0 structural digests
+    (GRULayer/GRUCell)."""
+    path = FIXTURES_DIR / "downbeats_bgru_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {
+        "downbeats_bgru_rhythmic_0", "downbeats_bgru_harmonic_0",
+    }
+    missing = expected_keys - set(digest.keys())
+    assert not missing, (
+        f"downbeats_bgru_structural_digest.json missing keys: {sorted(missing)}"
+    )
+    assert len(digest["downbeats_bgru_rhythmic_0"]) == 3
+    assert len(digest["downbeats_bgru_harmonic_0"]) == 3
 
 
 def test_wav_fixtures_exist():

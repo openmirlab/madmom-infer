@@ -1,34 +1,42 @@
 """Neural-network layers -- port of the subset of madmom.ml.nn.layers that
 the Phase-2 target ensemble (`DOWNBEATS_BLSTM`, 8x `downbeats_blstm_N.pkl`),
-the 4a target model (`KEY_CNN`, `key/2018/key_cnn.pkl`), and the 4b onset
-models (`ONSETS_RNN`/`ONSETS_BRNN`/`ONSETS_CNN`) actually need, enumerated
-by inspecting the pickled files themselves with `pickletools` (not guessed
-from reading source): every one of the 8 `downbeats_blstm_*` files
-references exactly `NeuralNetwork`, `BidirectionalLayer`, `LSTMLayer`,
-`Gate`, `Cell`, `FeedForwardLayer` (plus `activations.sigmoid`/`tanh`/
-`softmax`); `key_cnn.pkl` references exactly `NeuralNetwork`,
-`ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`,
-`AverageLayer` (plus `activations.elu`/`linear`, both already ported in
-Phase 2 for other reasons); `onsets_rnn_*.pkl`/`onsets_brnn_*.pkl` reference
-only already-ported classes (`FeedForwardLayer`/`RecurrentLayer`, plus
-`BidirectionalLayer` for the BRNN family -- no new classes needed);
-`onsets_cnn.pkl` references `BatchNormLayer`, `ConvolutionalLayer`,
-`FeedForwardLayer`, `MaxPoolLayer` (all already ported by 4a) PLUS
-`StrideLayer` (new in 4b) -- see madmom_infer/ml/nn/unpickle.py's module
-header for the full class-path mapping table this finding produced.
+the 4a target model (`KEY_CNN`, `key/2018/key_cnn.pkl`), the 4b onset
+models (`ONSETS_RNN`/`ONSETS_BRNN`/`ONSETS_CNN`), and the 4c beat/GRU
+models (`BEATS_LSTM`/`BEATS_BLSTM`, `DOWNBEATS_BGRU`) actually need,
+enumerated by inspecting the pickled files themselves with `pickletools`
+(not guessed from reading source): every one of the 8 `downbeats_blstm_*`
+files references exactly `NeuralNetwork`, `BidirectionalLayer`,
+`LSTMLayer`, `Gate`, `Cell`, `FeedForwardLayer` (plus
+`activations.sigmoid`/`tanh`/`softmax`); `key_cnn.pkl` references exactly
+`NeuralNetwork`, `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`,
+`PadLayer`, `AverageLayer` (plus `activations.elu`/`linear`, both already
+ported in Phase 2 for other reasons); `onsets_rnn_*.pkl`/
+`onsets_brnn_*.pkl` reference only already-ported classes
+(`FeedForwardLayer`/`RecurrentLayer`, plus `BidirectionalLayer` for the
+BRNN family -- no new classes needed); `onsets_cnn.pkl` references
+`BatchNormLayer`, `ConvolutionalLayer`, `FeedForwardLayer`, `MaxPoolLayer`
+(all already ported by 4a) PLUS `StrideLayer` (new in 4b); `beats_lstm_*.pkl`/
+`beats_blstm_*.pkl` (4c) reference only already-ported classes
+(`FeedForwardLayer`/`RecurrentLayer`/`LSTMLayer`/`Gate`/`Cell`, plus
+`BidirectionalLayer` for the BLSTM family -- same architecture family as
+`downbeats_blstm_*.pkl`, no new classes); all 12
+`downbeats_bgru_{harmonic,rhythmic}_*.pkl` files (4c) reference exactly
+`NeuralNetwork`, `BidirectionalLayer`, `FeedForwardLayer`, `Gate`,
+`GRUCell`, `GRULayer` (plus `activations.sigmoid`/`tanh`) -- `GRUCell`/
+`GRULayer` are new this wave, everything else already ported -- see
+madmom_infer/ml/nn/unpickle.py's module header for the full class-path
+mapping table these findings produced.
 
-Deliberately NOT ported (no reference in any Phase-2/4a/4b target pickle;
-left for a future wave that targets a model actually using them):
+Deliberately NOT ported (no reference in any Phase-2/4a/4b/4c target
+pickle; left for a future wave that targets a model actually using them):
 `SequentialLayer`, `ParallelLayer`, `MultiTaskLayer` (composition-only
 wrappers, no pickled model targeted so far routes through them),
 `RecurrentLayer` is kept (it's `Gate`/`Cell`'s and `LSTMLayer`'s own base
-class), `GRUCell`/`GRULayer` (gated-recurrent-unit variant --
-`DOWNBEATS_BGRU` models, tentatively 4c, see CLAUDE.md), `TransposeLayer`/
-`ReshapeLayer` (needed by `notes_cnn.pkl`, not `onsets_cnn.pkl` -- confirmed
-by 4b's own pickletools walk of `onsets_cnn.pkl`, which references
-`StrideLayer` but neither of these; stays TO-PORT for 4e), `TCNBlock`/
-`TCNLayer` (temporal-conv-net -- e.g. `BEATS_TCN`, permanently EXCLUDED, no
-shipped model references them).
+class), `TransposeLayer`/`ReshapeLayer` (needed by `notes_cnn.pkl`, not
+`onsets_cnn.pkl` -- confirmed by 4b's own pickletools walk of
+`onsets_cnn.pkl`, which references `StrideLayer` but neither of these;
+stays TO-PORT for 4e), `TCNBlock`/`TCNLayer` (temporal-conv-net -- e.g.
+`BEATS_TCN`, permanently EXCLUDED, no shipped model references them).
 
 `ConvolutionalLayer`'s `convolve()` helper: upstream tries `cv2.filter2D`
 first (faster for some kernel sizes) and falls back to
@@ -285,6 +293,103 @@ class LSTMLayer(RecurrentLayer):
             self._state = cell * ig + self._state * fg
             og = self.output_gate.activate(data_, self._prev, self._state)
             out[i] = self.activation_fn(self._state) * og
+            self._prev = out[i]
+        return out
+
+
+# -- GRU stuff (4c: downbeats_bgru_*.pkl's layer family) ----------------
+class GRUCell(Cell):
+    """A cell as used inside `GRULayer`: `tanh(W_xh . x_t + W_hh . (reset_gate
+    * h_{t-1}) + b)`, i.e. a `Cell` whose recurrent term is additionally
+    gated by the reset gate's current activation.
+
+    Port of `layers.GRUCell` (`madmom-upstream/madmom/ml/nn/layers.py:
+    590-654`). Two GRU cell formulations exist in the literature; this is
+    the (slightly older) one from Cho et al. 2014, also used by the Lasagne
+    toolbox -- same one real madmom implements. Should not be used
+    standalone, only inside a `GRULayer`.
+    """
+
+    def activate(self, data, prev, reset_gate):
+        """Activate the GRU cell with the current frame's `data`, the
+        previous frame's output `prev`, and the current reset gate
+        activation `reset_gate`."""
+        out = np.dot(data, self.weights) + self.bias
+        out += reset_gate * np.dot(prev, self.recurrent_weights)
+        return self.activation_fn(out)
+
+
+class GRULayer(RecurrentLayer):
+    """Recurrent layer with Gated Recurrent Units (GRU): a `reset_gate`/
+    `update_gate` pair of plain `Gate`s plus a `GRUCell`, driven one frame
+    at a time.
+
+    Port of `layers.GRULayer` (`madmom-upstream/madmom/ml/nn/layers.py:
+    657-782`). `_prev` (previous output) is transient runtime state,
+    excluded from pickling exactly like `RecurrentLayer._prev` (see that
+    class's docstring). `reset_gate`/`update_gate` are ordinary `Gate`
+    instances (no peephole connections) -- `Gate.activate(data, prev,
+    state=None)`'s existing signature already matches how `GRULayer` calls
+    them (`state` left at its default `None`), so no new gate class was
+    needed beyond `GRUCell` itself.
+    """
+
+    def __init__(self, reset_gate, update_gate, cell, init=None):
+        # pylint: disable=super-init-not-called
+        self.reset_gate = reset_gate
+        self.update_gate = update_gate
+        self.cell = cell
+        if init is None:
+            init = np.zeros(self.cell.bias.size, dtype=NN_DTYPE)
+        self.init = init
+        self._prev = self.init
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("_prev", None)
+        return state
+
+    def __setstate__(self, state):
+        # Port of layers.GRULayer.__setstate__ (layers.py:708-726),
+        # INCLUDING the legacy 'hid_init' -> 'init' rename -- verified this
+        # branch is NOT dead code: unpickling the real, currently-shipped
+        # `downbeats_bgru_*.pkl` files with real madmom actually emits the
+        # RuntimeWarning below and exercises this exact rename (confirmed
+        # empirically against the reference venv, every one of the 12
+        # target files pickles its GRULayer state under the OLD
+        # 'hid_init' key, not 'init') -- dropping it would silently zero out
+        # every GRULayer's real trained initial hidden state.
+        try:
+            import warnings
+            warnings.warn(
+                "Please update your GRU models by loading them and saving "
+                "them again. Loading old models will not work from version "
+                "0.18 onwards.", RuntimeWarning)
+            state["init"] = state.pop("hid_init")
+        except KeyError:
+            pass
+        self.__dict__.update(state)
+        if not hasattr(self, "init"):
+            self.init = np.zeros(self.cell.bias.size, dtype=NN_DTYPE)
+        self._prev = self.init
+
+    def reset(self, init=None):
+        """Reset GRULayer to its initial state."""
+        self._prev = init if init is not None else self.init
+
+    def activate(self, data, reset=True):
+        """Activate GRULayer: `data` shape `(num_frames, num_inputs)` ->
+        `(num_frames, num_hiddens)`, one frame at a time."""
+        if reset:
+            self.reset()
+        size = len(data)
+        out = np.zeros((size, self.cell.bias.size), dtype=NN_DTYPE)
+        for i in range(size):
+            data_ = data[i]
+            rg = self.reset_gate.activate(data_, self._prev)
+            ug = self.update_gate.activate(data_, self._prev)
+            cell = self.cell.activate(data_, self._prev, rg)
+            out[i] = ug * cell + (1 - ug) * self._prev
             self._prev = out[i]
         return out
 

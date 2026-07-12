@@ -32,13 +32,42 @@ always uses a plain Python loop over `self.hmms` and drops the
 `multiprocessing.Pool` branch entirely (documented here so a future reader
 doesn't go looking for it and wonder if it was missed).
 
+Wave 4c adds `SyncronizeFeaturesProcessor` (pure numpy, no NN weights --
+average feature frames into per-beat-subdivision bins) and `RNNBarProcessor`
+(madmom's alternative, GRU-based downbeat model:
+`madmom-upstream/madmom/features/downbeats.py:915-1035`), completing the
+`GRULayer`/`GRUCell`/`DOWNBEATS_BGRU` scope-addition the 4.0 audit flagged
+(CLAUDE.md's corrections section). **`RNNBarProcessor` cannot be
+INSTANTIATED end-to-end from raw audio in this wave** -- its `__init__`
+needs `audio/chroma.py`'s `CLPChromaProcessor` for its harmonic feature
+branch, which is TO-PORT(4d), not yet ported (confirmed by reading
+`RNNBarProcessor.__init__` directly, `downbeats.py:965/980`; the audit
+table's own `features/downbeats.py` row already flagged this exact
+dependency). The class is ported VERBATIM regardless (matching upstream's
+own structure exactly, including the `from ..audio.chroma import
+CLPChromaProcessor` import) -- it simply raises `ImportError` on
+construction until 4d lands `CLPChromaProcessor`, same as it would in any
+partially-built environment. What CAN and IS proven bit-identical this wave
+is the part that actually needed `GRULayer`/`GRUCell`: the `DOWNBEATS_BGRU`
+`NeuralNetworkEnsemble` forward pass itself, fed real madmom's own captured
+intermediate beat-synchronized features as a golden fixture (see
+`tools/generate_beat_tempo_fixtures.py`/`tests/test_downbeats_rnn.py`) --
+this is the genuine "does this port's GRU implementation match real
+madmom's" question, answered directly, without requiring this project's own
+(not-yet-existing) `CLPChromaProcessor` to reproduce the harmonic features
+from scratch.
+
 Reads: madmom_infer/features/beats_hmm.py (BarStateSpace, BarTransitionModel,
 RNNDownBeatTrackingObservationModel), madmom_infer/ml/hmm.py
 (HiddenMarkovModel), madmom_infer/processors.py (Processor, ParallelProcessor,
 SequentialProcessor), madmom_infer/audio/{signal,stft,spectrogram}.py (the
 pre-processing cascade), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
-madmom_infer/models.py (DOWNBEATS_BLSTM download)
+madmom_infer/models.py (DOWNBEATS_BLSTM/DOWNBEATS_BGRU download); read by:
+madmom_infer/features/tempo.py does NOT read this file (only features/beats.py's
+DBNBeatTrackingProcessor, see that module).
 """
+
+import warnings
 
 import numpy as np
 
@@ -341,3 +370,136 @@ class DBNDownBeatTrackingProcessor(Processor):
         # return the beat positions (converted to seconds) and beat numbers
         return np.vstack(((beats + first) / float(self.fps),
                           beat_numbers[beats])).T
+
+
+class SyncronizeFeaturesProcessor(Processor):
+    """Synchronize features to beats: divide a beat interval into
+    `beat_subdivisions` divisions, then average all feature values that
+    fall into each subdivision (0 if none do).
+
+    Verbatim port of `madmom.features.downbeats.SyncronizeFeaturesProcessor`
+    (`madmom-upstream/madmom/features/downbeats.py:824-912`). Wave 4c, part
+    of the `RNNBarProcessor`/`GRULayer` scope addition (see this module's
+    header). Pure numpy, no NN weights -- independently verifiable without
+    `RNNBarProcessor`'s own blocked (see header) harmonic-feature branch.
+    """
+
+    def __init__(self, beat_subdivisions, fps, **kwargs):
+        # pylint: disable=unused-argument
+        self.beat_subdivisions = beat_subdivisions
+        self.fps = fps
+
+    def process(self, data, **kwargs):
+        """Synchronize features to beats.
+
+        Parameters
+        ----------
+        data : tuple (features, beats)
+            Tuple of two numpy arrays, the first containing features to be
+            synchronized and the second the beat times.
+
+        Returns
+        -------
+        numpy array (num_beats - 1, beat_subdivisions, features_dim)
+            Beat-synchronous features.
+        """
+        # pylint: disable=arguments-differ, unused-argument
+        features, beats = data
+        if beats.size == 0:
+            return np.array([]), np.array([])
+        if beats.ndim > 1:
+            beats = beats[:, 0]
+        while (float(len(features)) / self.fps) < beats[-1]:
+            beats = beats[:-1]
+            warnings.warn("Beat sequence too long compared to features.")
+        num_beats = len(beats)
+        features = np.array(features.T, copy=False, ndmin=2).T
+        feat_dim = features.shape[-1]
+        beat_features = np.zeros(
+            (num_beats - 1, self.beat_subdivisions, feat_dim))
+        beat_start = int(max(0, np.floor((beats[0] - 0.02) * self.fps)))
+        for i in range(num_beats - 1):
+            beat_duration = beats[i + 1] - beats[i]
+            offset = 0.5 * beat_duration / self.beat_subdivisions
+            offset = np.min([offset, 0.05])
+            beat_end = int(np.floor((beats[i + 1] - offset) * self.fps))
+            subdiv = np.floor(np.linspace(0, self.beat_subdivisions,
+                                          beat_end - beat_start,
+                                          endpoint=False))
+            beat = features[beat_start:beat_end]
+            subdiv_features = [beat[subdiv == div] for div in
+                               range(self.beat_subdivisions)]
+            beat_features[i, :, :] = np.array(
+                [np.mean(x, axis=0) for x in subdiv_features])
+            beat_start = beat_end
+        return beat_features
+
+
+class RNNBarProcessor(Processor):
+    """Retrieve a downbeat activation function from a signal and
+    pre-determined beat positions by obtaining beat-synchronous harmonic and
+    percussive features which are processed with a GRU-RNN.
+
+    Verbatim port of `madmom.features.downbeats.RNNBarProcessor`
+    (`madmom-upstream/madmom/features/downbeats.py:915-1035`). Wave 4c --
+    **see this module's header: cannot be instantiated end-to-end from raw
+    audio until 4d ports `audio/chroma.py`'s `CLPChromaProcessor`** (its
+    `__init__` needs it for `self.harm_feat`); the `GRULayer`/`GRUCell`
+    forward pass this class exists to exercise is instead proven bit-exact
+    via a golden intermediate-feature fixture, not a full audio-in run --
+    see `tests/test_downbeats_rnn.py`.
+    """
+
+    def __init__(self, beat_subdivisions=(4, 2), fps=100, **kwargs):
+        # pylint: disable=unused-argument
+        from madmom_infer.audio.chroma import CLPChromaProcessor
+        from madmom_infer.models import downbeats_bgru
+
+        sig = SignalProcessor(num_channels=1, sample_rate=44100)
+        frames = FramedSignalProcessor(frame_size=2048, fps=fps)
+        stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+        spec = FilteredSpectrogramProcessor(
+            num_bands=6, fmin=30., fmax=17000., norm_filters=True)
+        log_spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
+        diff = SpectrogramDifferenceProcessor(
+            diff_ratio=0.5, positive_diffs=True)
+        self.perc_feat = SequentialProcessor(
+            (sig, frames, stft, spec, log_spec, diff))
+        self.harm_feat = CLPChromaProcessor(
+            fps=fps, fmin=27.5, fmax=4200., compression_factor=100,
+            norm=True, threshold=0.001)
+        self.perc_beat_sync = SyncronizeFeaturesProcessor(
+            beat_subdivisions[0], fps=fps, **kwargs)
+        self.harm_beat_sync = SyncronizeFeaturesProcessor(
+            beat_subdivisions[1], fps=fps, **kwargs)
+        bgru = downbeats_bgru()
+        self.perc_nn = NeuralNetworkEnsemble.load(bgru[0], **kwargs)
+        self.harm_nn = NeuralNetworkEnsemble.load(bgru[1], **kwargs)
+
+    def process(self, data, **kwargs):
+        """Retrieve a downbeat activation function from a signal and beat
+        positions.
+
+        Parameters
+        ----------
+        data : tuple
+            Tuple containing a signal or file (handle) and corresponding
+            beat times [seconds].
+
+        Returns
+        -------
+        numpy array, shape (num_beats, 2)
+            Beat positions (first column) and the corresponding downbeat
+            activations (second column).
+        """
+        # pylint: disable=arguments-differ, unused-argument
+        signal, beats = data
+        perc = self.perc_feat(signal)
+        harm = self.harm_feat(signal)
+        perc_synced = self.perc_beat_sync((perc, beats))
+        harm_synced = self.harm_beat_sync((harm, beats))
+        perc = self.perc_nn(perc_synced.reshape((len(perc_synced), -1)))
+        harm = self.harm_nn(harm_synced.reshape((len(harm_synced), -1)))
+        act = np.mean([perc, harm], axis=0)
+        act = np.append(act, np.ones(1) * np.nan)
+        return np.vstack((beats, act)).T

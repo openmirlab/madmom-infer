@@ -104,6 +104,15 @@ This project targets madmom's **inference** code only:
   offline RNN ensembles), `CNNOnsetProcessor`, and `OnsetPeakPickingProcessor`
   end-to-end (spectrogram frontend -> onset activation function -> decoded
   onset times)
+- Beat tracking: `RNNBeatProcessor` (online and offline RNN ensembles),
+  `DBNBeatTrackingProcessor` (beat-only, reusing the same HMM machinery as
+  downbeat tracking), and `MultiModelSelectionProcessor` end-to-end
+  (spectrogram frontend -> beat activation function -> decoded beat times)
+- Tempo estimation: `TempoEstimationProcessor` with all 3 shipped histogram
+  modes -- autocorrelation (`ACFTempoHistogramProcessor`), resonating comb
+  filters (`CombFilterTempoHistogramProcessor`, backed by a numpy port of
+  madmom's comb-filter Cython module), and DBN-based
+  (`DBNTempoHistogramProcessor`, reusing `DBNBeatTrackingProcessor`)
 
 Out of scope, forever:
 
@@ -113,13 +122,14 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: tempo/chord/note feature extraction, the remaining audio
-submodules (chroma, HPSS, cepstrogram), and a torch reimplementation of the
-RNN ensemble forward pass itself (blocked on a real design question --
-madmom's LSTM layers use peephole connections `torch.nn.LSTM` does not
-implement, so this needs a custom cell, not a drop-in swap). Viterbi/DBN
-decoding is sequential and discrete-state, so it is not planned for a torch
-port -- no GPU benefit to speak of.
+Not yet ported: chord/note feature extraction, CRF-based beat detection and
+pattern tracking, the remaining audio submodules (chroma, HPSS,
+cepstrogram), and a torch reimplementation of the RNN ensemble forward pass
+itself (blocked on a real design question -- madmom's LSTM layers use
+peephole connections `torch.nn.LSTM` does not implement, so this needs a
+custom cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
+discrete-state, so it is not planned for a torch port -- no GPU benefit to
+speak of.
 
 ---
 
@@ -203,6 +213,40 @@ activations = sodf("track.wav")
 Same runtime-download/sha256/caching story as `RNNDownBeatProcessor`/
 `CNNKeyRecognitionProcessor` above for `RNNOnsetProcessor`/`CNNOnsetProcessor`,
 via `madmom_infer/models.py`'s `onsets_rnn()`/`onsets_brnn()`/`onsets_cnn()`.
+
+### Beat tracking
+
+```python
+from madmom_infer.features.beats import RNNBeatProcessor, DBNBeatTrackingProcessor
+
+beat_proc = RNNBeatProcessor()
+activations = beat_proc("track.wav")
+
+dbn = DBNBeatTrackingProcessor(fps=100)
+beat_times = dbn(activations)  # beat times [seconds]
+```
+
+`RNNBeatProcessor(online=True)` is a smaller, causal ensemble, a drop-in
+alternative to the bidirectional default above -- same
+`activations -> DBNBeatTrackingProcessor` decode step. Same runtime-download/
+sha256/caching story as the processors above, via `madmom_infer/models.py`'s
+`beats_lstm()`/`beats_blstm()`.
+
+### Tempo estimation
+
+```python
+from madmom_infer.features.beats import RNNBeatProcessor
+from madmom_infer.features.tempo import TempoEstimationProcessor
+
+beat_proc = RNNBeatProcessor()
+activations = beat_proc("track.wav")
+
+tempo_proc = TempoEstimationProcessor(fps=100)  # comb-filter histogram, default
+tempi = tempo_proc(activations)  # [[bpm, strength], ...], strongest first
+```
+
+Pass `method="acf"` or `method="dbn"` for the autocorrelation or DBN-based
+histogram modes instead of the default resonating-comb-filter one.
 
 ### Torch frontend
 

@@ -74,12 +74,47 @@ would; anything NOT in this table (arbitrary builtins, `os`, `subprocess`,
 array-reconstruction primitives) is rejected with a loud
 `pickle.UnpicklingError`, not silently allowed.
 
+4c target: `beats_lstm_[1-8].pkl`/`beats_blstm_[1-8].pkl` (madmom's
+`BEATS_LSTM`/`BEATS_BLSTM`) reference only already-allowed globals (same
+architecture family as `downbeats_blstm_*.pkl`) -- no table changes needed.
+All 12 `downbeats_bgru_{harmonic,rhythmic}_[0-5].pkl` files (`DOWNBEATS_BGRU`)
+need exactly one new class pair, found by the same `pickletools.dis()`
+technique (both `downbeats_bgru_harmonic_0.pkl` and
+`downbeats_bgru_rhythmic_0.pkl` walked -- identical global set):
+
+| pickled path (madmom original)         | mapped to (madmom_infer)                |
+|------------------------------------------|--------------------------------------------|
+| `madmom.ml.nn.layers.GRUCell`             | `madmom_infer.ml.nn.layers.GRUCell`         |
+| `madmom.ml.nn.layers.GRULayer`            | `madmom_infer.ml.nn.layers.GRULayer`        |
+
+**Found empirically, not guessed**: all 12 `downbeats_bgru_*.pkl` files are
+themselves OLDER-format pickles than `downbeats_blstm_*.pkl`/`key_cnn.pkl`/
+the onset models -- loading one with real madmom actually emits a
+`RuntimeWarning` ("Please update your GRU models...", see
+`madmom_infer/ml/nn/layers.py`'s `GRULayer.__setstate__`), and their
+`pickletools.dis()` walk additionally references two GENERIC old-style-class
+reconstruction globals neither `downbeats_blstm_*.pkl` nor any other target
+`.pkl` in this project needs:
+
+| pickled path (madmom original)  | mapped to (madmom_infer)                                |
+|------------------------------------|-------------------------------------------------------------|
+| `copy_reg._reconstructor`          | `copyreg._reconstructor` (stdlib, Py2 `copy_reg` -> Py3 `copyreg`) |
+| `__builtin__.object`               | `builtins.object` (stdlib, Py2 `__builtin__` -> Py3 `builtins`)    |
+
+Both are standard-library object-reconstruction primitives (the same
+category of "safe, mechanical, no arbitrary code execution" as numpy's own
+`_reconstruct`/`scalar` entries below) -- `copy_reg._reconstructor(cls, base,
+state)` is Python 2's pre-`__reduce_ex__`-protocol-2 old-style-class
+rebuilding helper, still present in Python 3's `copyreg` module for
+backwards-compatible unpickling of exactly this kind of legacy pickle.
+
 Reads: pickle (stdlib), numpy, madmom_infer.ml.nn.{NeuralNetwork},
 madmom_infer.ml.nn.layers.*, madmom_infer.ml.nn.activations.*; read by:
 madmom_infer/ml/nn/__init__.py (NeuralNetwork.load), madmom_infer/models.py
 (cache-then-load flow).
 """
 
+import copyreg
 import io
 import pickle
 
@@ -106,6 +141,8 @@ ALLOWED_GLOBALS = {
     ("madmom.ml.nn.layers", "PadLayer"): _layers.PadLayer,
     ("madmom.ml.nn.layers", "AverageLayer"): _layers.AverageLayer,
     ("madmom.ml.nn.layers", "StrideLayer"): _layers.StrideLayer,
+    ("madmom.ml.nn.layers", "GRUCell"): _layers.GRUCell,
+    ("madmom.ml.nn.layers", "GRULayer"): _layers.GRULayer,
     ("madmom.ml.nn.activations", "linear"): _activations.linear,
     ("madmom.ml.nn.activations", "tanh"): _activations.tanh,
     ("madmom.ml.nn.activations", "sigmoid"): _activations.sigmoid,
@@ -119,6 +156,10 @@ ALLOWED_GLOBALS = {
     ("numpy.core.multiarray", "scalar"): _np_multiarray.scalar,
     ("numpy", "ndarray"): numpy.ndarray,
     ("numpy", "dtype"): numpy.dtype,
+    # old-style-class reconstruction primitives needed only by the
+    # older-format DOWNBEATS_BGRU pickles (4c) -- see this module's header.
+    ("copy_reg", "_reconstructor"): copyreg._reconstructor,
+    ("__builtin__", "object"): object,
 }
 
 

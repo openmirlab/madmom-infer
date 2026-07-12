@@ -261,6 +261,148 @@ to refer to a specific chunk of already-shipped work:
       `tests/test_fixtures_exist.py`: 5 more). Full offline suite: 123
       passed, 1 skipped, 20 deselected (was 98/1/14 after 4a); network
       suite: 20 passed, 1 skipped, 123 deselected, all green.
+  - **4c status: DONE (2026-07-13).** Ported everything the audit table's
+    `features/beats.py`/`features/tempo.py`/`audio/comb_filters.pyx` rows
+    marked TO-PORT(4c), plus the GRU scope addition the 4.0 audit
+    corrections flagged:
+    - `madmom_infer/audio/comb_filters.py` (**new module**):
+      `feed_forward_comb_filter`, `feed_backward_comb_filter` (+ 1D/2D
+      helpers), `comb_filter`, `CombFilterbankProcessor`. **Faithfulness
+      proof: bit-identical, not ULP-close** -- `tests/test_comb_filters.py`
+      asserts `np.array_equal` directly, both in-process (this venv's
+      numpy 2.4.6) AND cross-BLAS (reference venv), because neither
+      function touches BLAS at all (`feed_forward` is one vectorized
+      elementwise op; `feed_backward` is a scalar Python loop matching real
+      madmom's own Cython loop's exact operation order) -- there is no
+      summation-order non-associativity to average away. Found and
+      reproduced a real upstream precision quirk, confirmed empirically:
+      `feed_backward_comb_filter`'s Cython helpers declare `alpha` as a C
+      `float` (32-bit) parameter, silently rounding any float64 `alpha`
+      before the loop -- `feed_forward_comb_filter` has no such truncation
+      (untyped `def`). Also found and FIXED a genuine numpy-2.x-vs-1.23.5
+      divergence in `comb_filter`'s own per-tau dispatch (extracting
+      `alpha[i]` from a numpy array is a "strong" scalar under NEP 50,
+      upcasting a float32-array multiply to float64 on numpy >= 2.0 but not
+      numpy < 2.0) -- fixed with an explicit `float(alpha[i])` cast, same
+      class of fix as 4b's `normalized_weighted_phase_deviation`.
+    - `madmom_infer/ml/nn/layers.py`: `GRUCell`, `GRULayer` -- confirmed by
+      `pickletools`-walking `downbeats_bgru_{rhythmic,harmonic}_0.pkl`
+      directly to be the only new layer classes the 12-file `DOWNBEATS_BGRU`
+      ensemble needs (everything else -- `NeuralNetwork`, `sigmoid`/`tanh`,
+      `BidirectionalLayer`, `FeedForwardLayer`, `Gate` -- already ported).
+      **Found these 12 files are an OLDER pickle format** than every other
+      target `.pkl` in this project: loading one with real madmom emits its
+      own "please update your GRU models" `RuntimeWarning`, and their
+      `pickletools` walk references 2 generic old-style-class-reconstruction
+      globals (`copy_reg._reconstructor`, `__builtin__.object`) no other
+      target pickle needs. Initially assumed `GRULayer.__setstate__`'s
+      legacy `hid_init` -> `init` rename branch was dead code and dropped
+      it; empirically WRONG (confirmed by actually loading the real files
+      under the reference venv -- the rename branch fires on all 12) --
+      restored it, verbatim.
+    - `madmom_infer/ml/nn/unpickle.py`: 4 new `ALLOWED_GLOBALS` entries
+      (`GRUCell`, `GRULayer`, `copy_reg._reconstructor`,
+      `__builtin__.object`), found by the same `pickletools` walk.
+    - New `madmom_infer/features/beats.py`: `RNNBeatProcessor` (online =
+      `BEATS_LSTM` unidirectional / offline = `BEATS_BLSTM` bidirectional,
+      same offline-compatibility shape as `RNNOnsetProcessor`),
+      `DBNBeatTrackingProcessor` (beat-only, OFFLINE-ONLY -- drops
+      `OnlineProcessor`'s `process_online`/`reset`/visualisation state, same
+      precedent as `OnsetPeakPickingProcessor`; reuses `beats_hmm.py`'s
+      existing `BeatStateSpace`/`BeatTransitionModel`/
+      `RNNBeatTrackingObservationModel`, Phase 2), `MultiModelSelectionProcessor`.
+      **Found and fixed a genuine Phase-2 latent bug this wave surfaced**:
+      `RNNBeatTrackingObservationModel.log_densities`
+      (`features/beats_hmm.py`) called `np.asarray(observations, ndmin=1)`
+      -- not valid on ANY numpy version (`asarray` has no `ndmin` keyword,
+      confirmed) -- a Phase-2-era numpy-2.x-compat comment wrongly claimed
+      this was the fix and wrongly claimed `RNNDownBeatTrackingObservationModel`
+      inherits this method (it defines its own, which is why
+      `DBNDownBeatTrackingProcessor` never hit the bug); fixed as
+      `np.array(observations, ndmin=1)`, both claims corrected in that
+      module's header. **Found, not silently dropped -- an apparent
+      audit-table gap**: `BeatTrackingProcessor`/`BeatDetectionProcessor`/
+      `detect_beats` are real upstream classes the audit table's EXCLUDE
+      row incorrectly grouped with `TCNBeatProcessor` as "TCN-specific"
+      (`detect_beats` is actually `BeatTrackingProcessor`'s own helper,
+      unrelated to TCN) -- flagged in the audit table above, deferred (no
+      4c target needs them; `CRFBeatDetectionProcessor`, 4f, will need
+      `BeatTrackingProcessor` as a base class, so 4f inherits this gap).
+    - New `madmom_infer/features/tempo.py`: `smooth_histogram`,
+      `interval_histogram_acf`, `interval_histogram_comb`,
+      `dominant_interval`, `detect_tempo`, `TempoHistogramProcessor`,
+      `ACFTempoHistogramProcessor`, `CombFilterTempoHistogramProcessor`,
+      `DBNTempoHistogramProcessor` (reuses `features/beats.py`'s
+      `DBNBeatTrackingProcessor`), `TempoEstimationProcessor` -- all
+      OFFLINE-ONLY, same precedent as `DBNBeatTrackingProcessor`. Every
+      test in `tests/test_tempo.py` (including the cross-BLAS one) runs
+      fully offline -- no model download, no unpickling, since tempo
+      estimation is pure numpy/scipy given an activation array.
+    - `madmom_infer/features/downbeats.py`: `SyncronizeFeaturesProcessor`
+      (pure numpy, **bit-identical**, `np.array_equal` both in-process and
+      cross-BLAS) and `RNNBarProcessor` (ported verbatim). **`RNNBarProcessor`
+      cannot be instantiated end-to-end from raw audio this wave** -- its
+      `__init__` needs `audio/chroma.py`'s `CLPChromaProcessor` (4d, not yet
+      ported), confirmed by reading `RNNBarProcessor.__init__` directly
+      (`downbeats.py:965/980`); raises `ImportError` on construction,
+      matching the audit table's own prediction. What IS proven bit-exact:
+      the `DOWNBEATS_BGRU` `NeuralNetworkEnsemble` forward pass itself
+      (`GRULayer`/`GRUCell` in context), fed real madmom's own captured
+      intermediate `perc_synced`/`harm_synced` beat-synchronized features
+      as a golden fixture -- `tests/test_downbeats_rnn.py::
+      test_downbeats_bgru_ensembles_are_exact_under_original_blas`
+      reproduces real madmom's `perc_nn`/`harm_nn` outputs with **zero
+      differing elements**. Found one more genuine numpy-2.x-vs-1.23.5
+      divergence surfaced by this particular fixture (a degenerate
+      single-beat-window case, `mono_44100.wav` being short): `madmom_infer/
+      ml/nn/__init__.py`'s `average_predictions`, averaging a list of
+      0-DIMENSIONAL float32 ensemble outputs, stayed float32 on numpy >=
+      2.0 (NEP 50) but real madmom's own `sum(pred) / len(pred)` upcasts to
+      float64 on numpy < 2.0 (0-d "scalar-kind" arrays follow different
+      value-based-casting rules than N-d ones) -- fixed with an explicit
+      branch reproducing the old (real-madmom-recorded) dtype on every
+      numpy version; every OTHER model family in this project (N-d
+      predictions, including the already-shipped `DOWNBEATS_BLSTM`
+      ensemble) was already unaffected on both numpy versions, confirmed by
+      the full suite staying green after the fix.
+    - `madmom_infer/models.py`: `beats_lstm()`/`BEATS_LSTM` (8 files),
+      `beats_blstm()`/`BEATS_BLSTM` (8 files), `downbeats_bgru_rhythmic()`/
+      `downbeats_bgru_harmonic()`/`downbeats_bgru()`/`DOWNBEATS_BGRU` (12
+      files) -- 28 sha256s computed from the local `../madmom-upstream`
+      submodule checkout AND cross-checked byte-for-byte against fresh
+      `raw.githubusercontent.com/CPJKU/madmom_models` downloads (network
+      was available, all 28 succeeded and matched, confirmed 2026-07-13).
+    - New `tools/generate_beat_tempo_fixtures.py`: comb-filter direct
+      function-level fixtures (fed a REAL beat activation function, not
+      synthetic noise), `beats_lstm_1`/`beats_blstm_1`/
+      `downbeats_bgru_{rhythmic,harmonic}_0` structural digests,
+      `RNNBeatProcessor`/`DBNBeatTrackingProcessor` end-to-end activations +
+      decoded beat times (all 3 44.1kHz cases, shared-instance-in-order
+      discipline), `MultiModelSelectionProcessor`'s self-contained
+      selection fixture, per-mode tempo histogram + tempi fixtures
+      (self-contained -- records the input activation array too, so
+      `tests/test_tempo.py` needs no model/network at all),
+      `SyncronizeFeaturesProcessor`'s self-contained fixture, and
+      `RNNBarProcessor`'s GRU-ensemble intermediate-feature fixture (real
+      beat times from real madmom's own `RNNBeatProcessor` ->
+      `DBNBeatTrackingProcessor`, not hand-picked).
+    - **Faithfulness proof: PASSED.** `tests/test_beats.py::
+      test_full_pipeline_is_exact_under_original_blas` reproduces real
+      madmom's `RNNBeatProcessor`(online=False/True) +
+      `DBNBeatTrackingProcessor` activations AND decoded beat times with
+      **zero differing elements**, for all 3 44.1kHz test-wav cases, both
+      model families. In-process (differing-BLAS-build) ULP drift for the
+      LSTM/BLSTM activations measured well within the existing 512-ULP
+      margin convention (same order of magnitude as
+      `test_downbeats_rnn.py`'s own bigger ensemble) -- decoded beat TIMES
+      are EXACT in every case despite that drift. Comb filters and tempo
+      histograms are bit-identical with NO tolerance at all (see above).
+    - 66 new tests total (`tests/test_comb_filters.py`: 17;
+      `tests/test_beats.py`: 15; `tests/test_tempo.py`: 15;
+      `tests/test_downbeats_rnn.py`: +13; `tests/test_fixtures_exist.py`:
+      +6). Full offline suite: 174 passed, 1 skipped, 25 deselected (was
+      123/1/20 after 4b); network suite: 25 passed, 1 skipped, 174
+      deselected, all green.
 
 ### 4.0 audit result (2026-07-12)
 
@@ -323,7 +465,7 @@ EXCLUDE (why).
 | `audio/chroma.py` | `DeepChromaProcessor` | TO-PORT (4d) | `CHROMA_DNN` = `chroma/2016/chroma_dnn.pkl` | pickle refs: `NeuralNetwork`, `FeedForwardLayer`, `relu`/`sigmoid` -- no new layer classes needed beyond 4a's set |
 | `audio/chroma.py` | `CLPChroma`, `CLPChromaProcessor` | TO-PORT (4d) | -- | pure DSP, no NN weights; needs `SemitoneBandpassSpectrogram` |
 | `audio/chroma.py` | `PitchClassProfile`, `HarmonicPitchClassProfile` | TO-PORT (4d, scope addition) | -- | classic chroma, not DNN-based |
-| `audio/comb_filters.pyx` | `feed_forward_comb_filter`, `feed_backward_comb_filter`, `comb_filter`, `CombFilterbankProcessor` | TO-PORT (4c) | -- | numpy port (same playbook as `hmm.pyx`); feeds `TempoEstimationProcessor`'s comb-filter histogram mode |
+| `audio/comb_filters.pyx` | `feed_forward_comb_filter`, `feed_backward_comb_filter`, `comb_filter`, `CombFilterbankProcessor` | PORTED (4c) | -- | numpy port (same playbook as `hmm.pyx`); feeds `TempoEstimationProcessor`'s comb-filter histogram mode; bit-identical, not just ULP-close -- see 4c status below |
 | `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | TO-PORT (4g) | -- | not consumed by any other TO-PORT processor in this audit; standalone preprocessing utility |
 | `ml/hmm.py` | `TransitionModel`, `ObservationModel`, `DiscreteObservationModel`, `HiddenMarkovModel`/`HMM` | PORTED | -- | Phase 1 |
 | `ml/crf.py` | `ConditionalRandomField` | TO-PORT (4d) | -- | chord decoding (`CRFChordRecognitionProcessor`, `DeepChromaChordRecognitionProcessor`) |
@@ -331,7 +473,7 @@ EXCLUDE (why).
 | `ml/nn/__init__.py` | `NeuralNetwork`, `NeuralNetworkEnsemble`, `average_predictions` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `Layer`, `FeedForwardLayer`, `RecurrentLayer`, `BidirectionalLayer`, `Gate`, `Cell`, `LSTMLayer` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` | PORTED (4a) | -- | confirmed pickletools-walked as exactly what `key_cnn.pkl` (`AverageLayer`,`BatchNormLayer`,`ConvolutionalLayer`,`MaxPoolLayer`,`PadLayer`,`elu`,`linear`) references; `onsets_cnn.pkl`, `notes_cnn*.pkl`, `chords_cnnfeat.pkl` also need this same set (reused by 4b/4d/4e, not re-ported) |
-| `ml/nn/layers.py` | `GRULayer`, `GRUCell` | TO-PORT (tentative 4c, scope addition -- see corrections above) | -- | `downbeats_bgru_*.pkl` (12 files) reference these; no wave currently plans them |
+| `ml/nn/layers.py` | `GRULayer`, `GRUCell` | PORTED (4c, scope addition -- see corrections above) | -- | `downbeats_bgru_*.pkl` (12 files) reference these; also needed 2 generic old-style-class-reconstruction unpickle allowlist entries the other target pickles don't (`copy_reg._reconstructor`, `__builtin__.object`) -- these 12 files are an OLDER pickle format than every other target `.pkl` in this project, confirmed by real madmom's own "please update your GRU models" `RuntimeWarning` firing on load |
 | `ml/nn/layers.py` | `StrideLayer` | PORTED (4b) | -- | `onsets_cnn.pkl` references it (confirmed by `pickletools`); needs `utils.segment_axis` (see `utils/*` row below) |
 | `ml/nn/layers.py` | `ReshapeLayer`, `TransposeLayer` | TO-PORT (4e, alongside the CNN infra that needs them) | -- | `notes_cnn.pkl` needs Reshape+Transpose; confirmed by 4b's own `pickletools` walk of `onsets_cnn.pkl` that it does NOT need either of these (only `StrideLayer`, above) |
 | `ml/nn/layers.py` | `TCNBlock`, `TCNLayer` | EXCLUDE | -- | no shipped model references them (`BEATS_TCN` not in `package_data`; confirmed by attempted load, file absent from installed tree) |
@@ -340,13 +482,14 @@ EXCLUDE (why).
 | `features/beats_hmm.py` | `BeatStateSpace`, `BarStateSpace`, `BeatTransitionModel`, `BarTransitionModel`, `RNNBeatTrackingObservationModel`, `RNNDownBeatTrackingObservationModel`, `exponential_transition` | PORTED | -- | Phase 2 |
 | `features/beats_hmm.py` | `MultiPatternStateSpace`, `MultiPatternTransitionModel`, `GMMPatternTrackingObservationModel` | TO-PORT (4f) | -- | pattern-tracking HMM machinery |
 | `features/downbeats.py` | `RNNDownBeatProcessor`, `DBNDownBeatTrackingProcessor` | PORTED | `DOWNBEATS_BLSTM` | Phase 2, cross-BLAS-proven exact |
-| `features/downbeats.py` | `RNNBarProcessor`, `SyncronizeFeaturesProcessor` | TO-PORT (tentative 4c, scope addition) | `DOWNBEATS_BGRU` | needs `GRULayer`/`GRUCell` (above) + `CLPChromaProcessor` (4d) |
+| `features/downbeats.py` | `RNNBarProcessor`, `SyncronizeFeaturesProcessor` | PORTED (4c, scope addition) -- `SyncronizeFeaturesProcessor` fully working+bit-identical; `RNNBarProcessor` ported verbatim but NOT INSTANTIABLE end-to-end from audio until 4d ships `CLPChromaProcessor` (confirmed, its `__init__` needs it) | `DOWNBEATS_BGRU` | needed `GRULayer`/`GRUCell` (above); the GRU-ensemble forward pass itself IS proven bit-exact this wave via a golden intermediate-feature fixture (real madmom's own captured `perc_synced`/`harm_synced`), not a full audio-in run -- see 4c status below |
 | `features/downbeats.py` | `DBNBarTrackingProcessor`, `PatternTrackingProcessor` | TO-PORT (4f) | `PATTERNS_BALLROOM` (no NN globals -- GMM-only) | upstream's actual class name is `PatternTrackingProcessor`, not `GMMPatternTrackingProcessor` as the 4f bullet names it -- same processor, correcting the name here |
 | `features/downbeats.py` | `LoadBeatsProcessor` | EXCLUDE | -- | file/STDIN batch-loading plumbing for `bin/` CLI scripts, not an inference algorithm |
-| `features/beats.py` | `RNNBeatProcessor`, `DBNBeatTrackingProcessor`, `MultiModelSelectionProcessor` | TO-PORT (4c) | `BEATS_LSTM`, `BEATS_BLSTM` | pickle refs confirm no new layer classes beyond Phase-2's LSTM/BLSTM set |
-| `features/beats.py` | `CRFBeatDetectionProcessor` | TO-PORT (4f) | -- | needs `features/beats_crf.pyx` numpy port |
-| `features/beats.py` | `TCNBeatProcessor`, `detect_beats`, `threshold_activations` (TCN-specific parts) | EXCLUDE | `BEATS_TCN` (not shipped) | see corrections above; `threshold_activations` itself is already ported (`features/downbeats.py`) and reused, not duplicated |
-| `features/tempo.py` | `TempoEstimationProcessor`, `TempoHistogramProcessor`, `ACFTempoHistogramProcessor`, `CombFilterTempoHistogramProcessor`, `DBNTempoHistogramProcessor`, `detect_tempo`, `dominant_interval`, `interval_histogram_acf`, `interval_histogram_comb`, `smooth_histogram` | TO-PORT (4c) | -- | comb variant needs `audio/comb_filters.py` port first |
+| `features/beats.py` | `RNNBeatProcessor`, `DBNBeatTrackingProcessor`, `MultiModelSelectionProcessor` | PORTED (4c) | `BEATS_LSTM`, `BEATS_BLSTM` | pickle refs confirm no new layer classes beyond Phase-2's LSTM/BLSTM set; `DBNBeatTrackingProcessor` is offline-only (drops `OnlineProcessor`'s `process_online`, same precedent as `OnsetPeakPickingProcessor`) |
+| `features/beats.py` | `BeatTrackingProcessor`, `BeatDetectionProcessor`, `detect_beats` | **found, not silently dropped -- audit-table gap** (4c) | -- | real upstream classes/function (look-aside/look-ahead tempo-driven beat alignment), NOT TCN-specific despite being grouped in the same EXCLUDE row as `TCNBeatProcessor` below in an earlier version of this table -- `detect_beats` is `BeatTrackingProcessor`'s own helper, unrelated to TCN (confirmed by reading `beats.py:301-465` directly); no wave currently claims these 3 names as TO-PORT, though `CRFBeatDetectionProcessor` (4f) subclasses `BeatTrackingProcessor` so 4f will need to port it anyway -- deferred there, not ported speculatively in 4c (no 4c target needs it) |
+| `features/beats.py` | `CRFBeatDetectionProcessor` | TO-PORT (4f) | -- | needs `features/beats_crf.pyx` numpy port; also needs `BeatTrackingProcessor` (row above, not yet ported) |
+| `features/beats.py` | `TCNBeatProcessor`, TCN-specific parts of `detect_beats`, `threshold_activations` | EXCLUDE | `BEATS_TCN` (not shipped) | see corrections above; `threshold_activations` itself is already ported (`features/downbeats.py`) and reused, not duplicated; **correction (4c): `detect_beats` itself is NOT TCN-specific**, see row above -- only ever excluded here because no 4c target needed it, not because it's actually TCN-only |
+| `features/tempo.py` | `TempoEstimationProcessor`, `TempoHistogramProcessor`, `ACFTempoHistogramProcessor`, `CombFilterTempoHistogramProcessor`, `DBNTempoHistogramProcessor`, `detect_tempo`, `dominant_interval`, `interval_histogram_acf`, `interval_histogram_comb`, `smooth_histogram` | PORTED (4c) | -- | comb variant needed `audio/comb_filters.py` (this wave); all offline-only (`OnlineProcessor` stays a permanent exclusion, same precedent as `DBNBeatTrackingProcessor`/`OnsetPeakPickingProcessor`) |
 | `features/tempo.py` | `TCNTempoHistogramProcessor` | EXCLUDE | -- | only consumes `TCNBeatProcessor` output, which can't exist (no shipped model) |
 | `features/onsets.py` | `SpectralOnsetProcessor`, `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`, `complex_domain`, `rectified_complex_domain`, `high_frequency_content`, `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`, `normalized_weighted_phase_deviation`, `correlation_diff`, `wrap_to_pi`, `peak_picking`, `OnsetPeakPickingProcessor` | PORTED (4b) | -- | pure DSP, no NN weights; `correlation_diff` is a faithful port of a function real madmom itself crashes on under Python 3 (confirmed empirically against the reference venv) -- ported bug-for-bug, pinned by a `pytest.raises(TypeError)` test, not a golden output; `OnsetPeakPickingProcessor` is offline-only (no `OnlineProcessor`, a stated permanent exclusion) |
 | `features/onsets.py` | `RNNOnsetProcessor` | PORTED (4b) | `ONSETS_RNN`, `ONSETS_BRNN` | pickle refs: `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer` -- all already PORTED (Phase 2), no new layer classes; `online=True` (`ONSETS_RNN`) IS supported (unlike `OnsetPeakPickingProcessor`'s online mode) -- it only selects different pretrained weights/frame sizes, not actual streaming; `ONSETS_BRNN_PP` has no registry entry (only loaded by the excluded `bin/SuperFluxNN` CLI script, no processor this project ports needs it) |

@@ -15,9 +15,26 @@ still expose a `.load()` classmethod, but it calls into `unpickle.py`, not
 `pickle.load` directly. `add_arguments()` (argparse plumbing) is skipped, per
 CLAUDE.md.
 
+Wave 4c fix: `average_predictions`'s `avg()` helper has an explicit
+`np.ndim(pred[0]) == 0` branch not present upstream -- a genuine numpy-2.x-
+vs-1.23.5 DTYPE divergence, found via `RNNBarProcessor`'s GRU ensembles
+(`features/downbeats.py`), which can be fed a single-frame input, making
+each per-network prediction a 0-DIMENSIONAL array. Real madmom's own
+`sum(pred) / len(pred)` upcasts a list of 0-d float32 arrays to float64 on
+numpy < 2.0 (0-d "scalar-kind" arrays follow different value-based-casting
+rules than N-d ones there) but NOT on numpy >= 2.0 (NEP 50 unifies the two
+paths, keeping float32) -- confirmed empirically against the reference
+venv. The fix reproduces the old (real-madmom-recorded) float64 dtype on
+every numpy version; N-d predictions (every other model family this
+project ports, including the already-cross-BLAS-proven `DOWNBEATS_BLSTM`
+ensemble) are unaffected -- `sum(pred) / len(pred)` already stayed float32
+on both numpy versions for those, confirmed by the full suite staying
+green after this fix.
+
 Reads: madmom_infer.processors (Processor, ParallelProcessor),
 madmom_infer.ml.nn.unpickle (restricted model loading); read by:
-madmom_infer/features/downbeats.py (RNNDownBeatProcessor).
+madmom_infer/features/downbeats.py (RNNDownBeatProcessor, RNNBarProcessor),
+madmom_infer/features/beats.py (RNNBeatProcessor).
 """
 
 import numpy as np
@@ -37,6 +54,28 @@ def average_predictions(predictions):
         return predictions[0]
 
     def avg(pred):
+        # NOTE: the `np.ndim(pred[0]) == 0` branch (not in upstream, which
+        # is just `sum(pred) / len(pred)` on every input shape) -- found
+        # and fixed a genuine numpy-2.x-vs-1.23.5 divergence, same class as
+        # docs/DESIGN.md C.1 (see `features/onsets.py`'s
+        # `normalized_weighted_phase_deviation` for the precedent), this
+        # time in DTYPE rather than value. Confirmed empirically against
+        # the reference venv: `sum(pred) / len(pred)` over a list of 0-
+        # DIMENSIONAL float32 arrays (e.g. a `NeuralNetworkEnsemble` fed a
+        # single-frame/single-beat-window input, as `RNNBarProcessor`'s GRU
+        # ensembles can be) upcasts to float64 on numpy < 2.0 (its value-
+        # based-casting rules treat 0-d "scalar-kind" arrays differently
+        # from N-d ones -- `int + 0d_float32_array` promotes, `int +
+        # 1d_float32_array` does not), but NOT on numpy >= 2.0 (NEP 50
+        # unifies the two paths, keeping float32 in both cases). For N-d
+        # (ndim >= 1) predictions -- every OTHER model family this project
+        # ports, including the already-cross-BLAS-proven DOWNBEATS_BLSTM
+        # ensemble -- `sum(pred) / len(pred)` already stays float32 on
+        # BOTH numpy versions, so this branch is a no-op there; only the
+        # 0-d case needed an explicit fix to reproduce real madmom's
+        # actual (float64) recorded dtype on every numpy version.
+        if np.ndim(pred[0]) == 0:
+            return np.float64(sum(float(p) for p in pred) / len(pred))
         return sum(pred) / len(pred)
 
     if isinstance(predictions[0], tuple):
