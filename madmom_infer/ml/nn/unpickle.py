@@ -52,6 +52,19 @@ actual file (not guessed from reading `features/key.py`) found exactly:
 leaf class actually instantiated, base-class behavior comes along via
 ordinary Python attribute resolution once `find_class` returns the leaf.)
 
+4b target: `onsets_rnn_[1-8].pkl`/`onsets_brnn_[1-8].pkl` (madmom's
+`ONSETS_RNN`/`ONSETS_BRNN`) reference only already-allowed globals
+(`NeuralNetwork`, `FeedForwardLayer`, `RecurrentLayer`, plus
+`BidirectionalLayer` for the BRNN family, `sigmoid`/`tanh`) -- no table
+changes needed. `onsets_cnn.pkl` (`ONSETS_CNN`) needs one new class entry
+plus one new numpy global, both found by the same `pickletools.dis()`
+technique:
+
+| pickled path (madmom original)                | mapped to (madmom_infer)                        |
+|-------------------------------------------------|---------------------------------------------------|
+| `madmom.ml.nn.layers.StrideLayer`                | `madmom_infer.ml.nn.layers.StrideLayer`            |
+| `numpy.core.multiarray.scalar`                   | (unchanged -- numpy's own 0-d-array-reconstruction hook, needed because `onsets_cnn.pkl`'s `BatchNormLayer.beta`/`.gamma` are pickled as bare numpy scalars, not 1-element arrays) |
+
 `RecurrentLayer`, `relu` are allowed pre-emptively (they are `Gate`'s/
 `Cell`'s own base class, and a cheap sibling activation function
 respectively) even though no target `.pkl` file happens to reference them
@@ -92,6 +105,7 @@ ALLOWED_GLOBALS = {
     ("madmom.ml.nn.layers", "BatchNormLayer"): _layers.BatchNormLayer,
     ("madmom.ml.nn.layers", "PadLayer"): _layers.PadLayer,
     ("madmom.ml.nn.layers", "AverageLayer"): _layers.AverageLayer,
+    ("madmom.ml.nn.layers", "StrideLayer"): _layers.StrideLayer,
     ("madmom.ml.nn.activations", "linear"): _activations.linear,
     ("madmom.ml.nn.activations", "tanh"): _activations.tanh,
     ("madmom.ml.nn.activations", "sigmoid"): _activations.sigmoid,
@@ -102,6 +116,7 @@ ALLOWED_GLOBALS = {
     # any numpy array (every weight/bias matrix in the model), unchanged
     # (not remapped into madmom_infer, there is no madmom_infer numpy fork).
     ("numpy.core.multiarray", "_reconstruct"): _np_multiarray._reconstruct,
+    ("numpy.core.multiarray", "scalar"): _np_multiarray.scalar,
     ("numpy", "ndarray"): numpy.ndarray,
     ("numpy", "dtype"): numpy.dtype,
 }

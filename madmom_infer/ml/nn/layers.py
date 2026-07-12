@@ -1,25 +1,32 @@
 """Neural-network layers -- port of the subset of madmom.ml.nn.layers that
-the Phase-2 target ensemble (`DOWNBEATS_BLSTM`, 8x `downbeats_blstm_N.pkl`)
-and the 4a target model (`KEY_CNN`, `key/2018/key_cnn.pkl`) actually need,
-enumerated by inspecting the pickled files themselves with `pickletools`
-(not guessed from reading source): every one of the 8 `downbeats_blstm_*`
-files references exactly `NeuralNetwork`, `BidirectionalLayer`, `LSTMLayer`,
+the Phase-2 target ensemble (`DOWNBEATS_BLSTM`, 8x `downbeats_blstm_N.pkl`),
+the 4a target model (`KEY_CNN`, `key/2018/key_cnn.pkl`), and the 4b onset
+models (`ONSETS_RNN`/`ONSETS_BRNN`/`ONSETS_CNN`) actually need, enumerated
+by inspecting the pickled files themselves with `pickletools` (not guessed
+from reading source): every one of the 8 `downbeats_blstm_*` files
+references exactly `NeuralNetwork`, `BidirectionalLayer`, `LSTMLayer`,
 `Gate`, `Cell`, `FeedForwardLayer` (plus `activations.sigmoid`/`tanh`/
 `softmax`); `key_cnn.pkl` references exactly `NeuralNetwork`,
 `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`,
 `AverageLayer` (plus `activations.elu`/`linear`, both already ported in
-Phase 2 for other reasons) -- see madmom_infer/ml/nn/unpickle.py's module
+Phase 2 for other reasons); `onsets_rnn_*.pkl`/`onsets_brnn_*.pkl` reference
+only already-ported classes (`FeedForwardLayer`/`RecurrentLayer`, plus
+`BidirectionalLayer` for the BRNN family -- no new classes needed);
+`onsets_cnn.pkl` references `BatchNormLayer`, `ConvolutionalLayer`,
+`FeedForwardLayer`, `MaxPoolLayer` (all already ported by 4a) PLUS
+`StrideLayer` (new in 4b) -- see madmom_infer/ml/nn/unpickle.py's module
 header for the full class-path mapping table this finding produced.
 
-Deliberately NOT ported (no reference in any Phase-2/4a target pickle; left
-for a future wave that targets a model actually using them):
+Deliberately NOT ported (no reference in any Phase-2/4a/4b target pickle;
+left for a future wave that targets a model actually using them):
 `SequentialLayer`, `ParallelLayer`, `MultiTaskLayer` (composition-only
 wrappers, no pickled model targeted so far routes through them),
 `RecurrentLayer` is kept (it's `Gate`/`Cell`'s and `LSTMLayer`'s own base
 class), `GRUCell`/`GRULayer` (gated-recurrent-unit variant --
-`DOWNBEATS_BGRU` models, tentatively 4c, see CLAUDE.md), `StrideLayer`/
-`TransposeLayer`/`ReshapeLayer` (needed by `onsets_cnn.pkl`/`notes_cnn.pkl`,
-not `key_cnn.pkl` -- 4a/4b/4e, see CLAUDE.md's audit table), `TCNBlock`/
+`DOWNBEATS_BGRU` models, tentatively 4c, see CLAUDE.md), `TransposeLayer`/
+`ReshapeLayer` (needed by `notes_cnn.pkl`, not `onsets_cnn.pkl` -- confirmed
+by 4b's own pickletools walk of `onsets_cnn.pkl`, which references
+`StrideLayer` but neither of these; stays TO-PORT for 4e), `TCNBlock`/
 `TCNLayer` (temporal-conv-net -- e.g. `BEATS_TCN`, permanently EXCLUDED, no
 shipped model references them).
 
@@ -550,3 +557,27 @@ class PadLayer(Layer):
         data_padded = np.full(tuple(shape), self.value)
         data_padded[tuple(data_idxs)] = data
         return data_padded
+
+
+class StrideLayer(Layer):
+    """Stride layer: re-arrange the data into overlapping blocks of
+    `block_size` consecutive frames along axis 0, flattened, ready for a
+    following dense (`FeedForwardLayer`) layer.
+
+    Port of `layers.StrideLayer` (`madmom-upstream/madmom/ml/nn/layers.py:
+    987-1019`) -- new in Wave 4b, `onsets_cnn.pkl`'s own layer stack
+    (confirmed by `pickletools`, see module header). `segment_axis` is the
+    narrow (`axis=0`, `end='cut'`, `hop_size=1`) carve-out
+    `madmom_infer/utils.py` ports -- exactly what this layer calls it with.
+    """
+
+    def __init__(self, block_size):
+        self.block_size = block_size
+
+    def activate(self, data, **kwargs):
+        """Activate StrideLayer: `data` shape `(num_frames, ...)` ->
+        `(num_frames - block_size + 1, block_size * prod(...))`."""
+        from ...utils import segment_axis
+
+        data = segment_axis(data, self.block_size, 1, axis=0, end="cut")
+        return data.reshape(len(data), -1)

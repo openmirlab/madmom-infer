@@ -27,9 +27,15 @@ madmom/io/audio.py:622-625`), and the online/live-audio `Stream` class plus
 fall back to ffmpeg, this port raises a clear `NotImplementedError` instead
 of guessing.
 
-Reads: numpy, scipy.io.wavfile, madmom_infer.processors.Processor; read by:
-madmom_infer/audio/stft.py (planned, via `FramedSignal.signal.dtype` for the
-int16 window-scaling convention).
+Wave 4b addition: `smooth()` (Hamming-window or custom-kernel 1D/2D
+convolution smoothing) -- needed by `features/onsets.py`'s `peak_picking`,
+which imports it as `smooth_signal`. Not a Phase-1 module, but lives here
+because it's `madmom.audio.signal.smooth` upstream.
+
+Reads: numpy, scipy.io.wavfile, scipy.signal (smooth's 2D path),
+madmom_infer.processors.Processor; read by: madmom_infer/audio/stft.py
+(via `FramedSignal.signal.dtype` for the int16 window-scaling convention),
+madmom_infer/features/onsets.py (`smooth`, as `smooth_signal`).
 """
 
 import numpy as np
@@ -129,6 +135,42 @@ def adjust_gain(signal, gain):
             "positive gain adjustments are only supported for float dtypes."
         )
     return np.asarray(signal * gain, dtype=signal.dtype)
+
+
+def smooth(signal, kernel):
+    """Smooth `signal` along its first axis with `kernel`.
+
+    Verbatim port of `madmom.audio.signal.smooth` (`signal.py:20-68`) -- Wave
+    4b addition, not Phase 1 (the earlier 4.0 audit table mis-listed this as
+    already PORTED; it was not actually present in this module until
+    `features/onsets.py`'s `peak_picking` needed it, see CLAUDE.md's audit
+    table correction). If `kernel` is a plain (non-numpy) integer, a Hamming
+    window of that length is used; if it's already a numpy array, it's used
+    as-is directly as the convolution kernel.
+    """
+    if kernel is None:
+        return signal
+    elif isinstance(kernel, (int, np.integer)):
+        if kernel == 0:
+            return signal
+        elif kernel > 1:
+            kernel = np.hamming(kernel)
+        else:
+            raise ValueError(
+                "can't create a smoothing kernel of size %d" % kernel
+            )
+    elif isinstance(kernel, np.ndarray):
+        kernel = kernel
+    else:
+        raise ValueError("can't smooth signal with %s" % kernel)
+    if signal.ndim == 1:
+        return np.convolve(signal, kernel, "same")
+    elif signal.ndim == 2:
+        from scipy.signal import convolve2d
+
+        return convolve2d(signal, kernel[:, np.newaxis], "same")
+    else:
+        raise ValueError("signal must be either 1D or 2D")
 
 
 def _load_wave_file(filename, sample_rate=None, num_channels=None,
@@ -588,7 +630,18 @@ class FramedSignalProcessor(Processor):
     """
 
     def __init__(self, frame_size=FRAME_SIZE, hop_size=HOP_SIZE, fps=FPS,
-                 origin=ORIGIN, end=END_OF_SIGNAL, num_frames=NUM_FRAMES):
+                 origin=ORIGIN, end=END_OF_SIGNAL, num_frames=NUM_FRAMES,
+                 **kwargs):
+        # pylint: disable=unused-argument
+        # Wave 4b: `**kwargs` catch-all added to match upstream's own
+        # `FramedSignalProcessor.__init__` signature exactly (`signal.py:
+        # 1298-1300`, which this port had dropped) -- needed so
+        # `features/onsets.py`'s `SpectralOnsetProcessor` can blindly
+        # kwargs-forward one shared dict across its whole pre-processing
+        # chain (`SignalProcessor`/`FramedSignalProcessor`/
+        # `ShortTimeFourierTransformProcessor`/... all silently absorb keys
+        # meant for a different stage), exactly like upstream's own
+        # equivalently-loose processors do.
         self.frame_size = frame_size
         self.hop_size = hop_size
         self.fps = fps  # not converted here, forwarded to FramedSignal

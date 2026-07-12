@@ -8,19 +8,32 @@ fmin=30, fmax=17000, norm_filters=True)`,
 `all-in-one-fix/src/allin1_infer/spectrogram.py:27-40`) plus the free
 functions it's built from (`log_frequencies`, `frequencies2bins`,
 `bins2frequencies`) and a generic `Filterbank` base holding the resulting
-matrix. Deliberately NOT ported (no phase-1 call site,
-`madmom-upstream/madmom/audio/filters.py`): the Mel/Bark/rectangular/chroma/
-pitch-class-profile/semitone-bandpass filterbank variants (`MelFilterbank`,
-`BarkFilterbank`, `RectangularFilterbank`, `*ChromaFilterbank`,
-`PitchClassProfileFilterbank`, `HarmonicFilterbank`,
-`SemitoneBandpassFilterbank`) and their frequency-scale helpers
-(`hz2mel`/`mel2hz`/`mel_frequencies`, `hz2bark`/`bark2hz`/`bark_frequencies`,
-`hz2erb`/`erb2hz`, `hz2midi`/`midi2hz`) -- none of these are on the
-phase-1 chain. `Filter`/`TriangularFilter` are simplified from upstream's
-`np.ndarray`-subclass hierarchy (`filters.py:413-605`) down to two plain
-functions (`_triangular_filter_band_bins`, `_triangular_filters`) that
-build `(start, data)` tuples directly, since no phase-1 caller needs a
+matrix. Still NOT ported (no call site so far,
+`madmom-upstream/madmom/audio/filters.py`): the Bark/rectangular/chroma/
+pitch-class-profile/semitone-bandpass filterbank variants (`BarkFilterbank`,
+`RectangularFilterbank`, `*ChromaFilterbank`, `PitchClassProfileFilterbank`,
+`HarmonicFilterbank`, `SemitoneBandpassFilterbank`) and their frequency-scale
+helpers (`hz2bark`/`bark2hz`/`bark_frequencies`, `hz2erb`/`erb2hz`,
+`hz2midi`/`midi2hz`). `Filter`/`TriangularFilter` are simplified from
+upstream's `np.ndarray`-subclass hierarchy (`filters.py:413-605`) down to
+two plain functions (`_triangular_filter_band_bins`, `_triangular_filters`)
+that build `(start, data)` tuples directly, since no caller needs a
 standalone Filter object -- only the finished filterbank matrix.
+
+Wave 4b addition: `hz2mel`, `mel2hz`, `mel_frequencies`, `MelFilterbank`.
+The 4.0 audit table originally slotted `MelFilterbank` into wave 4g
+(`audio/cepstrogram.py`'s MFCC), but flagged in the same breath that it also
+feeds `CNNOnsetProcessor`'s 80-band mel input (`features/onsets.py`,
+`FilteredSpectrogramProcessor(filterbank=MelFilterbank, num_bands=80,
+fmin=27.5, fmax=16000, norm_filters=True, unique_filters=False)`) -- ported
+here instead, pulled forward per that flag; CLAUDE.md's audit table row is
+updated to PORTED (4b) accordingly, so 4g's cepstrogram work reuses this
+instead of re-porting it. `MelFilterbank` reuses this module's own
+`_triangular_filters`/`_place_filters_into_matrix` helpers (identical
+triangular-filter-placement math to `LogarithmicFilterbank`, just a
+different underlying frequency scale) -- verbatim port of
+`MelFilterbank.__new__` (`madmom-upstream/madmom/audio/filters.py:
+1076-1092`), not a re-derivation.
 
 **Bit-identity trap, replicated on purpose**: upstream's `Filter.__new__`
 casts each filter's samples to `FILTER_DTYPE` (`float32`) BEFORE normalizing
@@ -296,3 +309,51 @@ class LogarithmicFilterbank(Filterbank):
 
 # alias, matching upstream's LogFilterbank = LogarithmicFilterbank
 LogFilterbank = LogarithmicFilterbank
+
+
+# ---------------------------------------------------------------------------
+# Mel filterbank -- Wave 4b addition (CNNOnsetProcessor's 80-band mel input)
+# ---------------------------------------------------------------------------
+def hz2mel(f):
+    """Convert Hz frequencies to Mel. Verbatim port of
+    `madmom.audio.filters.hz2mel` (`filters.py:21-36`)."""
+    return 1127.01048 * np.log(np.asarray(f) / 700.0 + 1.0)
+
+
+def mel2hz(m):
+    """Convert Mel frequencies to Hz. Verbatim port of
+    `madmom.audio.filters.mel2hz` (`filters.py:39-54`)."""
+    return 700.0 * (np.exp(np.asarray(m) / 1127.01048) - 1.0)
+
+
+def mel_frequencies(num_bands, fmin, fmax):
+    """Frequencies aligned on the Mel scale. Verbatim port of
+    `madmom.audio.filters.mel_frequencies` (`filters.py:57-77`)."""
+    return mel2hz(np.linspace(hz2mel(fmin), hz2mel(fmax), num_bands))
+
+
+class MelFilterbank(Filterbank):
+    """A filterbank with triangular filters spaced on the Mel scale.
+
+    Composition port of `madmom.audio.filters.MelFilterbank`
+    (`filters.py:1035-1092`). Unlike `LogarithmicFilterbank`, `num_bands` is
+    a TOTAL band count (not bands-per-octave) -- 2 extra edge bands are
+    requested from `mel_frequencies` internally, matching upstream exactly.
+    """
+
+    NUM_BANDS = 40
+    FMIN = 20.0
+    FMAX = 17000.0
+    NORM_FILTERS = True
+    UNIQUE_FILTERS = True
+
+    def __init__(self, bin_frequencies, num_bands=NUM_BANDS, fmin=FMIN,
+                 fmax=FMAX, norm_filters=NORM_FILTERS,
+                 unique_filters=UNIQUE_FILTERS, **kwargs):
+        # pylint: disable=unused-argument
+        frequencies = mel_frequencies(num_bands + 2, fmin, fmax)
+        bins = frequencies2bins(frequencies, bin_frequencies,
+                                 unique_bins=unique_filters)
+        filters = _triangular_filters(bins, norm=norm_filters, overlap=True)
+        matrix = _place_filters_into_matrix(filters, bin_frequencies)
+        super().__init__(matrix, bin_frequencies)

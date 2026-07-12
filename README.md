@@ -96,9 +96,14 @@ This project targets madmom's **inference** code only:
 - Decoding algorithms (Viterbi-based HMM/DBN beat and downbeat tracking)
 - The NN runtime and `RNNDownBeatProcessor` end-to-end (spectrogram frontend ->
   BLSTM ensemble -> DBN decode)
-- The CNN runtime (convolution/max-pool/batch-norm/pad/global-average layers)
-  and `CNNKeyRecognitionProcessor` end-to-end (spectrogram frontend -> CNN ->
-  24-class major/minor key probabilities + decoded label)
+- The CNN runtime (convolution/max-pool/batch-norm/pad/global-average/stride
+  layers) and `CNNKeyRecognitionProcessor` end-to-end (spectrogram frontend
+  -> CNN -> 24-class major/minor key probabilities + decoded label)
+- Onset detection: the full spectral-flux/phase-deviation/complex-domain DSP
+  function family, `SpectralOnsetProcessor`, `RNNOnsetProcessor` (online and
+  offline RNN ensembles), `CNNOnsetProcessor`, and `OnsetPeakPickingProcessor`
+  end-to-end (spectrogram frontend -> onset activation function -> decoded
+  onset times)
 
 Out of scope, forever:
 
@@ -108,9 +113,9 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: onset/tempo/chord/note feature extraction, the remaining
-audio submodules (chroma, HPSS, cepstrogram), and a torch reimplementation of
-the RNN ensemble forward pass itself (blocked on a real design question --
+Not yet ported: tempo/chord/note feature extraction, the remaining audio
+submodules (chroma, HPSS, cepstrogram), and a torch reimplementation of the
+RNN ensemble forward pass itself (blocked on a real design question --
 madmom's LSTM layers use peephole connections `torch.nn.LSTM` does not
 implement, so this needs a custom cell, not a drop-in swap). Viterbi/DBN
 decoding is sequential and discrete-state, so it is not planned for a torch
@@ -166,6 +171,38 @@ key_prediction_to_label(prediction)  # e.g. "E major"
 
 Same runtime-download/sha256/caching story as `RNNDownBeatProcessor` above,
 via `madmom_infer/models.py`'s `key_cnn()`.
+
+### Onset detection
+
+```python
+from madmom_infer.features.onsets import (
+    CNNOnsetProcessor,
+    OnsetPeakPickingProcessor,
+)
+
+onset_proc = CNNOnsetProcessor()
+activations = onset_proc("track.wav")
+
+peak_picking = OnsetPeakPickingProcessor(fps=100)
+onset_times = peak_picking(activations)  # onset times [seconds]
+```
+
+`RNNOnsetProcessor()` (bidirectional ensemble) and `RNNOnsetProcessor(online=True)`
+(a smaller, causal ensemble) are drop-in alternatives to `CNNOnsetProcessor`
+above -- same `activations -> OnsetPeakPickingProcessor` decode step. For
+direct access to the underlying pure-DSP onset detection functions (no
+pretrained weights needed at all), see `SpectralOnsetProcessor`:
+
+```python
+from madmom_infer.features.onsets import SpectralOnsetProcessor
+
+sodf = SpectralOnsetProcessor(onset_method="superflux")
+activations = sodf("track.wav")
+```
+
+Same runtime-download/sha256/caching story as `RNNDownBeatProcessor`/
+`CNNKeyRecognitionProcessor` above for `RNNOnsetProcessor`/`CNNOnsetProcessor`,
+via `madmom_infer/models.py`'s `onsets_rnn()`/`onsets_brnn()`/`onsets_cnn()`.
 
 ### Torch frontend
 

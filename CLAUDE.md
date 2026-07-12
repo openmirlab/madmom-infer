@@ -134,6 +134,133 @@ to refer to a specific chunk of already-shipped work:
     network; `tests/test_fixtures_exist.py`: 4 more). Full offline suite:
     98 passed, 1 skipped, 14 deselected (was 88/1/11 after 4.0); network
     suite: 14 passed, 1 skipped, 98 deselected, all green.
+  - **4b status: DONE (2026-07-12).** Ported the complete spectral-flux DSP
+    onset family, both NN-based onset activation processors, and
+    peak-picking, matching the wave-plan bullet exactly plus the audit
+    table's fuller enumeration:
+    - `audio/stft.py`: `phase`, `Phase`, `local_group_delay`/`lgd`,
+      `LocalGroupDelay`/`LGD`, `ShortTimeFourierTransform.phase()`. Found
+      and faithfully reproduced a real upstream bug: `LocalGroupDelay.
+      __new__`'s `isinstance(stft, Phase)` check references an undefined
+      name that Python resolves to the module-level `stft()` FUNCTION (not
+      the `phase` argument), so the "reuse an existing Phase" branch is
+      never actually taken -- it always rebuilds. Confirmed by reading the
+      exact upstream line, not guessed.
+    - `audio/filters.py`: `hz2mel`, `mel2hz`, `mel_frequencies`,
+      `MelFilterbank` -- **pulled forward from 4g** (the 4.0 audit itself
+      had already flagged, in the same table row, that `MelFilterbank`
+      feeds `CNNOnsetProcessor`'s 80-band mel input; porting it in 4g would
+      have blocked 4b's own CNN onset target, so it moved here). Audit
+      table row updated to PORTED (4b); 4g's MFCC work reuses this.
+    - `audio/spectrogram.py`: `SuperFluxProcessor`,
+      `Spectrogram.diff()`/`.filter()`/`.log()` convenience methods (the
+      onset functions call `spectrogram.diff(...)` directly, matching
+      upstream's own `np.ndarray`-subclass API), `SpectrogramProcessor.
+      __init__(self, **kwargs): pass` (matches upstream exactly -- needed
+      so `SuperFluxProcessor` can construct it with forwarded kwargs; the
+      base `Processor`/`object.__init__` has no catch-all).
+    - `audio/signal.py`: `smooth()` (needed by `peak_picking`) --
+      **correction to a Phase-1 audit-table overstatement**: the 4.0 (and
+      earlier) audit table listed `smooth` (and several other names --
+      `attenuate`, `rescale`, `resample`, `root_mean_square`,
+      `sound_pressure_level`, `energy`, `trim`, `load_audio_file`,
+      `load_wave_file`, `write_wave_file`, `Stream`, `LoadAudioFileError`)
+      as already PORTED; `smooth` demonstrably was not (grepped, absent).
+      Added `smooth` for real this wave; the audit table's row for the
+      rest is downgraded to TO-VERIFY (flagged, not silently left wrong --
+      full re-audit of that claim is out of scope for 4b). Also added a
+      `**kwargs` catch-all to `FramedSignalProcessor.__init__` (matching
+      upstream's own signature exactly -- this port had dropped it),
+      needed for `SpectralOnsetProcessor`'s literal blind-kwargs-forwarding
+      design to work against this project's stricter processor signatures.
+    - `madmom_infer/utils.py` (**new module**): `segment_axis` (narrow
+      carve-out -- only the `axis=0`/`end='cut'` case `StrideLayer` ever
+      uses, implemented via `numpy.lib.stride_tricks.sliding_window_view`,
+      not upstream's full generality) and `combine_events` (full port, all
+      3 modes). Corrects the 4.0 audit's `utils/*` EXCLUDE row: these two
+      functions turned out to be real, non-speculative dependencies, not
+      speculative ones -- `utils/*` otherwise stays excluded.
+    - `ml/nn/layers.py`: `StrideLayer` -- confirmed by `pickletools`-walking
+      `onsets_cnn.pkl` directly to be the ONLY new layer class it needs
+      beyond 4a's already-ported CNN set (`ConvolutionalLayer`,
+      `MaxPoolLayer`, `BatchNormLayer`) plus Phase-2's `FeedForwardLayer` --
+      `ReshapeLayer`/`TransposeLayer` are confirmed NOT needed here (they
+      stay TO-PORT for 4e's `notes_cnn.pkl`, per the original audit
+      prediction, now verified rather than assumed).
+    - `ml/nn/unpickle.py`: 2 new `ALLOWED_GLOBALS` entries --
+      `madmom.ml.nn.layers.StrideLayer` and `numpy.core.multiarray.scalar`
+      (found by the same `onsets_cnn.pkl` `pickletools` walk: its
+      `BatchNormLayer.beta`/`.gamma` are pickled as bare numpy 0-d scalars,
+      not 1-element arrays, needing this extra numpy reconstruction hook).
+    - `madmom_infer/models.py`: `onsets_rnn()`/`ONSETS_RNN` (8 files),
+      `onsets_brnn()`/`ONSETS_BRNN` (8 files), `onsets_cnn()`/`ONSETS_CNN`
+      (1 file) -- all 17 sha256s computed from the local `../madmom-upstream`
+      submodule checkout AND cross-checked byte-for-byte against fresh
+      `raw.githubusercontent.com/CPJKU/madmom_models` downloads (network
+      was available but slow/flaky in this sandbox -- needed `curl --retry`,
+      all 17 eventually succeeded and matched). `ONSETS_BRNN_PP`
+      (`onsets/2014/*`) is real `package_data`-shipped but has no registry
+      entry -- only `bin/SuperFluxNN` (excluded) loads it, no processor
+      this project ports needs it.
+    - New `madmom_infer/features/onsets.py`: the complete DSP function
+      family (`wrap_to_pi`, `correlation_diff`, `high_frequency_content`,
+      `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`,
+      `modified_kullback_leibler`, `_phase_deviation`, `phase_deviation`,
+      `weighted_phase_deviation`, `normalized_weighted_phase_deviation`,
+      `_complex_domain`, `complex_domain`, `rectified_complex_domain`),
+      `SpectralOnsetProcessor`, `RNNOnsetProcessor` (`online=True`/`False`,
+      both fully supported and offline-compatible), `CNNOnsetProcessor`,
+      `peak_picking`, `OnsetPeakPickingProcessor` (offline-only, plain
+      `Processor`, `OnlineProcessor`'s streaming machinery dropped per this
+      project's stated permanent exclusion). Found and faithfully
+      reproduced two more real upstream quirks: `correlation_diff` crashes
+      under Python 3 in REAL madmom too (`len(c) / 2` used as a slice index
+      -- confirmed by running real madmom's own function against the
+      reference venv, not merely inspecting source), and
+      `SpectralOnsetProcessor.__init__` only appends `onset_method` to its
+      processor chain when it had to look it up from a string -- an
+      already-callable `onset_method` argument is silently NOT added to
+      the pipeline (looks like an oversight, ported as-is). Also found and
+      FIXED (not upstream's fault, a genuine numpy-2.x-vs-1.23.5
+      divergence, same class as docs/DESIGN.md C.1):
+      `normalized_weighted_phase_deviation`'s `epsilon` addition silently
+      upcast `float32` to `float64` under numpy >= 2.0's NEP 50 strict
+      scalar-promotion rules (since `EPSILON = np.spacing(1)` is a genuine
+      numpy `float64` scalar, not a plain Python float) -- an explicit
+      `.astype(np.float32)` reproduces real madmom's actual dtype on every
+      numpy version, confirmed by cross-BLAS test passing with zero
+      differing elements INCLUDING dtype.
+    - New `tools/generate_onset_fixtures.py`: per-DSP-function golden
+      OUTPUT fixtures (inputs are NOT serialized -- deterministic given the
+      shared wav + this project's own already-golden-fixture-proven Phase-1
+      DSP chain, so offline tests just rebuild the input and compare only
+      the new function's output), `StrideLayer`'s self-contained
+      (input, output, `block_size`) fixture, `onsets_rnn_1`/`onsets_brnn_1`/
+      `onsets_cnn` structural digests, and `RNNOnsetProcessor`/
+      `CNNOnsetProcessor` end-to-end activations + `OnsetPeakPickingProcessor`
+      decoded onset times for all 3 44.1kHz test-wav cases. Same
+      "shared-instance-in-order" caching-gotcha discipline as
+      `test_downbeats_rnn.py` (both `RNNOnsetProcessor`/`CNNOnsetProcessor`
+      build one `ShortTimeFourierTransformProcessor`/
+      `FilteredSpectrogramProcessor` per frame-size branch and reuse them
+      across calls).
+    - **Faithfulness proof: PASSED.**
+      `tests/test_onsets.py::test_full_pipeline_is_exact_under_original_blas`
+      reproduces real madmom's `RNNOnsetProcessor`(online=False/True) +
+      `CNNOnsetProcessor` + `OnsetPeakPickingProcessor` activations AND
+      decoded onset times with **zero differing elements**, for all 3
+      44.1kHz test-wav cases, all 3 model families. In-process
+      (differing-BLAS-build) ULP drift measured at up to 17 ULP for the
+      pure-DSP functions (tests assert a 64-ULP margin, ~4x observed) and
+      up to 62 ULP for the RNN/BRNN/CNN activations (tests assert a
+      256-ULP margin, ~4x observed, same order of magnitude as
+      `test_downbeats_rnn.py`'s 512 for its own bigger 8-network BLSTM
+      ensemble) -- decoded onset TIMES are EXACT in every case despite
+      that drift.
+    - 31 new tests total (`tests/test_onsets.py`: 20 offline + 6 network;
+      `tests/test_fixtures_exist.py`: 5 more). Full offline suite: 123
+      passed, 1 skipped, 20 deselected (was 98/1/14 after 4a); network
+      suite: 20 passed, 1 skipped, 123 deselected, all green.
 
 ### 4.0 audit result (2026-07-12)
 
@@ -177,16 +304,19 @@ EXCLUDE (why).
 
 | Upstream module | Class / function | Status | Model file(s) loaded | Notes |
 |---|---|---|---|---|
-| `audio/signal.py` | `Signal`, `SignalProcessor`, `FramedSignal`, `FramedSignalProcessor`, `Stream`, `LoadAudioFileError`, `remix`, `normalize`, `adjust_gain`, `attenuate`, `rescale`, `resample`, `root_mean_square`, `sound_pressure_level`, `energy`, `smooth`, `trim`, `signal_frame`, `load_audio_file`, `load_wave_file`, `write_wave_file` | PORTED | -- | Phase 1, complete |
+| `audio/signal.py` | `Signal`, `SignalProcessor`, `FramedSignal`, `FramedSignalProcessor`, `remix`, `normalize`, `adjust_gain`, `signal_frame` | PORTED | -- | Phase 1, complete |
+| `audio/signal.py` | `smooth` | PORTED (4b) | -- | needed by `features/onsets.py`'s `peak_picking`; this row previously (Phase 1) claimed it as already PORTED -- it was not actually present in the module until this wave, correcting that overstatement here |
+| `audio/signal.py` | `Stream`, `LoadAudioFileError`, `attenuate`, `rescale`, `resample`, `root_mean_square`, `sound_pressure_level`, `energy`, `trim`, `load_audio_file`, `load_wave_file` (public), `write_wave_file` | TO-VERIFY | -- | this row's Phase-1 entry claimed these as PORTED; empirically NOT found in `audio/signal.py` while porting 4b's `smooth` (only a private `_load_wave_file` helper exists) -- flagged rather than silently left overstated, but a full re-audit of Phase 1's own completeness is out of scope for 4b; port on demand if/when a TO-PORT processor is found to need one (`resample` in particular is a known, deliberate Phase-1 gap -- ffmpeg-backed, no project dependency, see that module's header) |
 | `audio/filters.py` | `Filterbank`, `LogarithmicFilterbank`, `log_frequencies`, `frequencies2bins`, `bins2frequencies`, freq-conversion helpers (`hz2mel` etc.) | PORTED | -- | Phase 1 |
-| `audio/filters.py` | `MelFilterbank` | TO-PORT (4g) | -- | feeds `cepstrogram.py` MFCC + `CNNOnsetProcessor`'s 80-band mel input |
+| `audio/filters.py` | `MelFilterbank` | PORTED (4b) | -- | originally slotted for 4g (`cepstrogram.py` MFCC), pulled forward -- also feeds `CNNOnsetProcessor`'s 80-band mel input, which is in 4b's own scope; 4g's MFCC work reuses this instead of re-porting |
 | `audio/filters.py` | `BarkFilterbank`, `RectangularFilter`, `RectangularFilterbank` | TO-PORT (4f) | -- | feeds `MultiBandSpectrogramProcessor`, used by `PatternTrackingProcessor` |
 | `audio/filters.py` | `PitchClassProfileFilterbank`, `HarmonicPitchClassProfileFilterbank`, `SimpleChromaFilterbank`, `SemitoneBandpassFilterbank` | TO-PORT (4d, scope addition -- see corrections above) | -- | feed `audio/chroma.py`'s classic (non-DNN) chroma path |
 | `audio/filters.py` | `HarmonicFilterbank` | TO-PORT (4g) | -- | used by `SemitoneBandpassSpectrogram`/harmonic feature paths; low priority, no processor in the named waves depends on it alone |
 | `audio/stft.py` | `ShortTimeFourierTransform`, `ShortTimeFourierTransformProcessor`, `stft`, `fft_frequencies` | PORTED | -- | Phase 1 |
-| `audio/stft.py` | `Phase`, `LocalGroupDelay`/`LGD`, `phase`, `local_group_delay`, `lgd`, `rfft_builder` | TO-PORT (4b) | -- | feeds onset phase-deviation family |
+| `audio/stft.py` | `Phase`, `LocalGroupDelay`/`LGD`, `phase`, `local_group_delay`, `lgd` | PORTED (4b) | -- | feeds onset phase-deviation family; `LocalGroupDelay` reproduces a real upstream bug on purpose (`__new__` checks `isinstance(stft, Phase)` where `stft` is an undefined name resolving to the module's own `stft()` function, so it always rebuilds rather than reusing an existing `Phase`) -- see `audio/stft.py`'s module header |
+| `audio/stft.py` | `rfft_builder` | EXCLUDE | -- | `pyfftw` acceleration hook, not a project dependency (see `audio/stft.py`'s Phase-1 header) |
 | `audio/spectrogram.py` | `Spectrogram`, `SpectrogramProcessor`, `FilteredSpectrogram(Processor)`, `LogarithmicSpectrogram(Processor)`, `SpectrogramDifference(Processor)` | PORTED | -- | Phase 1 |
-| `audio/spectrogram.py` | `SuperFluxProcessor` | TO-PORT (4b) | -- | onset family |
+| `audio/spectrogram.py` | `SuperFluxProcessor` | PORTED (4b) | -- | onset family |
 | `audio/spectrogram.py` | `MultiBandSpectrogram`, `MultiBandSpectrogramProcessor` | TO-PORT (4f) | -- | `PatternTrackingProcessor` input |
 | `audio/spectrogram.py` | `SemitoneBandpassSpectrogram` | TO-PORT (4d) | -- | `CLPChromaProcessor` input |
 | `audio/cepstrogram.py` | `Cepstrogram`, `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` | TO-PORT (4g) | -- | needs `MelFilterbank` first |
@@ -202,7 +332,8 @@ EXCLUDE (why).
 | `ml/nn/layers.py` | `Layer`, `FeedForwardLayer`, `RecurrentLayer`, `BidirectionalLayer`, `Gate`, `Cell`, `LSTMLayer` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` | PORTED (4a) | -- | confirmed pickletools-walked as exactly what `key_cnn.pkl` (`AverageLayer`,`BatchNormLayer`,`ConvolutionalLayer`,`MaxPoolLayer`,`PadLayer`,`elu`,`linear`) references; `onsets_cnn.pkl`, `notes_cnn*.pkl`, `chords_cnnfeat.pkl` also need this same set (reused by 4b/4d/4e, not re-ported) |
 | `ml/nn/layers.py` | `GRULayer`, `GRUCell` | TO-PORT (tentative 4c, scope addition -- see corrections above) | -- | `downbeats_bgru_*.pkl` (12 files) reference these; no wave currently plans them |
-| `ml/nn/layers.py` | `ReshapeLayer`, `TransposeLayer`, `StrideLayer` | TO-PORT (4a/4b, alongside the CNN infra that needs them) | -- | `notes_cnn.pkl` needs Reshape+Transpose; `onsets_cnn.pkl` needs Stride |
+| `ml/nn/layers.py` | `StrideLayer` | PORTED (4b) | -- | `onsets_cnn.pkl` references it (confirmed by `pickletools`); needs `utils.segment_axis` (see `utils/*` row below) |
+| `ml/nn/layers.py` | `ReshapeLayer`, `TransposeLayer` | TO-PORT (4e, alongside the CNN infra that needs them) | -- | `notes_cnn.pkl` needs Reshape+Transpose; confirmed by 4b's own `pickletools` walk of `onsets_cnn.pkl` that it does NOT need either of these (only `StrideLayer`, above) |
 | `ml/nn/layers.py` | `TCNBlock`, `TCNLayer` | EXCLUDE | -- | no shipped model references them (`BEATS_TCN` not in `package_data`; confirmed by attempted load, file absent from installed tree) |
 | `ml/nn/layers.py` | `MultiTaskLayer`, `ParallelLayer`, `SequentialLayer` | EXCLUDE | -- | only used by TCN multi-task models, which aren't shipped |
 | `ml/nn/activations.py` | `linear`, `tanh`, `sigmoid`, `relu`, `elu`, `softmax` | PORTED | -- | Phase 2 |
@@ -217,9 +348,9 @@ EXCLUDE (why).
 | `features/beats.py` | `TCNBeatProcessor`, `detect_beats`, `threshold_activations` (TCN-specific parts) | EXCLUDE | `BEATS_TCN` (not shipped) | see corrections above; `threshold_activations` itself is already ported (`features/downbeats.py`) and reused, not duplicated |
 | `features/tempo.py` | `TempoEstimationProcessor`, `TempoHistogramProcessor`, `ACFTempoHistogramProcessor`, `CombFilterTempoHistogramProcessor`, `DBNTempoHistogramProcessor`, `detect_tempo`, `dominant_interval`, `interval_histogram_acf`, `interval_histogram_comb`, `smooth_histogram` | TO-PORT (4c) | -- | comb variant needs `audio/comb_filters.py` port first |
 | `features/tempo.py` | `TCNTempoHistogramProcessor` | EXCLUDE | -- | only consumes `TCNBeatProcessor` output, which can't exist (no shipped model) |
-| `features/onsets.py` | `SpectralOnsetProcessor`, `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`, `complex_domain`, `rectified_complex_domain`, `high_frequency_content`, `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`, `normalized_weighted_phase_deviation`, `correlation_diff`, `wrap_to_pi`, `peak_picking`, `OnsetPeakPickingProcessor` | TO-PORT (4b) | -- | pure DSP, no NN weights |
-| `features/onsets.py` | `RNNOnsetProcessor` | TO-PORT (4b) | `ONSETS_RNN`, `ONSETS_BRNN`, `ONSETS_BRNN_PP` | pickle refs: `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer` -- all already PORTED (Phase 2), no new layer classes |
-| `features/onsets.py` | `CNNOnsetProcessor` | TO-PORT (4b, reuses 4a's conv layers) | `ONSETS_CNN` | pickle refs: `ConvolutionalLayer`,`MaxPoolLayer`,`BatchNormLayer`,`StrideLayer` + `MelFilterbank` input |
+| `features/onsets.py` | `SpectralOnsetProcessor`, `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`, `complex_domain`, `rectified_complex_domain`, `high_frequency_content`, `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`, `normalized_weighted_phase_deviation`, `correlation_diff`, `wrap_to_pi`, `peak_picking`, `OnsetPeakPickingProcessor` | PORTED (4b) | -- | pure DSP, no NN weights; `correlation_diff` is a faithful port of a function real madmom itself crashes on under Python 3 (confirmed empirically against the reference venv) -- ported bug-for-bug, pinned by a `pytest.raises(TypeError)` test, not a golden output; `OnsetPeakPickingProcessor` is offline-only (no `OnlineProcessor`, a stated permanent exclusion) |
+| `features/onsets.py` | `RNNOnsetProcessor` | PORTED (4b) | `ONSETS_RNN`, `ONSETS_BRNN` | pickle refs: `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer` -- all already PORTED (Phase 2), no new layer classes; `online=True` (`ONSETS_RNN`) IS supported (unlike `OnsetPeakPickingProcessor`'s online mode) -- it only selects different pretrained weights/frame sizes, not actual streaming; `ONSETS_BRNN_PP` has no registry entry (only loaded by the excluded `bin/SuperFluxNN` CLI script, no processor this project ports needs it) |
+| `features/onsets.py` | `CNNOnsetProcessor` | PORTED (4b, reuses 4a's conv layers) | `ONSETS_CNN` | pickle refs: `ConvolutionalLayer`,`MaxPoolLayer`,`BatchNormLayer`,`FeedForwardLayer`,`StrideLayer` (all PORTED, `StrideLayer` new in 4b) + `MelFilterbank` input (pulled forward from 4g into 4b, see `audio/filters.py` row) |
 | `features/key.py` | `CNNKeyRecognitionProcessor`, `key_prediction_to_label`, `add_axis` | PORTED (4a) | `KEY_CNN` = `key/2018/key_cnn.pkl` | pickle refs confirmed above; cross-BLAS-proven exact (`tests/test_key.py`) |
 | `features/chords.py` | `DeepChromaChordRecognitionProcessor` | TO-PORT (4d) | `CHORDS_DCCRF` | pickle has **no** NN globals -- CRF-only (`ml/crf.py`), confirms 4d's CRF-first framing |
 | `features/chords.py` | `CNNChordFeatureProcessor` | TO-PORT (4d) | `CHORDS_CNN_FEAT` | pickle refs: `ConvolutionalLayer`,`BatchNormLayer`,`MaxPoolLayer` (4a's set, no new classes) |
@@ -232,6 +363,7 @@ EXCLUDE (why).
 | **`evaluation/*`** | (entire subpackage) | EXCLUDE | -- | out of scope per this repo's stated scope (see top of this file) |
 | **`bin/*`** | (CLI scripts, installed as `console_scripts`-style `scripts=` entries by upstream `setup.py`) | EXCLUDE | -- | this package is a library, processors are the API (Permanent exclusions) |
 | **`io/*`, `utils/*`** | `io.audio`, `io.midi`, `utils.midi`, `utils.stats` | EXCLUDE (out of this audit's stated scope: `features/`, `audio/`, `ml/` only) | -- | I/O/annotation-file helpers, not inference algorithms; flagged here rather than silently dropped, revisit only if a TO-PORT processor is found to need one (none currently do) |
+| `utils/__init__.py` | `segment_axis`, `combine_events` | PORTED (4b, narrow carve-out -- `madmom_infer/utils.py`, NOT a general `utils/*` port) | -- | correction to the row above: 4b found two real, non-speculative dependencies -- `StrideLayer` (`ml/nn/layers.py`) calls `segment_axis` (this port implements only its `axis=0`/`end='cut'` case, the only one `StrideLayer` ever uses, NOT upstream's full generality), `OnsetPeakPickingProcessor` (`features/onsets.py`) calls `combine_events` (ported in full, all 3 `combine` modes, cheap) |
 
 ## File-top header convention
 

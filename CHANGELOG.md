@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Wave 4b of the complete-port campaign (`feat/complete-port` branch):
+onset detection.** Adds the complete spectral-flux/phase-deviation/
+complex-domain onset detection DSP function family, `SpectralOnsetProcessor`,
+`RNNOnsetProcessor` (online + offline RNN ensembles), `CNNOnsetProcessor`,
+and `OnsetPeakPickingProcessor` end-to-end (spectrogram frontend -> onset
+activation function -> decoded onset times).
+
+### Added
+- `madmom_infer/audio/stft.py`: `phase`, `Phase`, `local_group_delay`/`lgd`,
+  `LocalGroupDelay`/`LGD`, `ShortTimeFourierTransform.phase()` -- the
+  phase-vocoder-style analysis chain the onset phase-deviation family reads
+  off `spectrogram.stft.phase()`/`...phase().lgd()`. Faithfully reproduces a
+  real upstream bug: `LocalGroupDelay.__new__`'s "reuse an existing `Phase`"
+  branch is never actually reachable (an undefined-name reference resolves
+  to the module's own `stft()` function instead of the `phase` argument),
+  so it always rebuilds -- ported bug-for-bug, not silently fixed.
+- `madmom_infer/audio/filters.py`: `hz2mel`, `mel2hz`, `mel_frequencies`,
+  `MelFilterbank` -- pulled forward from wave 4g (`CNNOnsetProcessor`'s
+  80-band mel input needs it now; 4g's MFCC work will reuse this).
+- `madmom_infer/audio/spectrogram.py`: `SuperFluxProcessor`,
+  `Spectrogram.diff()`/`.filter()`/`.log()` convenience methods,
+  `SpectrogramProcessor.__init__(self, **kwargs): pass` (matches upstream).
+- `madmom_infer/audio/signal.py`: `smooth()` (needed by `peak_picking`;
+  corrects a Phase-1 audit-table overstatement -- it was listed as already
+  PORTED but was not actually present), and a `**kwargs` catch-all added to
+  `FramedSignalProcessor.__init__` (matches upstream's own signature,
+  needed for `SpectralOnsetProcessor`'s kwargs-forwarding design).
+- `madmom_infer/utils.py` (new module): `segment_axis` (narrow carve-out --
+  only the case `StrideLayer` needs) and `combine_events` (full port) --
+  two real, non-speculative dependencies found while porting this wave,
+  not a general `madmom.utils` port.
+- `madmom_infer/ml/nn/layers.py`: `StrideLayer` -- the one new layer class
+  `onsets_cnn.pkl` needs beyond wave 4a's CNN set (confirmed by
+  `pickletools`, not guessed).
+- `madmom_infer/ml/nn/unpickle.py`: 2 new `ALLOWED_GLOBALS` entries
+  (`madmom.ml.nn.layers.StrideLayer`, `numpy.core.multiarray.scalar`).
+- `madmom_infer/models.py`: `onsets_rnn()`/`ONSETS_RNN` (8 files),
+  `onsets_brnn()`/`ONSETS_BRNN` (8 files), `onsets_cnn()`/`ONSETS_CNN`
+  (1 file) -- 17 sha256-pinned registry entries, cross-checked against both
+  a fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and the
+  local `../madmom-upstream` submodule checkout (identical).
+- `madmom_infer/features/onsets.py` (new module): the complete DSP function
+  family (`wrap_to_pi`, `correlation_diff`, `high_frequency_content`,
+  `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`,
+  `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`,
+  `normalized_weighted_phase_deviation`, `complex_domain`,
+  `rectified_complex_domain`), `SpectralOnsetProcessor`, `RNNOnsetProcessor`,
+  `CNNOnsetProcessor`, `peak_picking`, `OnsetPeakPickingProcessor` (offline
+  only -- `OnlineProcessor` stays a permanent exclusion). `correlation_diff`
+  is a faithful port of a function that crashes under Python 3 in REAL
+  madmom too (confirmed against the reference venv), pinned by a
+  `pytest.raises(TypeError)` test rather than a golden output. Fixed one
+  genuine numpy-2.x-vs-1.23.5 dtype-promotion divergence (not upstream's
+  fault): `normalized_weighted_phase_deviation` silently upcast `float32`
+  to `float64` under numpy >= 2.0's NEP 50 scalar-promotion rules; an
+  explicit `.astype(np.float32)` reproduces real madmom's actual dtype on
+  every numpy version.
+- 31 new tests (`tests/test_onsets.py`: 20 offline + 6 `pytest.mark.network`;
+  `tests/test_fixtures_exist.py`: 5 more) and
+  `tools/generate_onset_fixtures.py` (the fixture-generation script,
+  reference-venv-only). Faithfulness proof: `tests/test_onsets.py::
+  test_full_pipeline_is_exact_under_original_blas` reproduces real madmom's
+  `RNNOnsetProcessor`(online=False/True) + `CNNOnsetProcessor` +
+  `OnsetPeakPickingProcessor` activations AND decoded onset times with
+  **zero differing elements**. In-process ULP drift measured at up to 17
+  ULP for the pure-DSP functions (asserted at a 64-ULP margin) and up to 62
+  ULP for the RNN/BRNN/CNN activations (asserted at a 256-ULP margin) --
+  decoded onset times are EXACT despite that drift. Full offline suite now
+  123 passed, 1 skipped, 20 deselected (was 98/1/14).
+
 **Wave 4a of the complete-port campaign (`feat/complete-port` branch): CNN
 runtime + key detection.** Adds `CNNKeyRecognitionProcessor` end-to-end
 (audio in, 24-class major/minor key probabilities + decoded label out) and

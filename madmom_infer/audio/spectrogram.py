@@ -13,14 +13,21 @@ Phase-2 addition: `SpectrogramDifference`/`SpectrogramDifferenceProcessor`
 (SuperFlux-style temporal first-order difference), needed because
 `RNNDownBeatProcessor` (`madmom_infer/features/downbeats.py`) stacks a
 diff-of-log-spectrogram feature onto each of its 3 frame-size branches
-(`madmom-upstream/madmom/features/downbeats.py:84-87`). Still deliberately
-NOT ported (no phase-2 call site either, `madmom-upstream/madmom/audio/
-spectrogram.py`): `SuperFluxProcessor`, `MultiBandSpectrogram`/
-`MultiBandSpectrogramProcessor`, `SemitoneBandpassSpectrogram`,
-`LogarithmicFilteredSpectrogram`/`LogarithmicFilteredSpectrogramProcessor`
-(the fused filter+log convenience class -- this project composes the same
-pipeline via two separate stages instead, exactly like `build_spec_processor()`
-already does), and `tuning_frequency()`/`Spectrogram.tuning_frequency()`.
+(`madmom-upstream/madmom/features/downbeats.py:84-87`).
+
+Wave 4b addition: `SuperFluxProcessor` (`features/onsets.py`'s `superflux`
+onset detection function needs its exact default parameterization), plus
+`Spectrogram.diff()`/`.filter()`/`.log()` convenience methods (the pure-DSP
+onset functions call `spectrogram.diff(...)` directly) and
+`SpectrogramProcessor.__init__(self, **kwargs): pass` (needed for
+`SuperFluxProcessor` to construct it with forwarded kwargs). Still NOT
+ported (no call site so far, `madmom-upstream/madmom/audio/spectrogram.py`):
+`MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`,
+`SemitoneBandpassSpectrogram`, `LogarithmicFilteredSpectrogram`/
+`LogarithmicFilteredSpectrogramProcessor` (the fused filter+log convenience
+class -- this project composes the same pipeline via two separate stages
+instead, exactly like `build_spec_processor()` already does), and
+`tuning_frequency()`/`Spectrogram.tuning_frequency()`.
 
 Composition, not `np.ndarray` subclassing (docs/DESIGN.md C.2): each class
 wraps a plain array in `.data`, and `FilteredSpectrogram`/
@@ -41,7 +48,7 @@ import inspect
 import numpy as np
 from scipy.ndimage import maximum_filter
 
-from ..processors import BufferProcessor, Processor
+from ..processors import BufferProcessor, Processor, SequentialProcessor
 from .filters import (
     FMAX,
     FMIN,
@@ -52,7 +59,7 @@ from .filters import (
     NORM_FILTERS,
     UNIQUE_FILTERS,
 )
-from .stft import ShortTimeFourierTransform
+from .stft import ShortTimeFourierTransform, ShortTimeFourierTransformProcessor
 
 FILTERBANK = LogarithmicFilterbank
 
@@ -148,6 +155,24 @@ class Spectrogram:
         """Bin frequencies."""
         return self.stft.bin_frequencies
 
+    # -- Wave 4b addition: convenience constructors, needed by
+    # features/onsets.py's spectral_diff/spectral_flux/superflux (each calls
+    # `spectrogram.diff(...)`) -----------------------------------------
+    def diff(self, **kwargs):
+        """Return the `SpectrogramDifference` of this spectrogram. Port of
+        `Spectrogram.diff` (`spectrogram.py:164-179`)."""
+        return SpectrogramDifference(self, **kwargs)
+
+    def filter(self, **kwargs):
+        """Return the `FilteredSpectrogram` of this spectrogram. Port of
+        `Spectrogram.filter` (`spectrogram.py:181-196`)."""
+        return FilteredSpectrogram(self, **kwargs)
+
+    def log(self, **kwargs):
+        """Return the `LogarithmicSpectrogram` of this spectrogram. Port of
+        `Spectrogram.log` (`spectrogram.py:198-213`)."""
+        return LogarithmicSpectrogram(self, **kwargs)
+
 
 class SpectrogramProcessor(Processor):
     """Processor wrapper: compute the magnitude `Spectrogram` of an STFT.
@@ -156,7 +181,17 @@ class SpectrogramProcessor(Processor):
     (`spectrogram.py:239-264`). Not on all-in-one-infer's own chain (which
     goes straight from STFT to `FilteredSpectrogramProcessor`, which builds
     its own internal `Spectrogram`), kept for API completeness/composability.
+    `__init__(self, **kwargs): pass` (Wave 4b addition, matching upstream's
+    own `SpectrogramProcessor.__init__` exactly) -- needed because
+    `SuperFluxProcessor` instantiates `SpectrogramProcessor(**kwargs)` with
+    whatever extra kwargs its own caller passed through; the base
+    `Processor`/`object.__init__` has no catch-all and would raise
+    `TypeError` on any non-empty kwargs otherwise.
     """
+
+    def __init__(self, **kwargs):
+        # pylint: disable=unused-argument
+        pass
 
     def process(self, data, **kwargs):
         return Spectrogram(data, **kwargs)
@@ -484,3 +519,43 @@ class SpectrogramDifferenceProcessor(Processor):
         return self.stack_diffs(
             (np.asarray(diff.spectrogram)[self.diff_frames:], diff_arr)
         )
+
+
+# ---------------------------------------------------------------------------
+# SuperFluxProcessor -- Wave 4b addition (features/onsets.py's superflux)
+# ---------------------------------------------------------------------------
+class SuperFluxProcessor(SequentialProcessor):
+    """Spectrogram processor with the default values suitable for the
+    SuperFlux onset detection algorithm.
+
+    Port of `madmom.audio.spectrogram.SuperFluxProcessor`
+    (`spectrogram.py:1230-1262`): un-normalized `LogarithmicFilterbank`
+    (24 bands/octave), max-filtered (`diff_max_bins=3`), positive-only
+    temporal difference. Its own chain starts at the STFT stage (no
+    `SignalProcessor`/`FramedSignalProcessor`) -- callers pass in anything
+    `ShortTimeFourierTransformProcessor.process()` can turn into a
+    `ShortTimeFourierTransform` (a raw file path included, via
+    `FramedSignal`'s own `Signal(...)` auto-conversion fallback).
+    """
+
+    def __init__(self, **kwargs):
+        # set the default values (can be overwritten if set)
+        # we need an un-normalized LogarithmicFilterbank with 24 bands
+        filterbank = kwargs.pop("filterbank", FILTERBANK)
+        num_bands = kwargs.pop("num_bands", 24)
+        norm_filters = kwargs.pop("norm_filters", False)
+        # we want max filtered diffs
+        diff_ratio = kwargs.pop("diff_ratio", 0.5)
+        diff_max_bins = kwargs.pop("diff_max_bins", 3)
+        positive_diffs = kwargs.pop("positive_diffs", True)
+        # processing chain
+        stft = ShortTimeFourierTransformProcessor(**kwargs)
+        spec = SpectrogramProcessor(**kwargs)
+        filt = FilteredSpectrogramProcessor(
+            filterbank=filterbank, num_bands=num_bands,
+            norm_filters=norm_filters, **kwargs)
+        log = LogarithmicSpectrogramProcessor(**kwargs)
+        diff = SpectrogramDifferenceProcessor(
+            diff_ratio=diff_ratio, diff_max_bins=diff_max_bins,
+            positive_diffs=positive_diffs, **kwargs)
+        super().__init__((stft, spec, filt, log, diff))

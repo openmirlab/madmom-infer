@@ -149,6 +149,28 @@ EXPECTED_KEYS = {
         for case in ("mono_44100", "stereo_44100", "float32_44100")
         for suffix in ("prediction", "label")
     },
+    # Wave 4b (tools/generate_onset_fixtures.py) -- pure-DSP onset function
+    # golden outputs, model-independent (mono_44100.wav only, see that
+    # file's module header).
+    "onset_dsp_functions.npz": {
+        "wrap_to_pi_input", "wrap_to_pi_output", "high_frequency_content",
+        "spectral_diff", "spectral_flux", "superflux",
+        "modified_kullback_leibler", "phase_deviation",
+        "weighted_phase_deviation", "normalized_weighted_phase_deviation",
+        "complex_domain", "rectified_complex_domain",
+        "complex_flux_unfiltered", "complex_flux_filtered", "sodf_default",
+        "sodf_superflux",
+    },
+    "onset_stride_layer.npz": {"StrideLayer_input", "StrideLayer_output"},
+    # Wave 4b -- 44.1kHz-native cases only, RNNOnsetProcessor/
+    # CNNOnsetProcessor have no resampling support (same reason as
+    # RNNDownBeatProcessor/CNNKeyRecognitionProcessor).
+    "onset_activations.npz": {
+        f"{case}_{model}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for model in ("brnn", "rnn", "cnn")
+        for suffix in ("activations", "onsets")
+    },
 }
 
 
@@ -199,6 +221,30 @@ def test_key_layer_params_exists_and_loads():
     }
     missing = expected_types - set(params.keys())
     assert not missing, f"key_layer_params.json missing types: {sorted(missing)}"
+
+
+def test_onset_structural_digest_exists_and_loads():
+    """Wave 4b fixture (tools/generate_onset_fixtures.py): the unpickled
+    onsets_rnn_1/onsets_brnn_1/onsets_cnn structural digests."""
+    path = FIXTURES_DIR / "onset_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    expected_keys = {"onsets_rnn_1", "onsets_brnn_1", "onsets_cnn"}
+    missing = expected_keys - set(digest.keys())
+    assert not missing, f"onset_structural_digest.json missing keys: {sorted(missing)}"
+    assert len(digest["onsets_rnn_1"]) == 4
+    assert len(digest["onsets_brnn_1"]) == 4
+    assert len(digest["onsets_cnn"]) == 8
+
+
+def test_onset_stride_layer_params_exists_and_loads():
+    """Wave 4b fixture (tools/generate_onset_fixtures.py): StrideLayer's
+    non-array hyperparameter (block_size)."""
+    path = FIXTURES_DIR / "onset_stride_layer_params.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    params = json.loads(path.read_text())
+    assert "StrideLayer" in params
+    assert "block_size" in params["StrideLayer"]
 
 
 def test_wav_fixtures_exist():

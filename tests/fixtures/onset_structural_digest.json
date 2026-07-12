@@ -1,0 +1,258 @@
+{
+  "onsets_brnn_1": [
+    {
+      "type": "BidirectionalLayer"
+    },
+    {
+      "type": "BidirectionalLayer"
+    },
+    {
+      "type": "BidirectionalLayer"
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "56552818fedc5a66f0a0adfa79438442a2a27f631c586d4a37ed72638b2925f2",
+        "shape": [
+          1
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "432cc9b50259b68c994ac024ec5896f23ed0841115ab926b0624a60245e691f8",
+        "shape": [
+          50,
+          1
+        ]
+      }
+    }
+  ],
+  "onsets_cnn": [
+    {
+      "activation_fn": "linear",
+      "beta": {
+        "dtype": "int64",
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "shape": [
+          1
+        ]
+      },
+      "gamma": {
+        "dtype": "int64",
+        "sha256": "7c9fa136d4413fa6173637e883b6998d32e1d675f88cddff9dcbcf331820f4b8",
+        "shape": [
+          1
+        ]
+      },
+      "inv_std": {
+        "dtype": "float64",
+        "sha256": "3baaf3c5d474ba473d6d04349789555b53df5058a13b55d9679d695983125073",
+        "shape": [
+          80,
+          3
+        ]
+      },
+      "mean": {
+        "dtype": "float64",
+        "sha256": "4debf0693baad14ea6994418eb29e6e88c2f5c502030df3490dca16379cdd091",
+        "shape": [
+          80,
+          3
+        ]
+      },
+      "type": "BatchNormLayer"
+    },
+    {
+      "activation_fn": "tanh",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "1c38085cf2ec95226620ab88dc9ecb75c8336f6e0e03814ef321a84c63d30897",
+        "shape": [
+          10
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "b96d17659ed34a9ae79abf46ff7228bb2311d06df94eebed5c9587d961e171f1",
+        "shape": [
+          3,
+          10,
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "axis": null,
+      "size": [
+        1,
+        3
+      ],
+      "stride": [
+        1,
+        3
+      ],
+      "type": "MaxPoolLayer"
+    },
+    {
+      "activation_fn": "tanh",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "a00d2eeb2f19207b086eaea1165f721e7735ff4a95a6d5b2563d95557b8a1c46",
+        "shape": [
+          20
+        ]
+      },
+      "pad": "valid",
+      "stride": 1,
+      "type": "ConvolutionalLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "a42444452765efce31ce97b38302a980631d36c91711f1da0a4a6824de16f84c",
+        "shape": [
+          10,
+          20,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "axis": null,
+      "size": [
+        1,
+        3
+      ],
+      "stride": [
+        1,
+        3
+      ],
+      "type": "MaxPoolLayer"
+    },
+    {
+      "block_size": 7,
+      "type": "StrideLayer"
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "cc1bfa572801e4a105fc685f4060e9f7f1d981faf818dc8d122be542ff9c7026",
+        "shape": [
+          256
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "5c83e3919d91c62c90154d4ca79d822dc5f743b8ceff880048845cd8a1fb2646",
+        "shape": [
+          1120,
+          256
+        ]
+      }
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "9e4a9252a978a5abda5ab21cdda4fc5d7e9f6af563c6a2078fbadc3bfc237e0b",
+        "shape": [
+          1
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "003fdd73b8df00e09b792e2e64f58c1b5145956e48998ef4a397f93ce9d0295b",
+        "shape": [
+          256,
+          1
+        ]
+      }
+    }
+  ],
+  "onsets_rnn_1": [
+    {
+      "activation_fn": "tanh",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "47dc401a27be67f297fe9c24c609fdf43887536392557cc21d5b2ac32d9b7534",
+        "shape": [
+          25
+        ]
+      },
+      "type": "RecurrentLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "1082f9098d71eca58f4539cfde5d3bed8fa8a5338621ead9f9e1019b3676383a",
+        "shape": [
+          236,
+          25
+        ]
+      }
+    },
+    {
+      "activation_fn": "tanh",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "ae91cb09fd6a965325593b32ae51acc7ea23ce476d5c2fec50df1b636d9892be",
+        "shape": [
+          25
+        ]
+      },
+      "type": "RecurrentLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "77fd695c1f2a5c452027cb563e7a93ba211be251e9a32875a2c9548bdb22b927",
+        "shape": [
+          25,
+          25
+        ]
+      }
+    },
+    {
+      "activation_fn": "tanh",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "fe46b179ac1cdfb919c5fe6574c14bfbbd803e0f039af080578632d78a0ee218",
+        "shape": [
+          25
+        ]
+      },
+      "type": "RecurrentLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "3b177c226461716023feeeaedc7feebf4ed5c3f6c38b22a4c4d4cdc7889e845f",
+        "shape": [
+          25,
+          25
+        ]
+      }
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "084bcf550c93a8e4cae0c1934c0a38b4ab02049f6e32b677c5ecc9d129f2edd6",
+        "shape": [
+          1
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "b5733c8d223e8acf127c69766205907c288d1fd54a56b82b65bf15b2687d5643",
+        "shape": [
+          25,
+          1
+        ]
+      }
+    }
+  ]
+}
