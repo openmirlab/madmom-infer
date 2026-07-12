@@ -40,9 +40,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Optional GPU-accelerated backend, most valuable for the spectrogram/STFT
-# stage (batch processing). The Viterbi decoder is inherently sequential, so
-# GPU gains there are expected to be marginal.
+# Optional, differentiable, batched torch spectrogram frontend (Phase 3a,
+# madmom_infer/torch/), gated behind `import madmom_infer.torch` -- the core
+# `madmom_infer` package never imports torch. Covers framing/STFT/filterbank/
+# log-compression/temporal-diff, reusing the numpy backend's own window and
+# filterbank-matrix construction. Does NOT (yet) cover the RNN forward pass
+# (madmom's LSTMs use peephole connections torch.nn.LSTM lacks) or Viterbi/DBN
+# decoding (sequential, discrete-state -- no GPU/batch benefit expected there).
 torch = [
     "torch>=2.0.0",
 ]
