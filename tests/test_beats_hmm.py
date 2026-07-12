@@ -1,7 +1,8 @@
 """A/B tests for madmom_infer.features.beats_hmm against real madmom's
 pure-Python beats_hmm.py, using the golden fixtures recorded by
-tests/generate_fixtures.py (run against the compiled madmom install in
-all-in-one-fix/.venv -- see that script's docstring). Uses all-in-one-infer's
+tests/generate_fixtures.py (run against the compiled madmom install in the
+reference venv, madmom-reference/.venv -- see that script's docstring). Uses
+all-in-one-infer's
 exact DBN parameters (beats_per_bar 3 and 4, min_bpm=55, max_bpm=215,
 num_tempi=60, transition_lambda=100, observation_lambda=16), per
 docs/DESIGN.md C.4 and this workstream's task brief.

@@ -2,13 +2,14 @@
 features/downbeats.py A/B tests.
 
 Standalone script, run against the *real*, compiled madmom (0.17.dev0) install
-in all-in-one-fix/.venv -- must NOT import madmom_infer, only real `madmom`,
-numpy and scipy. Dumps every reference input/output pair this workstream's
-tests need as one .npz per test target under tests/fixtures/, so the actual
-pytest suite (run under whatever numpy/Python the project's own environment
-uses) never needs the madmom venv itself, just these recorded arrays.
+in the reference venv (madmom-reference/.venv) -- must NOT import
+madmom_infer, only real `madmom`, numpy and scipy. Dumps every reference
+input/output pair this workstream's tests need as one .npz per test target
+under tests/fixtures/, so the actual pytest suite (run under whatever
+numpy/Python the project's own environment uses) never needs the madmom
+venv itself, just these recorded arrays.
 
-Run with: /home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python
+Run with: /home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python
 tests/generate_fixtures.py
 
 Reads: real `madmom` (ml.hmm, features.beats_hmm, features.downbeats), numpy,

@@ -15,8 +15,11 @@ case, empirically measured here at up to 190 ULP (`float32` view-as-`int32`
 bit-pattern distance) across the 3 usable test-wav cases. **The proof this
 project's philosophy requires (CLAUDE.md: never label "approximately right"
 as bit-identical) is `test_full_pipeline_is_exact_under_original_blas`
-below**: this project's OWN code, executed under the ORIGINAL reference
-venv's numpy/scipy (`all-in-one-fix/.venv`, numpy 1.23.5) -- not just a
+below**: this project's OWN code, executed under the reference
+venv's numpy/scipy (`madmom-reference/.venv`, rebuilt 2026-07-12 to the same
+recorded versions -- numpy 1.23.5, scipy 1.15.3 -- as the original,
+now-gone `all-in-one-fix/.venv` that the committed fixtures were recorded
+from) -- not just a
 single matmul, the ENTIRE `RNNDownBeatProcessor` -> `DBNDownBeatTrackingProcessor`
 pipeline -- reproduces real madmom's own recorded activations AND decoded
 beat times with ZERO differing elements. That is the direct, executable
@@ -84,7 +87,7 @@ WAVS_DIR = FIXTURES_DIR / "wavs"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 REFERENCE_PYTHON = Path(
-    "/home/worzpro/Desktop/dev/openmirlab/all-in-one-fix/.venv/bin/python"
+    "/home/worzpro/Desktop/dev/openmirlab/madmom-reference/.venv/bin/python"
 )
 
 DBN_PARAMS = dict(beats_per_bar=[3, 4], fps=100)
@@ -155,7 +158,7 @@ def _reference_python_available():
 
 @pytest.mark.skipif(
     not _reference_python_available(),
-    reason="reference madmom install (all-in-one-fix/.venv) not found on "
+    reason="reference madmom install (madmom-reference/.venv) not found on "
            "this machine; the cross-BLAS proof requires it",
 )
 def test_full_pipeline_is_exact_under_original_blas(rnn_downbeat_fixture):
