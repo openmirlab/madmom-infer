@@ -8,4 +8,4 @@ Reads: (leaf file, no imports); read by: pyproject.toml [tool.hatch.version],
 madmom_infer/__init__.py
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"

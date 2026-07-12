@@ -50,13 +50,92 @@ Out of scope, forever:
   used by the sibling
   [all-in-one-infer](https://github.com/openmirlab/all-in-one-infer) package's
   pure-Python NATTEN replacement.
-- **torch backend**: not implemented. It is a **planned Phase 3** item (see
-  `docs/DESIGN.md` for the design proposal) -- there is no `import torch`
-  anywhere in this codebase yet, and no `torch` extra to install. If it ships,
-  it's expected to help most at the spectrogram/STFT stage (batches trivially
-  across frames); the Viterbi decoder is an inherently sequential, per-frame
-  recursion, so GPU gains there would be **marginal** -- noted here so nobody
-  oversells that speculative speedup in the meantime.
+- **torch backend** (optional, via the `torch` extra, `madmom_infer.torch`):
+  as of Phase 3a, this is **a differentiable, batched spectrogram frontend**
+  -- framing, STFT, filterbank application, log compression, and the
+  temporal-difference feature `RNNDownBeatProcessor` stacks on top, all as
+  autograd-differentiable torch tensor ops, batched `(B, samples) -> (B,
+  frames, bins)`, device-agnostic (CPU/CUDA). It reuses the numpy backend's
+  own window/filterbank-matrix/diff-frame-count construction (computed via
+  the existing numpy code and converted to tensors) rather than
+  reimplementing that DSP knowledge a second time. See "Torch frontend
+  (Phase 3a)" below for what it covers, a usage example, and what it
+  explicitly does not (yet) cover.
+
+Install the optional torch backend with:
+
+```bash
+pip install "madmom-infer[torch]"
+```
+
+### Torch frontend (Phase 3a)
+
+```python
+import torch
+from madmom_infer.torch import rnn_downbeat_frontend
+
+# mono, float, 44.1kHz waveform: (batch, num_samples)
+waveform = torch.randn(2, 44100)
+
+frontend = rnn_downbeat_frontend(dtype=torch.float32)  # matches
+                                                        # RNNDownBeatProcessor's
+                                                        # 3-branch DSP cascade
+features = frontend(waveform)  # (2, 100, 314), differentiable w.r.t. waveform
+```
+
+Because it is a plain differentiable `nn.Module`, the frontend can sit
+inside a training loop -- e.g. learning a per-band gain on top of the fixed
+filterbank (a toy illustration, not a claim that madmom's own filterbank
+should be retrained):
+
+```python
+import torch
+from madmom_infer.torch.audio.frontend import SpectrogramFrontend
+
+frontend = SpectrogramFrontend(frame_size=2048, fps=100, num_bands=12,
+                                dtype=torch.float32)
+band_gain = torch.nn.Parameter(torch.ones(2 * frontend.num_bands))
+optimizer = torch.optim.Adam([band_gain], lr=1e-2)
+
+waveform = torch.randn(4, 44100)
+target = torch.zeros(4, 100, 2 * frontend.num_bands)
+
+for _ in range(50):
+    optimizer.zero_grad()
+    feats = frontend(waveform) * band_gain  # gradient flows through the STFT
+    loss = torch.nn.functional.mse_loss(feats, target)
+    loss.backward()
+    optimizer.step()
+```
+
+**What it covers** (`madmom_infer/torch/audio/frontend.py`): framing (exact
+`FramedSignal` hop/origin semantics), complex STFT (window, FFT size,
+optional circular shift), filterbank application, log compression, and the
+temporal difference stage, individually as functional building blocks
+(`frame_signal`, `stft`, `apply_filterbank`, `log_compress`,
+`temporal_difference`) plus the composed `SpectrogramFrontend` module and
+the `rnn_downbeat_frontend()` factory that mirrors `RNNDownBeatProcessor`'s
+3-branch (1024/2048/4096-sample, 3/6/12-bands-per-octave) cascade exactly,
+producing the same 314-dimensional feature vector real madmom's RNN
+ensemble consumes.
+
+**What it explicitly does NOT cover** (see `madmom_infer/torch/__init__.py`):
+- The RNN ensemble forward pass. Madmom's LSTM layers use peephole
+  connections `torch.nn.LSTM` does not implement, so a torch NN backend
+  needs a custom cell -- a possible Phase 3b, not started.
+- Viterbi/DBN decoding. Sequential, per-frame, discrete-state recursion --
+  no batching or GPU benefit to speak of; not planned for a torch
+  reimplementation (same "don't oversell it" stance as the module docstrings
+  already state for the numpy Viterbi decoder).
+- Audio loading/downmixing/resampling (`SignalProcessor`) -- the frontend
+  takes an already-mono, already-resampled float waveform tensor directly.
+- Byte-identical numeric parity with the numpy backend at every precision:
+  the two use different underlying FFT/BLAS libraries (`torch.fft` vs
+  `scipy.fft`/BLAS), so outputs agree to a documented tolerance
+  (`tests/test_torch_frontend.py`: ~2.3e-6 max absolute difference at
+  float32, ~1e-10 at float64 against a float64-only numpy test harness --
+  see that file's module docstring for why numpy's *shipped* classes cannot
+  produce a genuine float64 baseline to begin with), not bit-for-bit.
 
 ## Roadmap
 
@@ -161,13 +240,46 @@ Decoded beat/downbeat times are **exact** in every environment tested
 input noise). Onset/tempo/chord/key/note feature extraction beyond
 `RNNDownBeatProcessor` remains out of scope for now (see roadmap below).
 
-### Phase 3 (odds and ends, not started)
+### Phase 3a -- **differentiable torch spectrogram frontend: shipped**
+
+`madmom_infer/torch/` (opt-in, `pip install "madmom-infer[torch]"`, see
+"Torch frontend (Phase 3a)" above for usage): a batched, autograd-
+differentiable, device-agnostic torch reimplementation of the framing ->
+STFT -> filterbank -> log-compression -> temporal-difference chain, reusing
+the numpy backend's own window/filterbank-matrix/diff-frame-count
+construction rather than re-deriving that DSP knowledge. Verified against
+the numpy backend on synthetic sine/noise/click/silence signals of several
+lengths (including non-multiples of the hop size): float32 max absolute
+difference ~2.3e-6 against the real shipped numpy processor chain (cross-
+FFT-library rounding, not a port bug); float64 within ~1e-10 against a
+bespoke float64-throughout numpy test harness (numpy's own classes hardcode
+a `complex64`/`float32` ceiling and cannot produce a genuine float64 output
+to compare against, see `tests/test_torch_frontend.py`); `torch.autograd.
+gradcheck`-verified differentiable; batched output matches per-item output
+to float32 matmul/FFT non-associativity tolerance; runs on CPU and CUDA.
+
+Explicitly out of scope for 3a, and not silently implied elsewhere in these
+docs: the RNN ensemble forward pass and Viterbi/DBN decoding -- see "What it
+explicitly does NOT cover" above.
+
+### Phase 3b (NN forward pass) -- not started
+
+A torch reimplementation of the RNN ensemble forward pass
+(`madmom_infer/ml/nn/*`), so the full `RNNDownBeatProcessor` pre-processing
++ inference chain could run end-to-end on GPU. Blocked on a real design
+question, not just engineering time: madmom's LSTM layers use peephole
+connections, which `torch.nn.LSTM` does not implement -- this needs a
+custom cell, not a drop-in `nn.LSTM` swap. Viterbi/DBN decoding would remain
+numpy regardless (sequential, discrete-state -- no torch benefit expected,
+per this project's long-standing "don't oversell it" stance).
+
+### Further backlog (not phased yet)
 
 Remaining audio submodules (chroma, HPSS, cepstrogram) and two more small
-Cython units: `features/beats_crf.pyx` and `audio/comb_filters.pyx`. Also
-where a **torch backend** would land, if built (see `docs/DESIGN.md` for the
-design proposal) -- planned, not implemented; there is no `torch` dependency
-or extra in this project today.
+Cython units: `features/beats_crf.pyx` and `audio/comb_filters.pyx`. The
+torch backend itself is no longer in this backlog -- its Phase 3a spectrogram
+frontend has shipped (see above); Phase 3b (torch NN forward pass) is the
+remaining open torch item, tracked separately above, not here.
 
 ## What this project will NEVER bundle
 
@@ -197,10 +309,11 @@ pip install madmom-infer
 ```
 
 Phase 1 -- the DSP feature-extraction pipeline and numpy Viterbi/DBN
-downbeat decoder -- and Phase 2 -- the NN runtime, restricted model
+downbeat decoder -- Phase 2 -- the NN runtime, restricted model
 unpickling, runtime weights download, and `RNNDownBeatProcessor`
-end-to-end -- are complete and golden-fixture verified; Phase 3 is not yet
-started. See the Roadmap above.
+end-to-end -- and Phase 3a -- the optional, differentiable torch
+spectrogram frontend -- are complete and verified; Phase 3b (torch NN
+forward pass) has not started. See the Roadmap above.
 
 ## Attribution
 
