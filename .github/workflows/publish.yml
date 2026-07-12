@@ -20,6 +20,13 @@ name: Publish to PyPI
 #     guard themselves with `pytest.mark.skipif` on that venv's path existing,
 #     so they cleanly SKIP (not error) on any machine -- including this
 #     runner -- that doesn't have that reference environment.
+#
+# Matrix covers every classifiers-claimed Python version: 3.9-3.13. 3.12/3.13
+# pull scipy==1.18.0 by default resolution, whose scipy.fft float32 rounding
+# differs by up to 1 ULP from the golden fixtures; tests/test_stft.py's
+# affected assertions are ULP-tolerant (or skip the one whole-array SHA-256
+# check that can't express ULP tolerance) to absorb that. See the 0.1.1
+# CHANGELOG entry.
 
 on:
   release:
@@ -29,11 +36,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       - name: Install uv
         run: pip install uv
       - name: Install dependencies

@@ -5,6 +5,81 @@ All notable changes to madmom-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-12
+
+### Fixed
+- **Doc-honesty fix: removed all "torch backend" present-tense claims.** There
+  is zero `import torch` anywhere in `madmom_infer/` -- the torch backend was
+  always a Phase 3 proposal (`docs/DESIGN.md`), never implemented, but
+  shipped docs described it as an existing, installable feature. Corrected:
+  - `README.md`'s "Dual backend design" section claimed a "torch backend
+    (optional, via the `torch` extra): GPU-accelerated batch..." and
+    instructed `pip install "madmom-infer[torch]"`. Rewritten as "Backend"
+    describing numpy as the only backend that exists today, torch as planned
+    Phase 3 (with a pointer to `docs/DESIGN.md`).
+  - `pyproject.toml` declared a `torch = ["torch>=2.0.0"]` optional-dependency
+    extra that nothing in the package imports or uses -- removed. Installing
+    it would have pulled a multi-gigabyte unused dependency.
+  - `CLAUDE.md`'s "Dual-backend + golden-fixture testing philosophy" section
+    asserted "An optional torch backend exists for GPU-accelerated batch
+    processing, gated behind the `torch` extra" -- rewritten to state plainly
+    that no torch backend exists yet and it's a planned, not-yet-implemented
+    Phase 3 item.
+  - `madmom_infer/__init__.py`'s module docstring described "current
+    numpy/scipy/torch" and a "dual numpy/torch backend design" -- corrected
+    to numpy/scipy only, with torch noted as planned but unimplemented.
+  - `docs/DESIGN.md` and `madmom_infer/audio/signal.py`'s module docstring
+    were left as-is: both already use honest proposal/roadmap language
+    ("we recommend", "a future `madmom_infer.torch.audio.signal.Signal`")
+    rather than claiming the torch backend currently exists.
+  - The `[0.1.0]` entry below is left unedited as a historical record of what
+    that release's docs said at the time, imperfections included.
+
+### Changed
+- **CI test matrix now covers the full classifiers-claimed range, Python
+  3.9-3.13** (`.github/workflows/publish.yml`'s `test` job, which gates the
+  `publish` job) -- previously only 3.9-3.11. Added the
+  `Programming Language :: Python :: 3.13` classifier to `pyproject.toml` to
+  match. All five versions verified green locally via fresh
+  `uv venv --python 3.X` + editable install + `pytest`. 3.9-3.11 resolve
+  scipy 1.17.1 by default: 68 passed, 20 skipped (env-guarded golden
+  fixtures needing the real-madmom reference venv or network access,
+  expected outside the recording environment), 11 deselected
+  (`network`-marked), 0 failed. 3.12-3.13 resolve scipy 1.18.0 by default:
+  66 passed, 22 skipped, 11 deselected, 0 failed -- 2 extra skips relative
+  to 3.9-3.11, explained below.
+- **scipy 1.18.0 compatibility: ULP-tolerant STFT fixture assertions**
+  (`tests/test_stft.py`). scipy 1.18.0 (the first scipy release requiring
+  Python>=3.12, and what `uv sync`/`pip install` resolve to by default on
+  3.12/3.13) changed `scipy.fft.fft`'s float32 rounding relative to scipy
+  1.13.1-1.17.1 (all bit-identical to the golden fixtures), previously
+  causing 3 test failures under default dependency resolution on
+  Python 3.12/3.13 (`test_stft_matches_fixture[float32_44100]`,
+  `[stereo_48000_mono]`, and
+  `test_window_caching_gotcha_reproduces_exact_bug`). Measured (not
+  assumed): diffing this port's own STFT output computed under scipy
+  1.17.1 (bit-identical to `tests/fixtures/stft.npz`, including its
+  whole-array SHA-256 fingerprints) against the same computation under
+  scipy 1.18.0 shows the two builds differ by exactly 1 float32 ULP in
+  exactly 1 of 153,600 values per affected case, always landing outside the
+  three frames (`frame0`/`frame1`/`frame_last`) the fixture stores
+  per-element ground truth for. Fixed by relaxing exactly the 2 assertions
+  that needed it, no more: `test_window_caching_gotcha_reproduces_exact_bug`
+  now uses `np.testing.assert_array_max_ulp(maxulp=4)` (4x the measured
+  1-ULP worst case, rounded up to the next power of two -- the same margin
+  convention `test_spectrogram.py` already established for this exact class
+  of build-dependent float32 non-associativity) instead of bit-exact
+  `array_equal`; `test_stft_matches_fixture`'s whole-array SHA-256 check
+  (which, being a hash, has no notion of "close") now skips with an
+  explicit reason on the 2 affected cases specifically when it doesn't
+  match, rather than failing or silently passing -- frame0/frame1/frame_last
+  stay bit-exact assertions in every case, unrelaxed, since they still pass
+  on both scipy builds. No fixtures were regenerated and no dependency was
+  pinned; this project's golden-fixture philosophy (CLAUDE.md) still holds:
+  bit-exactness now holds within one scipy build, documented plainly rather
+  than papered over, the same class as the org constitution's art.2
+  env-scoped-fixture clause.
+
 ## [0.1.0] - 2026-07-11
 
 Initial public release. Phase 1 (spectrogram/STFT/filterbank chain plus the

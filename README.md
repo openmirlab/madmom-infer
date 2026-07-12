@@ -41,25 +41,22 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-## Dual backend design
+## Backend
 
-- **numpy backend** (default, required): the reference implementation.
-  Verified bit-identical to original madmom via **golden-fixture tests** --
-  recordings of real madmom output, checked against this port's output. This
-  is the same testing philosophy used by the sibling
+- **numpy backend** (default, required, and the *only* backend that exists
+  today): the reference implementation. Verified bit-identical to original
+  madmom via **golden-fixture tests** -- recordings of real madmom output,
+  checked against this port's output. This is the same testing philosophy
+  used by the sibling
   [all-in-one-infer](https://github.com/openmirlab/all-in-one-infer) package's
   pure-Python NATTEN replacement.
-- **torch backend** (optional, via the `torch` extra): GPU-accelerated batch
-  processing. Most valuable for the spectrogram/STFT stage, which batches
-  trivially across frames. The Viterbi decoder is an inherently sequential,
-  per-frame recursion, so GPU gains there are expected to be **marginal** --
-  we're not going to oversell that in these docs.
-
-Install the optional torch backend with:
-
-```bash
-pip install "madmom-infer[torch]"
-```
+- **torch backend**: not implemented. It is a **planned Phase 3** item (see
+  `docs/DESIGN.md` for the design proposal) -- there is no `import torch`
+  anywhere in this codebase yet, and no `torch` extra to install. If it ships,
+  it's expected to help most at the spectrogram/STFT stage (batches trivially
+  across frames); the Viterbi decoder is an inherently sequential, per-frame
+  recursion, so GPU gains there would be **marginal** -- noted here so nobody
+  oversells that speculative speedup in the meantime.
 
 ## Roadmap
 
@@ -164,10 +161,13 @@ Decoded beat/downbeat times are **exact** in every environment tested
 input noise). Onset/tempo/chord/key/note feature extraction beyond
 `RNNDownBeatProcessor` remains out of scope for now (see roadmap below).
 
-### Phase 3 (odds and ends)
+### Phase 3 (odds and ends, not started)
 
 Remaining audio submodules (chroma, HPSS, cepstrogram) and two more small
-Cython units: `features/beats_crf.pyx` and `audio/comb_filters.pyx`.
+Cython units: `features/beats_crf.pyx` and `audio/comb_filters.pyx`. Also
+where a **torch backend** would land, if built (see `docs/DESIGN.md` for the
+design proposal) -- planned, not implemented; there is no `torch` dependency
+or extra in this project today.
 
 ## What this project will NEVER bundle
 
