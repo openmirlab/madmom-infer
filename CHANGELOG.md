@@ -79,6 +79,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bit-exactness now holds within one scipy build, documented plainly rather
   than papered over, the same class as the org constitution's art.2
   env-scoped-fixture clause.
+- **CI-hardware ULP tolerance for HMM transition-model fixtures**
+  (`tests/test_beats_hmm.py`). GitHub Actions' py3.11 test job (run
+  29173379978) failed `test_bar_transition_model_csr_exact[3]` and `[4]`,
+  passing bit-exact on the local dev machine. Root cause: `BarTransitionModel`
+  computes its `probabilities` array at runtime via
+  `exponential_transition`'s `np.exp()` (`madmom_infer/features/beats_hmm.py`),
+  and libm's `exp` last bit isn't guaranteed identical across CPU/OS/libc
+  builds -- CI differed from the fixture by exactly 1 float64 ULP (max abs
+  diff 1.11e-16, max rel diff 3.5e-16) in 536/21648 elements. Same class of
+  env-dependence as the scipy 1.18 STFT fix above and the org constitution's
+  art.2 clause. Fixed by relaxing exactly that one assertion to
+  `np.testing.assert_array_max_ulp(maxulp=4)` (4x the measured 1-ULP worst
+  case, matching this project's established margin convention); every other
+  assertion in the file (CSR `states`/`pointers`, state positions/intervals,
+  observation-model pointers -- all integer or non-transcendental) audited
+  and left bit-exact, since none of them depend on libm. Full suite
+  reverified green on a fresh py3.11 venv: 68 passed, 20 skipped, 11
+  deselected, 0 failed.
 
 ## [0.1.0] - 2026-07-11
 
