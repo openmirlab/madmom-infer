@@ -85,11 +85,29 @@ fresh downloads from `https://raw.githubusercontent.com/CPJKU/madmom_models/
 master/...` for all 28 files -- identical, confirmed 2026-07-12, network was
 available (parallel `curl --retry`, same technique 4b established).
 
-Every other model family madmom ships (`CHORDS_DCCRF`, `NOTES_CNN`, ...)
-would follow the exact same `_ModelFile`/`download()` pattern -- adding one
-is a matter of listing its relative paths + sha256s, not new machinery --
-but is out of scope until a processor that needs it is ported (see
-CLAUDE.md's wave plan).
+4d addition: `CHROMA_DNN` (`chroma/2016/chroma_dnn.pkl`, single-network,
+`madmom_infer/audio/chroma.py`'s `DeepChromaProcessor`), `CHORDS_DCCRF`
+(`chords/2016/chords_dccrf.pkl`, single-network CRF,
+`DeepChromaChordRecognitionProcessor`), `CHORDS_CNN_FEAT`
+(`chords/2016/chords_cnnfeat.pkl`, single-network CNN,
+`CNNChordFeatureProcessor`), and `CHORDS_CFCRF` (`chords/2016/
+chords_cnncrf.pkl`, single-network CRF, `CRFChordRecognitionProcessor`) --
+all `madmom_infer/features/chords.py`'s end-to-end targets. All 4 sha256s
+were computed directly from the files already present locally at
+`../madmom-upstream/madmom/models/{chroma,chords}/2016/*.pkl` (Wave 4.0's
+submodule checkout) and cross-checked byte-for-byte against fresh downloads
+from `https://raw.githubusercontent.com/CPJKU/madmom_models/master/...` for
+all 4 files -- identical, confirmed 2026-07-13, network was available.
+Note the upstream naming oddity, preserved here rather than "fixed": madmom's
+own `models/__init__.py` names the `chords_cnncrf.pkl`-backed constant
+`CHORDS_CFCRF` (not `CHORDS_CNNCRF`) -- `CF` stands for "CNN Feature" (the
+CRF that decodes `CNNChordFeatureProcessor`'s output), not a typo for the
+filename.
+
+Every other model family madmom ships (`NOTES_CNN`, ...) would follow the
+exact same `_ModelFile`/`download()` pattern -- adding one is a matter of
+listing its relative paths + sha256s, not new machinery -- but is out of
+scope until a processor that needs it is ported (see CLAUDE.md's wave plan).
 
 Reads: urllib.request (stdlib, HTTPS GET), hashlib (stdlib, sha256), os/
 pathlib (stdlib, XDG cache resolution); read by:
@@ -97,7 +115,11 @@ madmom_infer/features/downbeats.py (RNNDownBeatProcessor.__init__,
 RNNBarProcessor.__init__), madmom_infer/features/key.py
 (CNNKeyRecognitionProcessor.__init__), madmom_infer/features/onsets.py
 (RNNOnsetProcessor.__init__, CNNOnsetProcessor.__init__),
-madmom_infer/features/beats.py (RNNBeatProcessor.__init__).
+madmom_infer/features/beats.py (RNNBeatProcessor.__init__),
+madmom_infer/audio/chroma.py (DeepChromaProcessor.__init__),
+madmom_infer/features/chords.py (DeepChromaChordRecognitionProcessor.
+__init__, CNNChordFeatureProcessor.__init__, CRFChordRecognitionProcessor.
+__init__).
 """
 
 import hashlib
@@ -490,3 +512,81 @@ def downbeats_bgru(cache_root: Path = None, force: bool = False):
     """
     return [downbeats_bgru_rhythmic(cache_root=cache_root, force=force),
             downbeats_bgru_harmonic(cache_root=cache_root, force=force)]
+
+
+# ---------------------------------------------------------------------------
+# CHROMA_DNN / CHORDS_DCCRF / CHORDS_CNN_FEAT / CHORDS_CFCRF: madmom's
+# chroma/chord model families -- the 4d end-to-end targets. sha256s verified
+# against BOTH a fresh raw-GitHub download AND the copy already checked out
+# locally under ../madmom-upstream/madmom/models (identical, see this
+# module's header).
+# ---------------------------------------------------------------------------
+_CHROMA_DNN_FILES = [
+    _ModelFile("chroma/2016/chroma_dnn.pkl",
+               "d91aff59113ec6b85de9c9b1aafb065ed0c756072284cebc61564237e901ca94"),
+]
+
+_CHORDS_DCCRF_FILES = [
+    _ModelFile("chords/2016/chords_dccrf.pkl",
+               "64e72027c989d6db8ecaa2f097592d3124b94f0362bde225d0c686a8a68d8d03"),
+]
+
+_CHORDS_CNN_FEAT_FILES = [
+    _ModelFile("chords/2016/chords_cnnfeat.pkl",
+               "59ac731a514880d7ec22ed9ee33935fc1683d2a03d8a7b4b81d26a3da944ce7d"),
+]
+
+_CHORDS_CFCRF_FILES = [
+    _ModelFile("chords/2016/chords_cnncrf.pkl",
+               "4b8a63b4bb5bea076cf1babc76d5cb0a3618e6125d9a3a998f441d61308676af"),
+]
+
+
+def chroma_dnn(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `chroma_dnn.pkl`
+    (as a single-element list) -- madmom's `CHROMA_DNN` model list, used by
+    `madmom_infer.audio.chroma.DeepChromaProcessor`.
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _CHROMA_DNN_FILES]
+
+
+def chords_dccrf(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `chords_dccrf.pkl`
+    (as a single-element list) -- madmom's `CHORDS_DCCRF` model list, used by
+    `DeepChromaChordRecognitionProcessor`.
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _CHORDS_DCCRF_FILES]
+
+
+def chords_cnn_feat(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `chords_cnnfeat.pkl`
+    (as a single-element list) -- madmom's `CHORDS_CNN_FEAT` model list, used
+    by `CNNChordFeatureProcessor`.
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _CHORDS_CNN_FEAT_FILES]
+
+
+def chords_cfcrf(cache_root: Path = None, force: bool = False):
+    """Download (if needed) and return the local path to `chords_cnncrf.pkl`
+    (as a single-element list) -- madmom's `CHORDS_CFCRF` model list, used by
+    `CRFChordRecognitionProcessor` (the CRF that decodes
+    `CNNChordFeatureProcessor`'s output -- see this module's header re: the
+    `CFCRF`/`cnncrf.pkl` naming oddity).
+
+    NON-COMMERCIAL USE ONLY for the downloaded weights (CC BY-NC-SA 4.0) --
+    see this module's header.
+    """
+    return [download(f, cache_root=cache_root, force=force)
+            for f in _CHORDS_CFCRF_FILES]

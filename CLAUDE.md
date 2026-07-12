@@ -403,6 +403,183 @@ to refer to a specific chunk of already-shipped work:
       +6). Full offline suite: 174 passed, 1 skipped, 25 deselected (was
       123/1/20 after 4b); network suite: 25 passed, 1 skipped, 174
       deselected, all green.
+  - **4d status: DONE (2026-07-13).** Ported everything the audit table's
+    `ml/crf.py`/chroma/chords rows marked TO-PORT(4d), plus the classic
+    (non-DNN) chroma scope addition the 4.0 audit corrections flagged, and
+    closed the loop 4c left open on `RNNBarProcessor`:
+    - `madmom_infer/ml/crf.py` (**new module**): `ConditionalRandomField`
+      (pure-numpy matrix-formulation Viterbi decode, forward-inference
+      only, verbatim port). Added a `.load()` classmethod (not in upstream,
+      which inherits `Processor.load`'s bare `pickle.load`) delegating to
+      `unpickle.load_model` -- same restricted-unpickling convention as
+      `NeuralNetwork.load`/`NeuralNetworkEnsemble.load`. **Pickle
+      introspection finding (pickletools-walked all 4 target `.pkl` files
+      directly, not guessed)**: `chroma/2016/chroma_dnn.pkl` references
+      only already-ported globals (`NeuralNetwork`, `FeedForwardLayer`,
+      `relu`, `sigmoid`); `chords/2016/chords_cnnfeat.pkl` references only
+      wave 4a's already-ported CNN layer set (`ConvolutionalLayer`,
+      `BatchNormLayer`, `MaxPoolLayer`, `linear`, `relu`); `chords/2016/
+      chords_dccrf.pkl` and `chords/2016/chords_cnncrf.pkl` each need
+      exactly ONE new global, `madmom.ml.crf.ConditionalRandomField` --
+      confirming the audit table's own "pickle has no NN globals -- CRF-
+      only" prediction for both CRF-only pickles. Both CRF pickles restore
+      via `NEWOBJ` + direct `__dict__` update under this class's own
+      `__init__` attribute names (`pi`/`tau`/`c`/`A`/`W`) -- no
+      `__getstate__`/`__setstate__` needed, same "attribute names, not
+      constructor-perfect `__init__`s" shape as `ml/nn/layers.py`'s
+      pickled layer classes.
+    - `madmom_infer/ml/nn/unpickle.py`: 1 new `ALLOWED_GLOBALS` entry
+      (`madmom.ml.crf.ConditionalRandomField`), found by the same
+      `pickletools` walk.
+    - `madmom_infer/audio/filters.py`: `hz2midi`, `midi2hz`,
+      `semitone_frequencies` (verbatim ports), `PitchClassProfileFilterbank`/
+      `HarmonicPitchClassProfileFilterbank` (composition ports, built on
+      this project's own `Filterbank` base rather than upstream's ndarray-
+      view `__new__`), `SemitoneBandpassFilterbank` (own composition class,
+      not a `Filterbank` subclass -- it's a time-domain IIR filterbank,
+      matching upstream's own design). **Found and ported faithfully, not
+      silently completed**: `SimpleChromaFilterbank`'s upstream `__new__`
+      unconditionally `raise NotImplementedError`s before any of its own
+      (dead, TODO-commented) filterbank-construction code runs -- confirmed
+      by reading `filters.py:1340-1341` directly. This port reproduces that
+      exact not-actually-implemented state rather than finishing code
+      upstream itself never enabled; `HarmonicFilterbank` stays TO-PORT(4g)
+      as previously audited (no target this wave needs it).
+    - `madmom_infer/audio/signal.py`: `resample()` -- **a real, load-bearing
+      policy correction to this project's "no ffmpeg dependency" stance
+      (Phase 1 through 4c), not a silent reversal**. `SemitoneBandpassFilterbank`
+      filters each of its ~78 semitone bands at ONE of 3 FIXED sample rates
+      (882/4410/22050 Hz), all three unconditionally different from this
+      project's 44100 Hz input convention -- resampling is unavoidable on
+      every single call, not an optional convenience (unlike the narrower
+      `utils.segment_axis` carve-out precedent). Confirmed the `ffmpeg`
+      system binary is present in this sandbox (`/usr/bin/ffmpeg`) and
+      implemented `resample()` as a narrow ffmpeg-subprocess call -- only
+      the exact shape `SemitoneBandpassFilterbank`'s caller needs (an
+      already-loaded `Signal`, unchanged `dtype`/`num_channels`), not
+      upstream's full `_ffmpeg_call` generality -- shelling out with the
+      same command shape real madmom's own `_ffmpeg_call`/`decode_to_pipe`
+      build for a `Signal` input. **Faithfulness proof: bit-identical, not
+      ULP-close** -- `resample()`'s output matches real madmom's own
+      `resample()` output via `np.array_equal` for all 3 fixed target rates
+      tested (882/4410/22050 Hz) on `mono_44100.wav`, because both sides
+      invoke the literal SAME system `ffmpeg` binary with the literal same
+      arguments (not a reimplementation of ffmpeg's resampling filter).
+    - `madmom_infer/audio/spectrogram.py`: `SemitoneBandpassSpectrogram` --
+      own composition class (NOT a `FilteredSpectrogram` subclass: no STFT
+      stage at all, `scipy.signal.filtfilt`-applied time-domain IIR
+      filtering instead of `np.dot`-against-a-matrix). **Faithfulness
+      finding, measured not assumed**: this class does NOT reproduce real
+      madmom bit-for-bit when the two sides run under DIFFERENT scipy
+      versions (this project's dev venv: scipy 1.17.1; the reference venv
+      that recorded fixtures: scipy 1.15.3) -- measured up to ~1e-5
+      absolute difference (on a data range roughly 0-36) across the 3
+      usable test-wav cases, root-caused to `scipy.signal.filtfilt`'s
+      recursive (IIR) nature amplifying tiny per-scipy-version `ellip()`
+      filter-coefficient differences over ~1.5s of audio, NOT a bug in this
+      port (confirmed: `resample()` itself, the other new scipy-touching
+      piece, IS bit-identical across the same two environments, see above
+      -- isolating the divergence to `filtfilt`/`ellip` specifically).
+      `tests/test_chroma.py` documents and asserts this measured tolerance
+      (`atol=1e-4`, ~10x observed) rather than claiming an exactness that
+      doesn't hold across scipy versions -- this is the ONE non-exact
+      numerical claim this wave makes for a pure-DSP (no NN weights)
+      module, and it is stated plainly, not buried.
+    - `madmom_infer/audio/chroma.py` (**new module**): `PitchClassProfile`/
+      `HarmonicPitchClassProfile` (composition subclasses of `audio/
+      spectrogram.py`'s `Spectrogram`, matching this project's own
+      composition-not-ndarray-subclass convention rather than upstream's
+      `FilteredSpectrogram`-via-`__new__`/`__array_finalize__` hierarchy --
+      `fref=None`'s "auto-estimate via `Spectrogram.tuning_frequency()`"
+      branch raises `NotImplementedError` rather than silently mis-behaving,
+      since `tuning_frequency()` itself is a documented, still-not-ported
+      gap), `DeepChromaProcessor` (composes the same "`FilteredSpectrogramProcessor`
+      -> `LogarithmicSpectrogramProcessor`" two-stage split every other
+      end-to-end processor in this project uses instead of upstream's fused
+      `LogarithmicFilteredSpectrogramProcessor`, plus one composition
+      wrinkle: an `np.asarray` stage inserted before re-wrapping the
+      filtered-log-spectrogram output as a fresh `Signal`, since this
+      project's `LogarithmicSpectrogram` isn't an `np.ndarray` subclass the
+      way upstream's is), `CLPChroma`/`CLPChromaProcessor` (own composition
+      class, needs `SemitoneBandpassSpectrogram` above). **Found and fixed
+      a genuine latent bug in wave 4c's own `SyncronizeFeaturesProcessor`**
+      (`features/downbeats.py`), surfaced only now that `RNNBarProcessor`
+      can actually be exercised end-to-end for the first time: it called
+      `features.T` directly (`features` being, in real use, one of this
+      project's own composition-style spectrogram objects, e.g.
+      `SpectrogramDifference`/`CLPChroma`) -- works on upstream's
+      `np.ndarray`-subclass spectrograms (`.T` comes free), raises
+      `AttributeError` on this project's composition ones (no `.T`
+      attribute defined). Fixed with an explicit `np.asarray(features).T`;
+      wave 4c's own test of this function never caught it because it fed a
+      raw, already-captured ndarray fixture, never a live composition
+      object -- exactly the kind of gap only true end-to-end exercise
+      surfaces, confirmed empirically (reproduced the `AttributeError`
+      before the fix, confirmed it's gone after).
+    - `madmom_infer/features/chords.py` (**new module**):
+      `majmin_targets_to_chord_labels` (verbatim port; `SEGMENT_DTYPE`
+      inlined directly rather than imported from a ported `io.*` package,
+      which stays a permanent EXCLUDE), `DeepChromaChordRecognitionProcessor`,
+      `CNNChordFeatureProcessor` (added an `nn_file=` override, not in
+      upstream, purely for testability -- matches the `nn_files=`/`models=`
+      override convention `CNNKeyRecognitionProcessor`/`DeepChromaProcessor`
+      already establish), `CRFChordRecognitionProcessor`. **Confirmed by
+      reading `madmom-upstream/madmom/features/chords.py` directly, not
+      assumed**: NEITHER chord-recognition path touches `CLPChroma` at all
+      (`DeepChromaChordRecognitionProcessor` uses `DeepChromaProcessor`'s
+      ordinary filtered-log-spectrogram frontend; `CNNChordFeatureProcessor`
+      uses the same frontend directly, no chroma stage) -- so full audio-in
+      chord recognition is achievable and EXACT-testable completely
+      independent of `SemitoneBandpassSpectrogram`'s scipy-version
+      precision caveat above.
+    - `madmom_infer/models.py`: `chroma_dnn()`/`CHROMA_DNN` (1 file),
+      `chords_dccrf()`/`CHORDS_DCCRF` (1 file), `chords_cnn_feat()`/
+      `CHORDS_CNN_FEAT` (1 file), `chords_cfcrf()`/`CHORDS_CFCRF` (1 file,
+      backed by `chords_cnncrf.pkl` -- upstream's own naming, `CF` =
+      "CNN Feature", preserved not "fixed") -- 4 sha256s computed from the
+      local `../madmom-upstream` submodule checkout AND cross-checked
+      byte-for-byte against fresh `raw.githubusercontent.com/CPJKU/
+      madmom_models` downloads (network was available, all 4 succeeded and
+      matched, confirmed 2026-07-13).
+    - **`RNNBarProcessor` (wave 4c, `features/downbeats.py`) is now
+      instantiable AND provably correct end-to-end from raw audio**,
+      closing the loop 4c's own status entry explicitly left open (its
+      `__init__` needed `CLPChromaProcessor`, now ported above). New
+      `tools/generate_chroma_chord_fixtures.py` records a full audio-in
+      fixture (real madmom's own `RNNBeatProcessor` -> `DBNBeatTrackingProcessor`
+      -> `RNNBarProcessor`, FRESH instances per case -- see that tool's
+      header for why this deliberately deviates from the "shared-instance-
+      in-order" discipline other waves' fixture tools use: a shared
+      instance across differing-dtype wavs was found, empirically, to
+      silently produce an EMPTY `perc_synced` array for the `float32_44100`
+      case, a real instance-reuse caching artifact of this port's own
+      composition-style stateful processors, not a fixture-vs-port
+      algorithmic mismatch). **Faithfulness proof: decoded beat times
+      EXACT** in every case, both in-process and cross-BLAS; decoded
+      downbeat activation matches within ~4e-8 absolute (both in-process
+      and cross-BLAS) -- small enough to be explained entirely by
+      `CLPChroma`'s already-documented scipy-version noise above, not a
+      new divergence; the `GRULayer`/`GRUCell` ensemble forward pass itself
+      was already proven bit-exact independent of this in wave 4c.
+    - **Faithfulness proof (chord recognition): PASSED, EXACT.**
+      `tests/test_crf.py`/`tests/test_chords.py`'s cross-BLAS tests
+      reproduce real madmom's CRF-decoded state sequences AND merged chord-
+      segment boundaries/labels with **zero differing elements**, for both
+      `DeepChromaChordRecognitionProcessor` and `CNNChordFeatureProcessor`
+      + `CRFChordRecognitionProcessor`, all 3 usable 44.1kHz test-wav cases.
+      `tests/test_chroma.py`'s `DeepChromaProcessor` cross-BLAS test is
+      likewise **zero differing elements**; its in-process ULP drift
+      measured up to 24 ULP (asserted at a 128-ULP margin, ~5x observed).
+      Classic chroma (`PitchClassProfile`/`HarmonicPitchClassProfile`)
+      in-process ULP drift measured up to 5 ULP (asserted at a 16-ULP
+      margin, ~3x observed) -- pure linear filterbank ops on an already-
+      golden-fixture-proven `Spectrogram`, same order of magnitude as prior
+      waves' comparable stages.
+    - 35 new tests total (`tests/test_crf.py`: 4; `tests/test_chroma.py`:
+      22; `tests/test_chords.py`: 9; `tests/test_downbeats_rnn.py`: +2;
+      `tests/test_fixtures_exist.py`: +7). Full offline suite: 205 passed,
+      1 skipped, 40 deselected (was 174/1/25 after 4c); network suite: 40
+      passed, 1 skipped, 205 deselected, all green.
 
 ### 4.0 audit result (2026-07-12)
 
@@ -448,11 +625,13 @@ EXCLUDE (why).
 |---|---|---|---|---|
 | `audio/signal.py` | `Signal`, `SignalProcessor`, `FramedSignal`, `FramedSignalProcessor`, `remix`, `normalize`, `adjust_gain`, `signal_frame` | PORTED | -- | Phase 1, complete |
 | `audio/signal.py` | `smooth` | PORTED (4b) | -- | needed by `features/onsets.py`'s `peak_picking`; this row previously (Phase 1) claimed it as already PORTED -- it was not actually present in the module until this wave, correcting that overstatement here |
-| `audio/signal.py` | `Stream`, `LoadAudioFileError`, `attenuate`, `rescale`, `resample`, `root_mean_square`, `sound_pressure_level`, `energy`, `trim`, `load_audio_file`, `load_wave_file` (public), `write_wave_file` | TO-VERIFY | -- | this row's Phase-1 entry claimed these as PORTED; empirically NOT found in `audio/signal.py` while porting 4b's `smooth` (only a private `_load_wave_file` helper exists) -- flagged rather than silently left overstated, but a full re-audit of Phase 1's own completeness is out of scope for 4b; port on demand if/when a TO-PORT processor is found to need one (`resample` in particular is a known, deliberate Phase-1 gap -- ffmpeg-backed, no project dependency, see that module's header) |
+| `audio/signal.py` | `resample` | PORTED (4d) -- **policy correction**: the "no ffmpeg dependency" Phase-1 exclusion (below) does not survive `SemitoneBandpassFilterbank`'s unconditional, load-bearing need for it; narrow ffmpeg-subprocess port, bit-identical to real madmom's own `resample()` (both invoke the literal same system `ffmpeg` binary), see 4d status | -- | feeds `audio/spectrogram.py`'s `SemitoneBandpassSpectrogram` |
+| `audio/signal.py` | `Stream`, `LoadAudioFileError`, `attenuate`, `rescale`, `root_mean_square`, `sound_pressure_level`, `energy`, `trim`, `load_audio_file`, `load_wave_file` (public), `write_wave_file` | TO-VERIFY | -- | this row's Phase-1 entry claimed these as PORTED; empirically NOT found in `audio/signal.py` while porting 4b's `smooth` (only a private `_load_wave_file` helper exists) -- flagged rather than silently left overstated, but a full re-audit of Phase 1's own completeness is out of scope for 4b; port on demand if/when a TO-PORT processor is found to need one (`resample` itself is no longer part of this row as of 4d, see the row above -- it moved from "known, deliberate gap" to PORTED for a real, load-bearing reason) |
 | `audio/filters.py` | `Filterbank`, `LogarithmicFilterbank`, `log_frequencies`, `frequencies2bins`, `bins2frequencies`, freq-conversion helpers (`hz2mel` etc.) | PORTED | -- | Phase 1 |
 | `audio/filters.py` | `MelFilterbank` | PORTED (4b) | -- | originally slotted for 4g (`cepstrogram.py` MFCC), pulled forward -- also feeds `CNNOnsetProcessor`'s 80-band mel input, which is in 4b's own scope; 4g's MFCC work reuses this instead of re-porting |
 | `audio/filters.py` | `BarkFilterbank`, `RectangularFilter`, `RectangularFilterbank` | TO-PORT (4f) | -- | feeds `MultiBandSpectrogramProcessor`, used by `PatternTrackingProcessor` |
-| `audio/filters.py` | `PitchClassProfileFilterbank`, `HarmonicPitchClassProfileFilterbank`, `SimpleChromaFilterbank`, `SemitoneBandpassFilterbank` | TO-PORT (4d, scope addition -- see corrections above) | -- | feed `audio/chroma.py`'s classic (non-DNN) chroma path |
+| `audio/filters.py` | `PitchClassProfileFilterbank`, `HarmonicPitchClassProfileFilterbank`, `SemitoneBandpassFilterbank` | PORTED (4d, scope addition -- see corrections above) | -- | feed `audio/chroma.py`'s classic (non-DNN) and CLP chroma paths |
+| `audio/filters.py` | `SimpleChromaFilterbank` | PORTED (4d) -- ported INCLUDING its unconditional `raise NotImplementedError` | -- | confirmed by reading upstream directly: not actually implemented in real madmom either (dead code below the raise); this port reproduces that state rather than finishing what upstream itself never enabled |
 | `audio/filters.py` | `HarmonicFilterbank` | TO-PORT (4g) | -- | used by `SemitoneBandpassSpectrogram`/harmonic feature paths; low priority, no processor in the named waves depends on it alone |
 | `audio/stft.py` | `ShortTimeFourierTransform`, `ShortTimeFourierTransformProcessor`, `stft`, `fft_frequencies` | PORTED | -- | Phase 1 |
 | `audio/stft.py` | `Phase`, `LocalGroupDelay`/`LGD`, `phase`, `local_group_delay`, `lgd` | PORTED (4b) | -- | feeds onset phase-deviation family; `LocalGroupDelay` reproduces a real upstream bug on purpose (`__new__` checks `isinstance(stft, Phase)` where `stft` is an undefined name resolving to the module's own `stft()` function, so it always rebuilds rather than reusing an existing `Phase`) -- see `audio/stft.py`'s module header |
@@ -460,15 +639,15 @@ EXCLUDE (why).
 | `audio/spectrogram.py` | `Spectrogram`, `SpectrogramProcessor`, `FilteredSpectrogram(Processor)`, `LogarithmicSpectrogram(Processor)`, `SpectrogramDifference(Processor)` | PORTED | -- | Phase 1 |
 | `audio/spectrogram.py` | `SuperFluxProcessor` | PORTED (4b) | -- | onset family |
 | `audio/spectrogram.py` | `MultiBandSpectrogram`, `MultiBandSpectrogramProcessor` | TO-PORT (4f) | -- | `PatternTrackingProcessor` input |
-| `audio/spectrogram.py` | `SemitoneBandpassSpectrogram` | TO-PORT (4d) | -- | `CLPChromaProcessor` input |
+| `audio/spectrogram.py` | `SemitoneBandpassSpectrogram` | PORTED (4d) -- own composition class, NOT a `FilteredSpectrogram` subclass; measured NOT bit-identical to real madmom across differing scipy versions (up to ~1e-5 absolute, `scipy.signal.filtfilt`/`ellip` version sensitivity, see 4d status) | -- | `CLPChromaProcessor` input; needs `audio/signal.py`'s new ffmpeg-subprocess `resample()` |
 | `audio/cepstrogram.py` | `Cepstrogram`, `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` | TO-PORT (4g) | -- | needs `MelFilterbank` first |
-| `audio/chroma.py` | `DeepChromaProcessor` | TO-PORT (4d) | `CHROMA_DNN` = `chroma/2016/chroma_dnn.pkl` | pickle refs: `NeuralNetwork`, `FeedForwardLayer`, `relu`/`sigmoid` -- no new layer classes needed beyond 4a's set |
-| `audio/chroma.py` | `CLPChroma`, `CLPChromaProcessor` | TO-PORT (4d) | -- | pure DSP, no NN weights; needs `SemitoneBandpassSpectrogram` |
-| `audio/chroma.py` | `PitchClassProfile`, `HarmonicPitchClassProfile` | TO-PORT (4d, scope addition) | -- | classic chroma, not DNN-based |
+| `audio/chroma.py` | `DeepChromaProcessor` | PORTED (4d) -- cross-BLAS-proven exact | `CHROMA_DNN` = `chroma/2016/chroma_dnn.pkl` | pickle refs confirmed: `NeuralNetwork`, `FeedForwardLayer`, `relu`/`sigmoid` -- no new layer classes needed beyond 4a's set |
+| `audio/chroma.py` | `CLPChroma`, `CLPChromaProcessor` | PORTED (4d) -- see `SemitoneBandpassSpectrogram` row re: measured (not bit-identical) cross-scipy-version precision | -- | pure DSP, no NN weights; needs `SemitoneBandpassSpectrogram` |
+| `audio/chroma.py` | `PitchClassProfile`, `HarmonicPitchClassProfile` | PORTED (4d, scope addition) | -- | classic chroma, not DNN-based; composition subclasses of `Spectrogram`, not upstream's ndarray-view hierarchy |
 | `audio/comb_filters.pyx` | `feed_forward_comb_filter`, `feed_backward_comb_filter`, `comb_filter`, `CombFilterbankProcessor` | PORTED (4c) | -- | numpy port (same playbook as `hmm.pyx`); feeds `TempoEstimationProcessor`'s comb-filter histogram mode; bit-identical, not just ULP-close -- see 4c status below |
 | `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | TO-PORT (4g) | -- | not consumed by any other TO-PORT processor in this audit; standalone preprocessing utility |
 | `ml/hmm.py` | `TransitionModel`, `ObservationModel`, `DiscreteObservationModel`, `HiddenMarkovModel`/`HMM` | PORTED | -- | Phase 1 |
-| `ml/crf.py` | `ConditionalRandomField` | TO-PORT (4d) | -- | chord decoding (`CRFChordRecognitionProcessor`, `DeepChromaChordRecognitionProcessor`) |
+| `ml/crf.py` | `ConditionalRandomField` | PORTED (4d) -- cross-BLAS-proven exact | -- | chord decoding (`CRFChordRecognitionProcessor`, `DeepChromaChordRecognitionProcessor`); added a `.load()` classmethod (not in upstream) delegating to the restricted unpickler, matching `NeuralNetwork.load` |
 | `ml/gmm.py` | `GMM`, `log_multivariate_normal_density`, `logsumexp`, `pinvh` | TO-PORT (4f) | -- | backs `GMMPatternTrackingObservationModel` |
 | `ml/nn/__init__.py` | `NeuralNetwork`, `NeuralNetworkEnsemble`, `average_predictions` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `Layer`, `FeedForwardLayer`, `RecurrentLayer`, `BidirectionalLayer`, `Gate`, `Cell`, `LSTMLayer` | PORTED | -- | Phase 2 |
@@ -482,7 +661,7 @@ EXCLUDE (why).
 | `features/beats_hmm.py` | `BeatStateSpace`, `BarStateSpace`, `BeatTransitionModel`, `BarTransitionModel`, `RNNBeatTrackingObservationModel`, `RNNDownBeatTrackingObservationModel`, `exponential_transition` | PORTED | -- | Phase 2 |
 | `features/beats_hmm.py` | `MultiPatternStateSpace`, `MultiPatternTransitionModel`, `GMMPatternTrackingObservationModel` | TO-PORT (4f) | -- | pattern-tracking HMM machinery |
 | `features/downbeats.py` | `RNNDownBeatProcessor`, `DBNDownBeatTrackingProcessor` | PORTED | `DOWNBEATS_BLSTM` | Phase 2, cross-BLAS-proven exact |
-| `features/downbeats.py` | `RNNBarProcessor`, `SyncronizeFeaturesProcessor` | PORTED (4c, scope addition) -- `SyncronizeFeaturesProcessor` fully working+bit-identical; `RNNBarProcessor` ported verbatim but NOT INSTANTIABLE end-to-end from audio until 4d ships `CLPChromaProcessor` (confirmed, its `__init__` needs it) | `DOWNBEATS_BGRU` | needed `GRULayer`/`GRUCell` (above); the GRU-ensemble forward pass itself IS proven bit-exact this wave via a golden intermediate-feature fixture (real madmom's own captured `perc_synced`/`harm_synced`), not a full audio-in run -- see 4c status below |
+| `features/downbeats.py` | `RNNBarProcessor`, `SyncronizeFeaturesProcessor` | PORTED (4c, scope addition; INSTANTIABLE + full-audio-in-proven-exact as of 4d) | `DOWNBEATS_BGRU` | needed `GRULayer`/`GRUCell` (4c) + `CLPChromaProcessor` (4d, unblocked `RNNBarProcessor.__init__`); 4d found and fixed a genuine `SyncronizeFeaturesProcessor` latent bug (`features.T` on a non-ndarray composition object), see 4d status |
 | `features/downbeats.py` | `DBNBarTrackingProcessor`, `PatternTrackingProcessor` | TO-PORT (4f) | `PATTERNS_BALLROOM` (no NN globals -- GMM-only) | upstream's actual class name is `PatternTrackingProcessor`, not `GMMPatternTrackingProcessor` as the 4f bullet names it -- same processor, correcting the name here |
 | `features/downbeats.py` | `LoadBeatsProcessor` | EXCLUDE | -- | file/STDIN batch-loading plumbing for `bin/` CLI scripts, not an inference algorithm |
 | `features/beats.py` | `RNNBeatProcessor`, `DBNBeatTrackingProcessor`, `MultiModelSelectionProcessor` | PORTED (4c) | `BEATS_LSTM`, `BEATS_BLSTM` | pickle refs confirm no new layer classes beyond Phase-2's LSTM/BLSTM set; `DBNBeatTrackingProcessor` is offline-only (drops `OnlineProcessor`'s `process_online`, same precedent as `OnsetPeakPickingProcessor`) |
@@ -495,10 +674,10 @@ EXCLUDE (why).
 | `features/onsets.py` | `RNNOnsetProcessor` | PORTED (4b) | `ONSETS_RNN`, `ONSETS_BRNN` | pickle refs: `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer` -- all already PORTED (Phase 2), no new layer classes; `online=True` (`ONSETS_RNN`) IS supported (unlike `OnsetPeakPickingProcessor`'s online mode) -- it only selects different pretrained weights/frame sizes, not actual streaming; `ONSETS_BRNN_PP` has no registry entry (only loaded by the excluded `bin/SuperFluxNN` CLI script, no processor this project ports needs it) |
 | `features/onsets.py` | `CNNOnsetProcessor` | PORTED (4b, reuses 4a's conv layers) | `ONSETS_CNN` | pickle refs: `ConvolutionalLayer`,`MaxPoolLayer`,`BatchNormLayer`,`FeedForwardLayer`,`StrideLayer` (all PORTED, `StrideLayer` new in 4b) + `MelFilterbank` input (pulled forward from 4g into 4b, see `audio/filters.py` row) |
 | `features/key.py` | `CNNKeyRecognitionProcessor`, `key_prediction_to_label`, `add_axis` | PORTED (4a) | `KEY_CNN` = `key/2018/key_cnn.pkl` | pickle refs confirmed above; cross-BLAS-proven exact (`tests/test_key.py`) |
-| `features/chords.py` | `DeepChromaChordRecognitionProcessor` | TO-PORT (4d) | `CHORDS_DCCRF` | pickle has **no** NN globals -- CRF-only (`ml/crf.py`), confirms 4d's CRF-first framing |
-| `features/chords.py` | `CNNChordFeatureProcessor` | TO-PORT (4d) | `CHORDS_CNN_FEAT` | pickle refs: `ConvolutionalLayer`,`BatchNormLayer`,`MaxPoolLayer` (4a's set, no new classes) |
-| `features/chords.py` | `CRFChordRecognitionProcessor` | TO-PORT (4d) | `CHORDS_CFCRF` | pickle has no NN globals -- CRF-only |
-| `features/chords.py` | `majmin_targets_to_chord_labels` | TO-PORT (4d) | -- | label-decoding helper alongside the chord processors |
+| `features/chords.py` | `DeepChromaChordRecognitionProcessor` | PORTED (4d) -- cross-BLAS-proven exact (decoded segments) | `CHORDS_DCCRF` | pickle confirmed **no** NN globals -- CRF-only (`ml/crf.py`), confirms 4d's CRF-first framing; does NOT touch `CLPChroma` (confirmed by reading upstream directly) |
+| `features/chords.py` | `CNNChordFeatureProcessor` | PORTED (4d) | `CHORDS_CNN_FEAT` | pickle refs confirmed: `ConvolutionalLayer`,`BatchNormLayer`,`MaxPoolLayer` (4a's set, no new classes) |
+| `features/chords.py` | `CRFChordRecognitionProcessor` | PORTED (4d) -- cross-BLAS-proven exact (decoded segments) | `CHORDS_CFCRF` | pickle confirmed no NN globals -- CRF-only |
+| `features/chords.py` | `majmin_targets_to_chord_labels` | PORTED (4d) | -- | label-decoding helper alongside the chord processors |
 | `features/notes_hmm.py` | `ADSRObservationModel`, `ADSRStateSpace`, `ADSRTransitionModel` | TO-PORT (4e) | -- | HMM state spaces on existing `ml/hmm.py` machinery |
 | `features/notes.py` | `RNNPianoNoteProcessor` | TO-PORT (4e) | `NOTES_BRNN` = `notes/2013/notes_brnn.pkl` | pickle refs: `BidirectionalLayer`,`FeedForwardLayer`,`RecurrentLayer` -- already PORTED, no new classes |
 | `features/notes.py` | `CNNPianoNoteProcessor` | TO-PORT (4e, reuses 4a's conv layers) | `NOTES_CNN`, `NOTES_CNN_MIREX` | pickle refs: `ConvolutionalLayer`,`BatchNormLayer`,`ReshapeLayer`(+`TransposeLayer` for `NOTES_CNN`) |

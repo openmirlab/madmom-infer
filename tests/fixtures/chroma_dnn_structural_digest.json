@@ -1,0 +1,80 @@
+{
+  "chroma_dnn": [
+    {
+      "activation_fn": "relu",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "fd92562ef15d6939899ab0d11008237a77aa197ade3fab8abd58eb28ed00e59d",
+        "shape": [
+          256
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "0139e99fcfca7233f214899f99cf3f3e76415fcfcb629379a863971a4002671d",
+        "shape": [
+          1575,
+          256
+        ]
+      }
+    },
+    {
+      "activation_fn": "relu",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "81744ffd6c5c00545b2229d6bdc74e189b2631843ad05a0c92bb2c36c69ca6fd",
+        "shape": [
+          256
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "814b3588a4d225bf265880dfbf9d95b2630badb88bebe327129944489282e848",
+        "shape": [
+          256,
+          256
+        ]
+      }
+    },
+    {
+      "activation_fn": "relu",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "86f2ba586f953f0eb44e6b3c3a0318341dff1e7202fabd2e6332882fb02c7cab",
+        "shape": [
+          256
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "a68daba50ae7569f2a2916f9bcaa022d808e5c641f9bc146405ce43f101f68d5",
+        "shape": [
+          256,
+          256
+        ]
+      }
+    },
+    {
+      "activation_fn": "sigmoid",
+      "bias": {
+        "dtype": "float32",
+        "sha256": "7897aa924cf69a7267487202dde413847ca9967e55511f38b838ffcc2904eff3",
+        "shape": [
+          12
+        ]
+      },
+      "type": "FeedForwardLayer",
+      "weights": {
+        "dtype": "float32",
+        "sha256": "a34169dffd47322c8034fcaf0b97ca888a79cd5fad32dfbc9a07e20678f00a08",
+        "shape": [
+          256,
+          12
+        ]
+      }
+    }
+  ]
+}

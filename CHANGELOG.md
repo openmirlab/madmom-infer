@@ -7,6 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Wave 4d of the complete-port campaign (`feat/complete-port` branch): chroma
++ chords, and closing wave 4c's `RNNBarProcessor` loop.** Adds a numpy
+Conditional Random Field decoder (`ml/crf.py`), all three chroma paths
+(classic `PitchClassProfile`/`HarmonicPitchClassProfile`, DNN
+`DeepChromaProcessor`, and CLP `CLPChroma`/`CLPChromaProcessor`), two full
+audio-in chord-recognition pipelines, and (unblocked by `CLPChromaProcessor`)
+`RNNBarProcessor`'s first real audio-in end-to-end proof.
+
+### Added
+- `madmom_infer/ml/crf.py` (new module): `ConditionalRandomField` -- a
+  pure-numpy, matrix-formulation Viterbi decoder (forward-inference only).
+  Adds a `.load()` classmethod (not in upstream, which inherits `Processor.
+  load`'s bare `pickle.load`) delegating to `unpickle.load_model`, matching
+  `NeuralNetwork.load`'s restricted-unpickling convention.
+- `madmom_infer/ml/nn/unpickle.py`: 1 new `ALLOWED_GLOBALS` entry
+  (`madmom.ml.crf.ConditionalRandomField`) -- confirmed by `pickletools` to
+  be the ONLY new global all 4 target `.pkl` files need beyond already-
+  ported classes (`chroma_dnn.pkl` needs only `FeedForwardLayer`/`relu`/
+  `sigmoid`; `chords_cnnfeat.pkl` needs only wave 4a's CNN layer set;
+  `chords_dccrf.pkl`/`chords_cnncrf.pkl` need only `ConditionalRandomField`).
+- `madmom_infer/audio/filters.py`: `hz2midi`, `midi2hz`, `semitone_frequencies`,
+  `PitchClassProfileFilterbank`, `HarmonicPitchClassProfileFilterbank`,
+  `SemitoneBandpassFilterbank` -- verbatim/composition ports. Also
+  `SimpleChromaFilterbank`, ported **including its unconditional
+  `raise NotImplementedError`**: confirmed by reading upstream directly that
+  it is not actually implemented in real madmom either (dead code below the
+  raise), so this port reproduces that not-implemented state rather than
+  "fixing" it.
+- `madmom_infer/audio/signal.py`: `resample()` -- a **policy correction, not
+  silently made**: this project's "no ffmpeg dependency" stance (Phase 1
+  through 4c) does not survive `SemitoneBandpassFilterbank`, whose ~78
+  semitone bands each filter at a FIXED sample rate (882/4410/22050 Hz)
+  unconditionally different from this project's 44100 Hz convention --
+  resampling is load-bearing on every call here, not an optional
+  convenience. Implemented as a narrow ffmpeg-subprocess call (only the
+  exact shape this one caller needs), shelling out to the system `ffmpeg`
+  binary with the same command shape real madmom's own `_ffmpeg_call`
+  builds -- verified **bit-identical** (`np.array_equal`) against real
+  madmom's own `resample()` output, both sides invoking the literal same
+  system `ffmpeg` binary.
+- `madmom_infer/audio/spectrogram.py`: `SemitoneBandpassSpectrogram` -- own
+  composition class (not a `FilteredSpectrogram` subclass: no STFT stage,
+  a time-domain IIR filterbank instead). Measured (not bit-identical):
+  matches real madmom's output to within ~1e-5 absolute across the 3 usable
+  test-wav cases when run under a different scipy version than the one that
+  recorded the reference fixture (`scipy.signal.filtfilt`'s recursive
+  nature amplifies tiny per-version `ellip()` coefficient differences) --
+  documented plainly rather than claimed exact.
+- `madmom_infer/audio/chroma.py` (new module): `PitchClassProfile`/
+  `HarmonicPitchClassProfile` (composition subclasses of `Spectrogram`, not
+  upstream's ndarray-view hierarchy), `DeepChromaProcessor`, `CLPChroma`/
+  `CLPChromaProcessor`. Found and fixed a genuine latent bug in wave 4c's
+  own `SyncronizeFeaturesProcessor` (`features/downbeats.py`), surfaced by
+  actually exercising `RNNBarProcessor` end-to-end for the first time: it
+  called `features.T` directly, which works on upstream's `np.ndarray`-
+  subclass spectrograms but raises `AttributeError` on this project's own
+  composition-style ones -- fixed with an explicit `np.asarray(features).T`.
+- `madmom_infer/features/chords.py` (new module): `majmin_targets_to_chord_
+  labels`, `DeepChromaChordRecognitionProcessor`, `CNNChordFeatureProcessor`
+  (`nn_file=` override added, not in upstream, for testability -- matches
+  the `nn_files=`/`models=` convention `CNNKeyRecognitionProcessor`/
+  `DeepChromaProcessor` already establish), `CRFChordRecognitionProcessor`.
+  Confirmed by reading upstream directly: NEITHER chord-recognition path
+  touches `CLPChroma` at all, so full audio-in chord recognition is
+  achievable and EXACT-testable independent of the CLP-chroma precision
+  caveat above.
+- `madmom_infer/models.py`: `chroma_dnn()`/`CHROMA_DNN`, `chords_dccrf()`/
+  `CHORDS_DCCRF`, `chords_cnn_feat()`/`CHORDS_CNN_FEAT`, `chords_cfcrf()`/
+  `CHORDS_CFCRF` -- 4 sha256-pinned registry entries, cross-checked against
+  both a fresh `raw.githubusercontent.com/CPJKU/madmom_models` download and
+  the local `../madmom-upstream` submodule checkout (identical).
+- **`RNNBarProcessor` (wave 4c, `features/downbeats.py`) is now instantiable
+  and provably correct end-to-end from raw audio**, closing the loop that
+  wave was left open. `tests/test_downbeats_rnn.py`'s new "RNNBarProcessor
+  end-to-end" section: decoded beat times EXACT, decoded downbeat activation
+  within ~4e-8 absolute (both in-process and cross-BLAS) -- the GRU
+  ensemble's own forward pass was already proven bit-exact in wave 4c
+  independent of this wave's CLP-chroma feature-extraction noise.
+- 35 new tests total (`tests/test_crf.py`: 4; `tests/test_chroma.py`: 22;
+  `tests/test_chords.py`: 9; `tests/test_downbeats_rnn.py`: +2; `tests/
+  test_fixtures_exist.py`: +7 more) and `tools/generate_chroma_chord_
+  fixtures.py` (the fixture-generation script, reference-venv-only).
+  Faithfulness proofs: `tests/test_crf.py`/`test_chords.py`'s cross-BLAS
+  tests reproduce real madmom's CRF-decoded chord label sequences AND
+  segment boundaries with **zero differing elements**, both recognition
+  paths, all 3 cases; `tests/test_chroma.py`'s `DeepChromaProcessor`
+  cross-BLAS test likewise **zero differing elements**. Full offline suite
+  now 205 passed, 1 skipped, 40 deselected (was 174/1/25); network suite 40
+  passed, 1 skipped, 205 deselected, all green.
+
 **Wave 4c of the complete-port campaign (`feat/complete-port` branch): beat
 tracking + tempo estimation + GRU support.** Adds `RNNBeatProcessor`,
 `DBNBeatTrackingProcessor` (beat-only), `MultiModelSelectionProcessor`,

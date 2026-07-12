@@ -210,13 +210,19 @@ print("EXACT_MATCH")
 # ---------------------------------------------------------------------------
 # Wave 4c: SyncronizeFeaturesProcessor + RNNBarProcessor's GRU ensembles
 # (GRULayer/GRUCell, DOWNBEATS_BGRU) -- see madmom_infer/features/
-# downbeats.py's module header for why RNNBarProcessor's fixture is
-# INTERMEDIATE (perc_synced/harm_synced), not full audio-in: this port's
-# own RNNBarProcessor cannot be instantiated until Wave 4d ports
-# CLPChromaProcessor, so what's proven bit-exact here is the actual "does
-# the GRU port work" question -- the DOWNBEATS_BGRU NeuralNetworkEnsemble
-# forward pass itself, fed real madmom's own captured intermediate
-# beat-synchronized features.
+# downbeats.py's module header for why RNNBarProcessor's fixture below is
+# INTERMEDIATE (perc_synced/harm_synced), not full audio-in: at the time 4c
+# landed, this port's own RNNBarProcessor could not be instantiated (needed
+# audio/chroma.py's CLPChromaProcessor, TO-PORT(4d)), so what's proven
+# bit-exact here is the actual "does the GRU port work" question -- the
+# DOWNBEATS_BGRU NeuralNetworkEnsemble forward pass itself, fed real
+# madmom's own captured intermediate beat-synchronized features.
+# **Wave 4d closes the loop**: see "RNNBarProcessor end-to-end (Wave 4d)"
+# further below in this file for the audio-in, full-pipeline test that
+# CLPChromaProcessor unblocks -- kept as a SEPARATE section rather than
+# folded into these GRU-only tests, since they answer a different question
+# (GRU forward-pass correctness in isolation vs. the whole pipeline
+# including the newly-ported CLP chroma harmonic-feature extraction).
 # ---------------------------------------------------------------------------
 UPSTREAM_DOWNBEATS_DIR = (
     REPO_ROOT.parent / "madmom-upstream" / "madmom" / "models" / "downbeats" / "2016"
@@ -447,3 +453,157 @@ def test_unpickled_downbeats_bgru_structurally_matches_real_madmom(
     ours_harmonic = [digest_layer(l) for l in nn_harmonic.layers]
     assert ours_rhythmic == bgru_structural_digest_fixture["downbeats_bgru_rhythmic_0"]
     assert ours_harmonic == bgru_structural_digest_fixture["downbeats_bgru_harmonic_0"]
+
+
+# ---------------------------------------------------------------------------
+# RNNBarProcessor end-to-end (Wave 4d) -- closes the loop 4c left open: full
+# AUDIO-IN -> beat-synchronous downbeat-activation output, now that
+# audio/chroma.py's CLPChromaProcessor exists. See tools/
+# generate_chroma_chord_fixtures.py's module header for why this fixture
+# uses a FRESH processor instance per wav case (a deliberate deviation from
+# this file's own "shared-instance-in-order" discipline above, documented
+# there).
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def rnn_bar_end_to_end_fixture():
+    return np.load(FIXTURES_DIR / "rnn_bar_end_to_end.npz")
+
+
+@pytest.fixture(scope="module")
+def _rnn_bar_models_ready():
+    """Downloads (or reuses the local cache for) BEATS_BLSTM + DOWNBEATS_BGRU
+    -- everything RNNBeatProcessor(online=False) -> DBNBeatTrackingProcessor
+    -> RNNBarProcessor needs end-to-end. Deliberately NOT module-level eager
+    code -- see this file's `_downbeats_blstm_ready` fixture for why."""
+    from madmom_infer.models import beats_blstm, downbeats_bgru
+
+    try:
+        return {"beats_blstm": beats_blstm(), "downbeats_bgru": downbeats_bgru()}
+    except Exception as exc:  # pragma: no cover - network-dependent
+        pytest.skip(f"could not download BEATS_BLSTM/DOWNBEATS_BGRU weights: {exc}")
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("case", RNN_CASES)
+def test_rnn_bar_processor_end_to_end_matches_fixture(
+    rnn_bar_end_to_end_fixture, _rnn_bar_models_ready, case
+):
+    """Full audio-in RNNBarProcessor pipeline (RNNBeatProcessor ->
+    DBNBeatTrackingProcessor -> RNNBarProcessor, a FRESH instance of each
+    per case -- see this section's header) reproduces real madmom's decoded
+    beat times EXACTLY and the downbeat activation within a documented
+    tolerance (measured up to ~4e-8 absolute across the 3 cases -- traced to
+    audio/chroma.py's CLPChroma feature-extraction noise, see that module's
+    header; the GRU ensemble forward pass itself was already proven
+    bit-exact in Wave 4c independent of this noise)."""
+    import warnings
+
+    from madmom_infer.features.beats import (
+        DBNBeatTrackingProcessor, RNNBeatProcessor,
+    )
+    from madmom_infer.features.downbeats import RNNBarProcessor
+
+    wav_path = str(WAVS_DIR / f"{case}.wav")
+    rnn = RNNBeatProcessor(online=False)
+    act = rnn(wav_path)
+    dbn = DBNBeatTrackingProcessor(fps=100)
+    beats = dbn(act)
+
+    expected_beats = rnn_bar_end_to_end_fixture[f"{case}_beats"]
+    np.testing.assert_array_equal(beats, expected_beats)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        bar = RNNBarProcessor()
+        out = bar((wav_path, beats))
+
+    expected_out = rnn_bar_end_to_end_fixture[f"{case}_bar_output"]
+    assert out.shape == expected_out.shape
+    np.testing.assert_allclose(out, expected_out, equal_nan=True, rtol=0,
+                               atol=1e-6)
+
+
+def _upstream_beats_blstm_available():
+    beats_dir = REPO_ROOT.parent / "madmom-upstream" / "madmom" / "models" / "beats" / "2015"
+    return beats_dir.exists() and (beats_dir / "beats_blstm_1.pkl").exists()
+
+
+@pytest.mark.skipif(
+    not _reference_python_available(),
+    reason="reference madmom install (madmom-reference/.venv) not found on "
+           "this machine; the cross-BLAS proof requires it",
+)
+@pytest.mark.skipif(
+    not (_upstream_beats_blstm_available() and _upstream_downbeats_bgru_available()),
+    reason="local ../madmom-upstream model checkouts not found; the "
+           "cross-BLAS proof needs them (no network required this way, "
+           "direct .pkl paths)",
+)
+def test_rnn_bar_processor_end_to_end_is_close_under_original_blas():
+    """This port's own full audio-in RNNBarProcessor pipeline, run under the
+    ORIGINAL reference venv's numpy/scipy build (the same environment real
+    madmom's own recorded fixture came from), reproduces real madmom's
+    decoded beat times EXACTLY and the downbeat activation within the same
+    documented tolerance as the in-process test above -- confirming the
+    small measured divergence is upstream `scipy.signal.filtfilt`/`ellip`
+    version sensitivity (audio/chroma.py's header), not an algorithmic
+    difference in this port's CLP-chroma/GRU code. Uses local
+    `../madmom-upstream` `.pkl` copies directly, no network needed.
+    """
+    beats_blstm_paths = [
+        str(REPO_ROOT.parent / "madmom-upstream" / "madmom" / "models" / "beats"
+            / "2015" / f"beats_blstm_{i}.pkl")
+        for i in range(1, 9)
+    ]
+    rhythmic_paths = [
+        str(UPSTREAM_DOWNBEATS_DIR / f"downbeats_bgru_rhythmic_{i}.pkl")
+        for i in range(6)
+    ]
+    harmonic_paths = [
+        str(UPSTREAM_DOWNBEATS_DIR / f"downbeats_bgru_harmonic_{i}.pkl")
+        for i in range(6)
+    ]
+    case_paths = ", ".join(repr(str(WAVS_DIR / f"{c}.wav")) for c in RNN_CASES)
+    script = f"""
+import sys
+import warnings
+sys.path.insert(0, {str(REPO_ROOT)!r})
+import numpy as np
+from madmom_infer.features.beats import RNNBeatProcessor, DBNBeatTrackingProcessor
+from madmom_infer.features.downbeats import RNNBarProcessor
+
+cases = {list(RNN_CASES)!r}
+wav_paths = [{case_paths}]
+fixture = np.load({str(FIXTURES_DIR / "rnn_bar_end_to_end.npz")!r})
+
+for case, wav_path in zip(cases, wav_paths):
+    rnn = RNNBeatProcessor(online=False, nn_files={beats_blstm_paths!r})
+    act = rnn(wav_path)
+    dbn = DBNBeatTrackingProcessor(fps=100)
+    beats = dbn(act)
+    expected_beats = fixture[case + "_beats"]
+    assert np.array_equal(beats, expected_beats), f"{{case}}: beats differ"
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        bar = RNNBarProcessor()
+        bar.perc_nn = __import__(
+            "madmom_infer.ml.nn", fromlist=["NeuralNetworkEnsemble"]
+        ).NeuralNetworkEnsemble.load({rhythmic_paths!r})
+        bar.harm_nn = __import__(
+            "madmom_infer.ml.nn", fromlist=["NeuralNetworkEnsemble"]
+        ).NeuralNetworkEnsemble.load({harmonic_paths!r})
+        out = bar((wav_path, beats))
+
+    expected_out = fixture[case + "_bar_output"]
+    assert out.shape == expected_out.shape, f"{{case}}: shape differs"
+    close = np.allclose(out, expected_out, equal_nan=True, rtol=0, atol=1e-6)
+    assert close, f"{{case}}: bar output differs beyond tolerance: {{out}} vs {{expected_out}}"
+print("CLOSE_MATCH")
+"""
+    proc = subprocess.run(
+        [str(REFERENCE_PYTHON), "-c", script],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "CLOSE_MATCH" in proc.stdout

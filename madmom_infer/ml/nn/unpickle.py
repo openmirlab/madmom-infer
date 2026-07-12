@@ -108,10 +108,26 @@ state)` is Python 2's pre-`__reduce_ex__`-protocol-2 old-style-class
 rebuilding helper, still present in Python 3's `copyreg` module for
 backwards-compatible unpickling of exactly this kind of legacy pickle.
 
+4d target: `chroma/2016/chroma_dnn.pkl` (`CHROMA_DNN`) references only
+already-allowed globals (`NeuralNetwork`, `FeedForwardLayer`, `relu`,
+`sigmoid`) -- no table changes needed, confirming the 4.0 audit's own
+prediction. `chords/2016/chords_cnnfeat.pkl` (`CHORDS_CNN_FEAT`) likewise
+references only already-allowed globals (`NeuralNetwork`,
+`ConvolutionalLayer`, `BatchNormLayer`, `MaxPoolLayer`, `linear`, `relu` --
+4a's CNN layer set). `chords/2016/chords_dccrf.pkl`/`chords_cnncrf.pkl`
+(`CHORDS_DCCRF`/`CHORDS_CFCRF`) each need exactly one new class, found by
+the same `pickletools.dis()` technique (both walked -- identical single-class
+global set beyond numpy's own array-reconstruction primitives):
+
+| pickled path (madmom original)         | mapped to (madmom_infer)                     |
+|-------------------------------------------|--------------------------------------------------|
+| `madmom.ml.crf.ConditionalRandomField`    | `madmom_infer.ml.crf.ConditionalRandomField`      |
+
 Reads: pickle (stdlib), numpy, madmom_infer.ml.nn.{NeuralNetwork},
-madmom_infer.ml.nn.layers.*, madmom_infer.ml.nn.activations.*; read by:
-madmom_infer/ml/nn/__init__.py (NeuralNetwork.load), madmom_infer/models.py
-(cache-then-load flow).
+madmom_infer.ml.nn.layers.*, madmom_infer.ml.nn.activations.*,
+madmom_infer.ml.crf.ConditionalRandomField; read by: madmom_infer/ml/nn/
+__init__.py (NeuralNetwork.load), madmom_infer/ml/crf.py
+(ConditionalRandomField.load), madmom_infer/models.py (cache-then-load flow).
 """
 
 import copyreg
@@ -124,6 +140,7 @@ import numpy.core.multiarray as _np_multiarray
 from . import NeuralNetwork
 from . import activations as _activations
 from . import layers as _layers
+from ..crf import ConditionalRandomField
 
 # -- the full, closed allowlist (module, name) -> object -------------------
 ALLOWED_GLOBALS = {
@@ -143,6 +160,7 @@ ALLOWED_GLOBALS = {
     ("madmom.ml.nn.layers", "StrideLayer"): _layers.StrideLayer,
     ("madmom.ml.nn.layers", "GRUCell"): _layers.GRUCell,
     ("madmom.ml.nn.layers", "GRULayer"): _layers.GRULayer,
+    ("madmom.ml.crf", "ConditionalRandomField"): ConditionalRandomField,
     ("madmom.ml.nn.activations", "linear"): _activations.linear,
     ("madmom.ml.nn.activations", "tanh"): _activations.tanh,
     ("madmom.ml.nn.activations", "sigmoid"): _activations.sigmoid,

@@ -37,34 +37,47 @@ average feature frames into per-beat-subdivision bins) and `RNNBarProcessor`
 (madmom's alternative, GRU-based downbeat model:
 `madmom-upstream/madmom/features/downbeats.py:915-1035`), completing the
 `GRULayer`/`GRUCell`/`DOWNBEATS_BGRU` scope-addition the 4.0 audit flagged
-(CLAUDE.md's corrections section). **`RNNBarProcessor` cannot be
-INSTANTIATED end-to-end from raw audio in this wave** -- its `__init__`
-needs `audio/chroma.py`'s `CLPChromaProcessor` for its harmonic feature
-branch, which is TO-PORT(4d), not yet ported (confirmed by reading
-`RNNBarProcessor.__init__` directly, `downbeats.py:965/980`; the audit
-table's own `features/downbeats.py` row already flagged this exact
-dependency). The class is ported VERBATIM regardless (matching upstream's
-own structure exactly, including the `from ..audio.chroma import
-CLPChromaProcessor` import) -- it simply raises `ImportError` on
-construction until 4d lands `CLPChromaProcessor`, same as it would in any
-partially-built environment. What CAN and IS proven bit-identical this wave
-is the part that actually needed `GRULayer`/`GRUCell`: the `DOWNBEATS_BGRU`
+(CLAUDE.md's corrections section). At that point **`RNNBarProcessor` could
+NOT be INSTANTIATED end-to-end from raw audio** -- its `__init__` needed
+`audio/chroma.py`'s `CLPChromaProcessor` for its harmonic feature branch,
+which was TO-PORT(4d), not yet ported (confirmed by reading
+`RNNBarProcessor.__init__` directly, `downbeats.py:965/980`). The class was
+ported VERBATIM regardless (matching upstream's own structure exactly,
+including the `from ..audio.chroma import CLPChromaProcessor` import) --
+it simply raised `ImportError` on construction until 4d landed
+`CLPChromaProcessor`. What 4c COULD and DID prove bit-identical was the part
+that actually needed `GRULayer`/`GRUCell`: the `DOWNBEATS_BGRU`
 `NeuralNetworkEnsemble` forward pass itself, fed real madmom's own captured
 intermediate beat-synchronized features as a golden fixture (see
 `tools/generate_beat_tempo_fixtures.py`/`tests/test_downbeats_rnn.py`) --
-this is the genuine "does this port's GRU implementation match real
-madmom's" question, answered directly, without requiring this project's own
+the genuine "does this port's GRU implementation match real madmom's"
+question, answered directly, without requiring this project's own
 (not-yet-existing) `CLPChromaProcessor` to reproduce the harmonic features
 from scratch.
+
+**Wave 4d closes this loop**: `audio/chroma.py`'s `CLPChromaProcessor` now
+exists, so `RNNBarProcessor()` is fully instantiable and provably correct
+end-to-end from raw audio -- see `tests/test_downbeats_rnn.py`'s
+"RNNBarProcessor end-to-end (Wave 4d)" section (decoded beat times EXACT,
+decoded downbeat activation within a documented ~4e-8 absolute tolerance,
+both in-process and cross-BLAS). Wave 4d also found and fixed a genuine
+latent bug in `SyncronizeFeaturesProcessor.process` BELOW, surfaced only by
+actually exercising this end-to-end for the first time: it called
+`features.T` directly, which works on upstream's `np.ndarray`-subclass
+spectrograms but raises `AttributeError` on this project's own
+composition-style ones (`SpectrogramDifference`/`CLPChroma`) -- fixed with
+an explicit `np.asarray(features).T`, see that method's inline comment.
 
 Reads: madmom_infer/features/beats_hmm.py (BarStateSpace, BarTransitionModel,
 RNNDownBeatTrackingObservationModel), madmom_infer/ml/hmm.py
 (HiddenMarkovModel), madmom_infer/processors.py (Processor, ParallelProcessor,
 SequentialProcessor), madmom_infer/audio/{signal,stft,spectrogram}.py (the
-pre-processing cascade), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
-madmom_infer/models.py (DOWNBEATS_BLSTM/DOWNBEATS_BGRU download); read by:
-madmom_infer/features/tempo.py does NOT read this file (only features/beats.py's
-DBNBeatTrackingProcessor, see that module).
+pre-processing cascade), madmom_infer/audio/chroma.py (CLPChromaProcessor,
+RNNBarProcessor's harmonic-feature branch, Wave 4d), madmom_infer/ml/nn/
+__init__.py (NeuralNetworkEnsemble), madmom_infer/models.py (DOWNBEATS_BLSTM/
+DOWNBEATS_BGRU download); read by: madmom_infer/features/tempo.py does NOT
+read this file (only features/beats.py's DBNBeatTrackingProcessor, see that
+module).
 """
 
 import warnings
@@ -413,7 +426,19 @@ class SyncronizeFeaturesProcessor(Processor):
             beats = beats[:-1]
             warnings.warn("Beat sequence too long compared to features.")
         num_beats = len(beats)
-        features = np.array(features.T, copy=False, ndmin=2).T
+        # Wave 4d fix: `np.asarray(features)` first -- `features` is, in
+        # real end-to-end use, one of this project's own composition-style
+        # spectrogram objects (`SpectrogramDifference`/`CLPChroma`, see
+        # docs/DESIGN.md C.2), which have no `.T` attribute of their own
+        # (unlike upstream's `np.ndarray`-subclass hierarchy, where `.T`
+        # comes for free). Confirmed empirically: `RNNBarProcessor.process`
+        # feeds exactly this call site a `SpectrogramDifference`/`CLPChroma`
+        # instance, not a raw array -- calling `.T` directly raised
+        # `AttributeError` before this fix, only unnoticed in 4c because
+        # that wave's own `SyncronizeFeaturesProcessor` test fed a raw,
+        # already-captured ndarray fixture (see tools/
+        # generate_beat_tempo_fixtures.py), never a live composition object.
+        features = np.array(np.asarray(features).T, copy=False, ndmin=2).T
         feat_dim = features.shape[-1]
         beat_features = np.zeros(
             (num_beats - 1, self.beat_subdivisions, feat_dim))

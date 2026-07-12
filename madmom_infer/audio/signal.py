@@ -17,15 +17,39 @@ allin1_infer/spectrogram.py:19-22,90-104`.
 indexing arithmetic (`signal.py:860-962,974-1393`) -- see `signal_frame()`
 below for the origin/padding trap this stage exists to get exactly right.
 
-Deliberately NOT ported (out of phase-1 scope, no ffmpeg/PyAudio dependency
-in this project): `resample()`'s ffmpeg-based resampling
-(`signal.py:226-263`), the `dtype`-driven implicit rescale that
+Deliberately NOT ported: the `dtype`-driven implicit rescale that
 `load_wave_file` falls back to ffmpeg for on mismatch (`madmom-upstream/
 madmom/io/audio.py:622-625`), and the online/live-audio `Stream` class plus
 `FramedSignalProcessor`'s `'stream'`-origin PyAudio integration
 (`signal.py:1396-1504`, `processors.py:836-906`). Where madmom would silently
-fall back to ffmpeg, this port raises a clear `NotImplementedError` instead
-of guessing.
+fall back to ffmpeg for a file-load sample-rate/dtype mismatch, this port
+still raises a clear `NotImplementedError` instead of guessing.
+
+**Wave 4d policy correction, not silently overridden**: `resample()`'s
+ffmpeg-based resampling (`signal.py:226-263`) was excluded through Phase 1-4c
+as "no ffmpeg dependency in this project" -- that stance does not survive
+`audio/filters.py`'s `SemitoneBandpassFilterbank` (Wave 4d, feeds
+`audio/spectrogram.py`'s `SemitoneBandpassSpectrogram` /
+`audio/chroma.py`'s `CLPChroma`/`CLPChromaProcessor`): every one of its ~78
+semitone bands filters at a FIXED sample rate (882, 4410, or 22050 Hz,
+picked by frequency), all three unconditionally different from this
+project's fixed 44100 Hz input convention -- so resampling isn't an optional
+convenience feature here, it's load-bearing on every single call, with no
+narrower carve-out available (unlike `utils.segment_axis`'s "only the one
+case a caller needs" pattern). `resample()` below is a narrow port: only the
+exact call shape `SemitoneBandpassFilterbank`'s caller uses (an already-
+loaded `Signal`, `dtype`/`num_channels` unchanged, no `skip`/`max_len`/
+`channel`/`replaygain` options) -- NOT upstream's full `_ffmpeg_call`
+generality. It shells out to the system `ffmpeg` binary (`shutil.which`
+checked, clear `RuntimeError` if absent) with the exact same command shape
+`madmom.io.audio._ffmpeg_call`/`decode_to_pipe` builds for a `Signal` input
+(`io/audio.py:72-164, 249-320`): raw PCM bytes piped to stdin at the
+signal's own dtype/rate, raw PCM bytes read back from stdout at the target
+rate. Because both this project and the reference venv invoke the exact
+same system `ffmpeg` binary with the exact same arguments (not a
+reimplementation of ffmpeg's resampling filter), the two sides' output is
+expected to be genuinely bit-identical, not merely ULP-close -- verified
+empirically, see `tests/test_chroma.py`.
 
 Wave 4b addition: `smooth()` (Hamming-window or custom-kernel 1D/2D
 convolution smoothing) -- needed by `features/onsets.py`'s `peak_picking`,
@@ -171,6 +195,98 @@ def smooth(signal, kernel):
         return convolve2d(signal, kernel[:, np.newaxis], "same")
     else:
         raise ValueError("signal must be either 1D or 2D")
+
+
+def _ffmpeg_fmt(dtype):
+    """Convert a numpy dtype to the raw-PCM format string `ffmpeg`
+    understands (e.g. `'s16le'`, `'f32le'`).
+
+    Verbatim port of `madmom.io.audio._ffmpeg_fmt` (`io/audio.py:42-69`).
+    """
+    dtype = np.dtype(dtype)
+    fmt = {"u": "u", "i": "s", "f": "f"}.get(dtype.kind)
+    fmt += str(8 * dtype.itemsize)
+    if dtype.byteorder == "=":
+        import sys
+
+        fmt += sys.byteorder[0] + "e"
+    else:
+        fmt += {"|": "", "<": "le", ">": "be"}.get(dtype.byteorder)
+    return str(fmt)
+
+
+def resample(signal, sample_rate, **kwargs):
+    """Resample `signal` to `sample_rate` [Hz] by shelling out to the system
+    `ffmpeg` binary.
+
+    Narrow port of `madmom.audio.signal.resample` (`signal.py:226-263`) --
+    see this module's header for why this project's "no ffmpeg dependency"
+    stance had to be revisited for `SemitoneBandpassFilterbank`'s sake, and
+    exactly which subset of upstream's ffmpeg-invocation generality this
+    implements (only what that one caller needs: an already-loaded `Signal`,
+    unchanged `dtype`/`num_channels`, no `skip`/`max_len`/`channel`/
+    `replaygain` options).
+
+    Parameters
+    ----------
+    signal : Signal
+        Signal to be resampled.
+    sample_rate : int
+        Target sample rate [Hz].
+    kwargs : dict, optional
+        `dtype`/`num_channels` overrides (default: `signal`'s own).
+
+    Returns
+    -------
+    Signal
+        Resampled signal (a NEW `Signal`, unlike a no-op same-rate call,
+        which returns `signal` itself unchanged -- matching upstream).
+    """
+    import shutil
+    import subprocess
+
+    if not isinstance(signal, Signal):
+        raise ValueError(
+            "only Signals can be resampled, not %s" % type(signal)
+        )
+    if signal.sample_rate == sample_rate:
+        return signal
+    dtype = kwargs.get("dtype", signal.dtype)
+    num_channels = kwargs.get("num_channels", signal.num_channels)
+
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError(
+            "resample() needs the `ffmpeg` binary on PATH -- required by "
+            "madmom_infer.audio.filters.SemitoneBandpassFilterbank (in turn "
+            "audio.spectrogram.SemitoneBandpassSpectrogram / "
+            "audio.chroma.CLPChroma), see madmom_infer/audio/signal.py's "
+            "module header for why this one dependency is unavoidable."
+        )
+
+    in_fmt = _ffmpeg_fmt(signal.dtype)
+    out_fmt = _ffmpeg_fmt(dtype)
+    call = [
+        ffmpeg, "-v", "quiet", "-y",
+        "-f", in_fmt, "-ac", str(int(signal.num_channels)),
+        "-ar", str(int(signal.sample_rate)),
+        "-i", "pipe:0",
+        "-f", out_fmt, "-ac", str(int(num_channels)),
+        "-ar", str(int(sample_rate)),
+        "pipe:1",
+    ]
+    raw_in = np.ascontiguousarray(signal.data).tobytes()
+    proc = subprocess.run(call, input=raw_in, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            "ffmpeg resample failed (exit %d): %s"
+            % (proc.returncode, proc.stderr.decode(errors="replace"))
+        )
+    out = np.frombuffer(proc.stdout, dtype=dtype)
+    if num_channels and num_channels > 1:
+        out = out.reshape((-1, num_channels))
+    return Signal(out, sample_rate=sample_rate)
 
 
 def _load_wave_file(filename, sample_rate=None, num_channels=None,

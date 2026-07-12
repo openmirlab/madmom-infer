@@ -113,6 +113,19 @@ This project targets madmom's **inference** code only:
   filters (`CombFilterTempoHistogramProcessor`, backed by a numpy port of
   madmom's comb-filter Cython module), and DBN-based
   (`DBNTempoHistogramProcessor`, reusing `DBNBeatTrackingProcessor`)
+- Chroma extraction: classic pitch-class-profile chroma (`PitchClassProfile`/
+  `HarmonicPitchClassProfile`), a deep-neural-network chroma extractor
+  (`DeepChromaProcessor`), and Compressed Log Pitch chroma
+  (`CLPChroma`/`CLPChromaProcessor`, a pure-DSP, time-domain-filterbank-based
+  chroma feature)
+- Chord recognition: a numpy Conditional Random Field decoder
+  (`ConditionalRandomField`) backing two full audio-in, chord-segments-out
+  pipelines -- `DeepChromaProcessor` -> `DeepChromaChordRecognitionProcessor`,
+  and `CNNChordFeatureProcessor` -> `CRFChordRecognitionProcessor`
+- `RNNBarProcessor`: an alternative, GRU-based joint beat/downbeat model
+  (beat-synchronous percussive + harmonic features, the harmonic branch built
+  on `CLPChromaProcessor` above) as a full audio-in alternative to
+  `RNNDownBeatProcessor`
 
 Out of scope, forever:
 
@@ -122,12 +135,12 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: chord/note feature extraction, CRF-based beat detection and
-pattern tracking, the remaining audio submodules (chroma, HPSS,
-cepstrogram), and a torch reimplementation of the RNN ensemble forward pass
-itself (blocked on a real design question -- madmom's LSTM layers use
-peephole connections `torch.nn.LSTM` does not implement, so this needs a
-custom cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
+Not yet ported: note/piano transcription, CRF-based beat detection and
+pattern tracking, the remaining audio submodules (HPSS, cepstrogram/MFCC),
+and a torch reimplementation of the RNN ensemble forward pass itself
+(blocked on a real design question -- madmom's LSTM layers use peephole
+connections `torch.nn.LSTM` does not implement, so this needs a custom
+cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
 discrete-state, so it is not planned for a torch port -- no GPU benefit to
 speak of.
 
@@ -247,6 +260,58 @@ tempi = tempo_proc(activations)  # [[bpm, strength], ...], strongest first
 
 Pass `method="acf"` or `method="dbn"` for the autocorrelation or DBN-based
 histogram modes instead of the default resonating-comb-filter one.
+
+### Chroma extraction
+
+```python
+from madmom_infer.audio.chroma import DeepChromaProcessor
+
+chroma_proc = DeepChromaProcessor()
+chroma = chroma_proc("track.wav")  # (num_frames, 12) chroma vectors
+```
+
+Two more chroma flavors are available: `CLPChromaProcessor()` (pure DSP, no
+pretrained weights -- Compressed Log Pitch chroma, needs `ffmpeg` on `PATH`
+for its internal semitone-filterbank resampling), and
+`PitchClassProfile`/`HarmonicPitchClassProfile` (hand-designed filterbank
+weighting on top of a plain `Spectrogram`, no pretrained weights either):
+
+```python
+from madmom_infer.audio.chroma import CLPChromaProcessor
+from madmom_infer.audio.spectrogram import Spectrogram
+from madmom_infer.audio.chroma import PitchClassProfile
+
+clp_proc = CLPChromaProcessor(fps=50)
+clp_chroma = clp_proc("track.wav")
+
+spec = Spectrogram("track.wav", frame_size=2048, fps=100)
+pcp = PitchClassProfile(spec)
+```
+
+Same runtime-download/sha256/caching story as the processors above for
+`DeepChromaProcessor`, via `madmom_infer/models.py`'s `chroma_dnn()`.
+
+### Chord recognition
+
+```python
+from madmom_infer.audio.chroma import DeepChromaProcessor
+from madmom_infer.features.chords import DeepChromaChordRecognitionProcessor
+from madmom_infer.processors import SequentialProcessor
+
+chroma_proc = DeepChromaProcessor()
+decode = DeepChromaChordRecognitionProcessor()
+chord_rec = SequentialProcessor([chroma_proc, decode])
+
+chords = chord_rec("track.wav")
+# structured array of (start, end, label) segments, e.g.:
+# [(0.0, 1.6, 'F:maj'), (1.6, 2.5, 'A:maj'), (2.5, 4.1, 'D:maj')]
+```
+
+`CNNChordFeatureProcessor` -> `CRFChordRecognitionProcessor` is a drop-in
+alternative chain (a learned CNN feature extractor instead of deep chroma,
+decoded by a separately-trained CRF model). Same runtime-download/sha256/
+caching story as the processors above, via `madmom_infer/models.py`'s
+`chords_dccrf()`/`chords_cnn_feat()`/`chords_cfcrf()`.
 
 ### Torch frontend
 

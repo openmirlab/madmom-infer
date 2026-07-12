@@ -20,14 +20,20 @@ onset detection function needs its exact default parameterization), plus
 `Spectrogram.diff()`/`.filter()`/`.log()` convenience methods (the pure-DSP
 onset functions call `spectrogram.diff(...)` directly) and
 `SpectrogramProcessor.__init__(self, **kwargs): pass` (needed for
-`SuperFluxProcessor` to construct it with forwarded kwargs). Still NOT
+`SuperFluxProcessor` to construct it with forwarded kwargs).
+
+Wave 4d addition: `SemitoneBandpassSpectrogram` -- feeds `audio/chroma.py`'s
+`CLPChroma`/`CLPChromaProcessor`. NOT a `FilteredSpectrogram` subclass (its
+own composition class instead, see that class's docstring for why): it has
+no STFT stage at all, `filters.SemitoneBandpassFilterbank` is a TIME-domain
+IIR filterbank, and it needs `audio/signal.py`'s ffmpeg-subprocess `resample`
+(also new this wave) for every one of its ~78 semitone bands. Still NOT
 ported (no call site so far, `madmom-upstream/madmom/audio/spectrogram.py`):
 `MultiBandSpectrogram`/`MultiBandSpectrogramProcessor`,
-`SemitoneBandpassSpectrogram`, `LogarithmicFilteredSpectrogram`/
-`LogarithmicFilteredSpectrogramProcessor` (the fused filter+log convenience
-class -- this project composes the same pipeline via two separate stages
-instead, exactly like `build_spec_processor()` already does), and
-`tuning_frequency()`/`Spectrogram.tuning_frequency()`.
+`LogarithmicFilteredSpectrogram`/`LogarithmicFilteredSpectrogramProcessor`
+(the fused filter+log convenience class -- this project composes the same
+pipeline via two separate stages instead, exactly like `build_spec_processor()`
+already does), and `tuning_frequency()`/`Spectrogram.tuning_frequency()`.
 
 Composition, not `np.ndarray` subclassing (docs/DESIGN.md C.2): each class
 wraps a plain array in `.data`, and `FilteredSpectrogram`/
@@ -559,3 +565,116 @@ class SuperFluxProcessor(SequentialProcessor):
             diff_ratio=diff_ratio, diff_max_bins=diff_max_bins,
             positive_diffs=positive_diffs, **kwargs)
         super().__init__((stft, spec, filt, log, diff))
+
+
+# ---------------------------------------------------------------------------
+# SemitoneBandpassSpectrogram -- Wave 4d addition (feeds audio/chroma.py's
+# CLPChroma/CLPChromaProcessor)
+# ---------------------------------------------------------------------------
+class SemitoneBandpassSpectrogram:
+    """Semitone spectrogram built from a time-domain filterbank of bandpass
+    filters, as described in [1]_.
+
+    Composition port of `madmom.audio.spectrogram.SemitoneBandpassSpectrogram`
+    (`spectrogram.py:1401-1487`) -- NOT a `FilteredSpectrogram` subclass
+    (unlike upstream's ndarray-view hierarchy): this class has no STFT
+    stage at all (`filters.SemitoneBandpassFilterbank` is a TIME-domain
+    filterbank of IIR filters, `scipy.signal.filtfilt`-applied directly to
+    the signal, not `np.dot`-multiplied against a spectrogram matrix like
+    every OTHER filterbank in this project) -- see
+    `audio/filters.py`'s `SemitoneBandpassFilterbank` docstring. Needs
+    `audio/signal.py`'s `resample` (Wave 4d's ffmpeg-subprocess addition) --
+    every one of its ~78 semitone bands is filtered at a FIXED sample rate
+    (882/4410/22050 Hz), all three unconditionally different from this
+    project's 44100 Hz input convention.
+
+    Parameters
+    ----------
+    signal : Signal
+        Signal instance (or anything `Signal(..., num_channels=1)` accepts).
+    fps : float, optional
+        Frame rate of the spectrogram [Hz].
+    fmin : float, optional
+        Lowest frequency of the spectrogram [Hz].
+    fmax : float, optional
+        Highest frequency of the spectrogram [Hz].
+
+    References
+    ----------
+    .. [1] Meinard Mueller, "Information retrieval for music and motion",
+           Springer, 2007.
+    """
+
+    def __init__(self, signal, fps=50.0, fmin=27.5, fmax=4200.0, **kwargs):
+        from scipy.signal import filtfilt
+
+        from .filters import SemitoneBandpassFilterbank
+        from .signal import FramedSignal, Signal, resample
+
+        # check if we got a mono Signal
+        if not isinstance(signal, Signal) or signal.num_channels != 1:
+            signal = Signal(signal, num_channels=1, **kwargs)
+        sample_rate = float(signal.sample_rate)
+        # keep a reference to the original signal
+        signal_ = signal
+        # determine how many frames the filtered signal will have
+        num_frames = int(np.round(len(signal) * fps / sample_rate) + 1)
+        # compute the energy of the frames of the bandpass filtered signal
+        filterbank = SemitoneBandpassFilterbank(fmin=fmin, fmax=fmax)
+        bands = []
+        for filt, band_sample_rate in zip(filterbank.filters,
+                                          filterbank.band_sample_rates):
+            # frames should overlap 50%
+            frame_size = np.round(2 * band_sample_rate / float(fps))
+            # down-sample audio if needed
+            if band_sample_rate != signal.sample_rate:
+                signal = resample(signal_, band_sample_rate)
+            # filter the signal
+            b, a = filt
+            filtered_signal = filtfilt(b, a, signal)
+            # normalise the signal if it has an integer dtype
+            try:
+                filtered_signal = filtered_signal / np.iinfo(signal.dtype).max
+            except ValueError:
+                pass
+            # compute the energy of the filtered signal
+            # Note: 1) the energy of the signal is computed with respect to
+            #          the reference sampling rate as in the MATLAB chroma
+            #          toolbox
+            #       2) we do not sum here, but rather after splitting the
+            #          signal into overlapping frames to avoid doubled
+            #          computation due to the overlapping frames
+            filtered_signal = filtered_signal ** 2 / band_sample_rate * 22050.0
+            # split into overlapping frames
+            frames = FramedSignal(filtered_signal, frame_size=frame_size,
+                                  fps=fps, sample_rate=band_sample_rate,
+                                  num_frames=num_frames)
+            # finally sum the energy of all frames
+            bands.append(np.sum(frames, axis=1))
+        # stack the bands: (num_frames, num_bands)
+        self.data = np.vstack(bands).T
+        self.filterbank = filterbank
+        self.fps = fps
+        self.bin_frequencies = filterbank.center_frequencies
+
+    # -- numpy interop, mirroring audio/signal.py's Signal -----------------
+    def __array__(self, dtype=None):
+        return np.asarray(self.data, dtype=dtype)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def dtype(self):
+        return self.data.dtype
+
+    @property
+    def ndim(self):
+        return self.data.ndim

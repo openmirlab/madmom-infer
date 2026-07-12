@@ -206,6 +206,50 @@ EXPECTED_KEYS = {
         "beats", "perc_synced", "harm_synced", "perc_nn_out", "harm_nn_out",
         "full_downbeat_activation",
     },
+    # Wave 4d (tools/generate_chroma_chord_fixtures.py) -- CRF direct-decode
+    # fixture, real chord-feature observations + real decoded state
+    # sequence + labels, both CRF model families.
+    "crf_decode.npz": {
+        "dccrf_observations", "dccrf_y_star", "dccrf_labels_start",
+        "dccrf_labels_end", "dccrf_labels_label", "cfcrf_observations",
+        "cfcrf_y_star", "cfcrf_labels_start", "cfcrf_labels_end",
+        "cfcrf_labels_label",
+    },
+    # Wave 4d -- classic chroma (PitchClassProfile/HarmonicPitchClassProfile),
+    # 44.1kHz-native cases only (no file-load resampling).
+    "chroma_classic.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("pcp", "hpcp")
+    },
+    # Wave 4d -- CLP chroma (SemitoneBandpassSpectrogram + CLPChroma).
+    "clp_chroma.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in (
+            "semitone_bandpass", "semitone_bin_frequencies", "clp_chroma",
+        )
+    },
+    # Wave 4d -- DeepChromaProcessor end-to-end activations.
+    "chroma_dnn_activations.npz": {
+        f"{case}_chroma"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+    },
+    # Wave 4d -- chord recognition end-to-end (audio -> chord segments),
+    # both DeepChromaChordRecognitionProcessor (dccrf) and
+    # CNNChordFeatureProcessor + CRFChordRecognitionProcessor (cfcrf) paths.
+    "chords_end_to_end.npz": {
+        f"{case}_{model}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for model in ("dccrf", "cfcrf")
+        for suffix in ("start", "end", "label")
+    },
+    # Wave 4d -- RNNBarProcessor full AUDIO-IN end-to-end fixture.
+    "rnn_bar_end_to_end.npz": {
+        f"{case}_{suffix}"
+        for case in ("mono_44100", "stereo_44100", "float32_44100")
+        for suffix in ("beats", "bar_output")
+    },
 }
 
 
@@ -340,3 +384,17 @@ def test_manifest_exists_and_has_provenance():
     ):
         assert key in manifest, f"manifest.json missing key: {key}"
     assert manifest["madmom_version"], "manifest.json: madmom_version is empty"
+
+
+def test_chroma_dnn_structural_digest_exists_and_loads():
+    """Wave 4d fixture (tools/generate_chroma_chord_fixtures.py): the
+    unpickled chroma_dnn.pkl structural digest."""
+    path = FIXTURES_DIR / "chroma_dnn_structural_digest.json"
+    assert path.is_file(), f"missing fixture file: {path}"
+    digest = json.loads(path.read_text())
+    assert "chroma_dnn" in digest, (
+        "chroma_dnn_structural_digest.json missing 'chroma_dnn'"
+    )
+    assert len(digest["chroma_dnn"]) == 4, (
+        "chroma_dnn.pkl is expected to have exactly 4 FeedForwardLayers"
+    )

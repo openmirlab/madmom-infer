@@ -2,6 +2,23 @@
 subset `FilteredSpectrogramProcessor` (spectrogram.py) actually needs: a
 logarithmically-spaced triangular filterbank.
 
+Wave 4d addition (classic, non-DNN chroma path -- `CLAUDE.md`'s 4.0 audit
+correction): `hz2midi`, `midi2hz`, `semitone_frequencies`,
+`PitchClassProfileFilterbank`/`HarmonicPitchClassProfileFilterbank` (feed
+`audio/chroma.py`'s `PitchClassProfile`/`HarmonicPitchClassProfile`),
+`SimpleChromaFilterbank` (verbatim port INCLUDING its unconditional
+`raise NotImplementedError` -- see that class's own docstring, this is not
+a gap this port introduces), and `SemitoneBandpassFilterbank` (feeds
+`audio/spectrogram.py`'s `SemitoneBandpassSpectrogram`, in turn
+`audio/chroma.py`'s `CLPChroma`). `PitchClassProfileFilterbank`/
+`HarmonicPitchClassProfileFilterbank` build a plain `(num_bins, num_classes)`
+matrix and hand it to this module's own composition `Filterbank.__init__`
+(which casts to `FILTER_DTYPE`/float32 as its last step) -- same
+cast-happens-in-the-base-class order as upstream's own `Filterbank.__new__`
+(`filters.py:724-738`), so no float32-vs-float64 rounding-order divergence
+(unlike `LogarithmicFilterbank`'s per-filter cast-then-normalize trap, which
+does NOT apply here: neither PCP/HPCP class normalizes its filter weights).
+
 Phase-1 scope: only `LogarithmicFilterbank` (used by all-in-one-infer's
 `build_spec_processor()` via `FilteredSpectrogramProcessor(num_bands=12,
 fmin=30, fmax=17000, norm_filters=True)`,
@@ -357,3 +374,221 @@ class MelFilterbank(Filterbank):
         filters = _triangular_filters(bins, norm=norm_filters, overlap=True)
         matrix = _place_filters_into_matrix(filters, bin_frequencies)
         super().__init__(matrix, bin_frequencies)
+
+
+# ---------------------------------------------------------------------------
+# Chroma filterbanks -- Wave 4d addition (classic, non-DNN chroma path)
+# ---------------------------------------------------------------------------
+def hz2midi(f, fref=A4):
+    """Convert Hz frequencies to (fractional) MIDI note numbers. Verbatim
+    port of `madmom.audio.filters.hz2midi` (`filters.py:250-273`)."""
+    return (12.0 * np.log2(np.asarray(f, dtype=float) / fref)) + 69.0
+
+
+def midi2hz(m, fref=A4):
+    """Convert (fractional) MIDI note numbers to Hz frequencies. Verbatim
+    port of `madmom.audio.filters.midi2hz` (`filters.py:276-293`)."""
+    return 2.0 ** ((np.asarray(m, dtype=float) - 69.0) / 12.0) * fref
+
+
+def semitone_frequencies(fmin, fmax, fref=A4):
+    """Frequencies separated by semitones. Verbatim port of
+    `madmom.audio.filters.semitone_frequencies` (`filters.py:226-246`) --
+    exactly `log_frequencies(12, fmin, fmax, fref)`."""
+    return log_frequencies(12, fmin, fmax, fref)
+
+
+class PitchClassProfileFilterbank(Filterbank):
+    """Filterbank for extracting pitch class profiles (PCP): each FFT bin is
+    assigned to exactly one of `num_classes` pitch classes (a hard,
+    one-hot-per-bin assignment, no overlap/weighting between classes).
+
+    Composition port of `madmom.audio.filters.PitchClassProfileFilterbank`
+    (`filters.py:1382-1459`).
+
+    References
+    ----------
+    .. [1] T. Fujishima, "Realtime chord recognition of musical sound: a
+           system using Common Lisp Music", Proceedings of the
+           International Computer Music Conference (ICMC), 1999.
+    """
+
+    CLASSES = 12
+    FMIN = 100.0
+    FMAX = 5000.0
+
+    def __init__(self, bin_frequencies, num_classes=CLASSES, fmin=FMIN,
+                 fmax=FMAX, fref=A4):
+        # init a filterbank
+        fb = np.zeros((len(bin_frequencies), num_classes))
+        # use only positive bin frequencies
+        pos_bin_frequencies = bin_frequencies > 0
+        # log deviation from the reference frequency
+        log_dev = np.log2(bin_frequencies[pos_bin_frequencies] / fref)
+        # map the log deviation to the closest pitch class profiles
+        num_class = np.round(num_classes * log_dev) % num_classes
+        # define the filterbank, skip all bins which were 0
+        fb[pos_bin_frequencies, num_class.astype(int)] = 1
+        # set all bins outside the allowed frequency range to 0
+        fb[np.searchsorted(bin_frequencies, fmax, "right"):] = 0
+        fb[:np.searchsorted(bin_frequencies, fmin)] = 0
+        super().__init__(fb, bin_frequencies)
+        self.fref = fref
+
+
+class HarmonicPitchClassProfileFilterbank(PitchClassProfileFilterbank):
+    """Filterbank for extracting harmonic pitch class profiles (HPCP): each
+    positive-frequency FFT bin contributes a raised-cosine WEIGHT to every
+    pitch class within `window` semitones of it (a soft, overlapping
+    assignment, unlike the plain PCP filterbank's hard one-hot mapping).
+
+    Composition port of
+    `madmom.audio.filters.HarmonicPitchClassProfileFilterbank`
+    (`filters.py:1462-1543`).
+
+    References
+    ----------
+    .. [1] Emilia Gomez, "Tonal Description of Music Audio Signals", PhD
+           thesis, Universitat Pompeu Fabra, Barcelona, Spain, 2006.
+    """
+
+    CLASSES = 36
+    FMIN = 100.0
+    FMAX = 5000.0
+    WINDOW = 4
+
+    def __init__(self, bin_frequencies, num_classes=CLASSES, fmin=FMIN,
+                 fmax=FMAX, fref=A4, window=WINDOW):
+        # pylint: disable=super-init-not-called
+        # init a filterbank (deliberately NOT calling
+        # PitchClassProfileFilterbank.__init__ -- the weighting math differs
+        # entirely, only the class hierarchy is shared, matching upstream's
+        # own PitchClassProfileFilterbank subclassing, which likewise
+        # overrides __new__ completely rather than reusing the base class's)
+        fb = np.zeros((len(bin_frequencies), num_classes))
+        # use only positive bin frequencies
+        pos_bin_frequencies = np.nonzero(bin_frequencies > 0)[0]
+        # log deviation from the reference frequency
+        log_dev = np.log2(bin_frequencies[pos_bin_frequencies] / fref)
+        # map the log deviation to pitch class profiles
+        num_class = (num_classes * log_dev) % num_classes
+        # weight the bins
+        for c in range(num_classes):
+            # calculate the distance of the bins to the current class
+            distance = num_class - c
+            # unwrap
+            distance[distance < -num_classes / 2.0] += num_classes
+            distance[distance > num_classes / 2.0] -= num_classes
+            # get all bins which are within the defined window
+            idx = np.abs(distance) < window / 2.0
+            # apply the weighting function
+            filt = np.cos((num_class[idx] - c) * np.pi / window) ** 2.0
+            # map these indices to the positive bin frequencies
+            fb[pos_bin_frequencies[idx], c] = filt
+        # set all bins outside the allowed frequency range to 0
+        fb[np.searchsorted(bin_frequencies, fmax, "right"):] = 0
+        fb[:np.searchsorted(bin_frequencies, fmin)] = 0
+        Filterbank.__init__(self, fb, bin_frequencies)
+        self.fref = fref
+        self.window = window
+
+
+class SimpleChromaFilterbank(Filterbank):
+    """A simple chroma filterbank based on a (semitone) filterbank.
+
+    Verbatim port of `madmom.audio.filters.SimpleChromaFilterbank`
+    (`filters.py:1301-1366`) -- **including its unconditional
+    `raise NotImplementedError`**. This is not a gap this port introduces:
+    upstream's own `__new__` raises immediately, before ANY of its own
+    (dead, TODO-commented) construction code runs -- confirmed by reading
+    `filters.py:1340-1341` directly: `raise NotImplementedError("please
+    check if produces correct/expected results and enable if yes.")`, with
+    the actual filterbank-building code below it unreachable. No shipped
+    madmom processor this project ports ever constructs one (the 4.0 audit's
+    TO-PORT listing was itself only tracking public API surface, not
+    reachability), so this port reproduces upstream's own not-actually-
+    implemented state faithfully rather than "fixing" it by finishing code
+    upstream itself never enabled.
+    """
+
+    NUM_BANDS = 12
+
+    def __init__(self, bin_frequencies, num_bands=NUM_BANDS, fmin=FMIN,
+                 fmax=FMAX, fref=A4, norm_filters=NORM_FILTERS,
+                 unique_filters=UNIQUE_FILTERS):
+        # pylint: disable=unused-argument
+        raise NotImplementedError(
+            "please check if produces correct/expected results and enable "
+            "if yes. (verbatim port of upstream's own unconditional raise, "
+            "see this class's docstring -- SimpleChromaFilterbank is not "
+            "actually implemented in real madmom either.)"
+        )
+
+
+class SemitoneBandpassFilterbank:
+    """Time-domain semitone filterbank of elliptic (IIR) bandpass filters, as
+    proposed in [1]_.
+
+    Composition port of `madmom.audio.filters.SemitoneBandpassFilterbank`
+    (`filters.py:1545-1600`) -- NOT a `Filterbank` subclass (matching
+    upstream: this is a `scipy.signal.filtfilt`-driven time-domain
+    filterbank, incompatible with the `np.dot(spectrogram, filterbank)`
+    time-frequency-domain filtering every OTHER filterbank in this module
+    implements -- see that class's own "Notes" section upstream).
+
+    Feeds `audio/spectrogram.py`'s `SemitoneBandpassSpectrogram`, in turn
+    `audio/chroma.py`'s `CLPChroma`. Each semitone band is filtered at ONE of
+    3 fixed sample rates (882, 4410, or 22050 Hz, chosen by frequency range)
+    -- `SemitoneBandpassSpectrogram` is the caller that actually resamples
+    the input signal to match (`madmom_infer.audio.signal.resample`, Wave
+    4d's ffmpeg-subprocess addition -- see that function's docstring for why
+    this project's long-standing "no ffmpeg dependency" stance had to be
+    revisited for this one, genuinely unavoidable, dependency).
+
+    Parameters
+    ----------
+    order : int, optional
+        Order of elliptic filters.
+    passband_ripple : float, optional
+        Maximum ripple allowed below unity gain in the passband [dB].
+    stopband_rejection : float, optional
+        Minimum attenuation required in the stop band [dB].
+    q_factor : int, optional
+        Q-factor of the filters.
+    fmin : float, optional
+        Minimum frequency of the filterbank [Hz].
+    fmax : float, optional
+        Maximum frequency of the filterbank [Hz].
+    fref : float, optional
+        Reference frequency for the first bandpass filter [Hz].
+
+    References
+    ----------
+    .. [1] Meinard Mueller, "Information retrieval for music and motion",
+           Springer, 2007.
+    """
+
+    def __init__(self, order=4, passband_ripple=1, stopband_rejection=50,
+                 q_factor=25, fmin=27.5, fmax=4200.0, fref=A4):
+        from scipy.signal import ellip
+
+        self.order = order
+        self.passband_ripple = passband_ripple
+        self.stopband_rejection = stopband_rejection
+        self.q_factor = q_factor
+        self.fref = fref
+        self.center_frequencies = semitone_frequencies(fmin, fmax, fref=fref)
+        # use different sample rates for the individual bands
+        self.band_sample_rates = (
+            np.ones_like(self.center_frequencies) * 4410
+        )
+        self.band_sample_rates[self.center_frequencies > 2000] = 22050
+        self.band_sample_rates[self.center_frequencies < 250] = 882
+        self.filters = []
+        for freq, sample_rate in zip(self.center_frequencies,
+                                     self.band_sample_rates):
+            freqs = [(freq - freq / q_factor / 2.0) * 2.0 / sample_rate,
+                     (freq + freq / q_factor / 2.0) * 2.0 / sample_rate]
+            self.filters.append(ellip(order, passband_ripple,
+                                      stopband_rejection, freqs,
+                                      btype="bandpass"))
