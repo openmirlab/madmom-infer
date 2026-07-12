@@ -72,6 +72,12 @@ in turn `features/downbeats.py`'s `PatternTrackingProcessor`.
 `pickletools`-confirmed NOT needed by any target this project ships) --
 see that class's own section header for the confirmation.
 
+Wave 4g addition: `HarmonicFilterbank` -- ported INCLUDING its unconditional
+`raise NotImplementedError`, same not-actually-implemented shape as
+`SimpleChromaFilterbank` above (confirmed by reading upstream directly, see
+that class's own docstring). The audit table's lowest-priority row: no
+processor in this project needs it.
+
 Reads: numpy; read by: madmom_infer/audio/spectrogram.py
 (`FilteredSpectrogramProcessor`, `MultiBandSpectrogram`).
 """
@@ -532,6 +538,31 @@ class SimpleChromaFilterbank(Filterbank):
             "if yes. (verbatim port of upstream's own unconditional raise, "
             "see this class's docstring -- SimpleChromaFilterbank is not "
             "actually implemented in real madmom either.)"
+        )
+
+
+class HarmonicFilterbank(Filterbank):
+    """Harmonic filterbank class.
+
+    Verbatim port of `madmom.audio.filters.HarmonicFilterbank`
+    (`madmom-upstream/madmom/audio/filters.py:1369-1379`) -- **including its
+    unconditional `raise NotImplementedError`**, the same not-actually-
+    implemented shape as `SimpleChromaFilterbank` right above (see that
+    class's docstring for the general pattern). Confirmed by reading
+    upstream directly: `__new__` raises immediately with `'please implement
+    if needed!'`, no filterbank-construction code follows it at all (unlike
+    `SimpleChromaFilterbank`, which at least has dead TODO-commented code
+    below its raise -- this one has nothing). Wave 4g, the audit table's own
+    lowest-priority row: no processor in this project needs it (not even a
+    speculative one), ported anyway for API-surface completeness.
+    """
+
+    def __init__(self):
+        raise NotImplementedError(
+            "please implement if needed! (verbatim port of upstream's own "
+            "unconditional raise, see this class's docstring -- "
+            "HarmonicFilterbank is not actually implemented in real madmom "
+            "either.)"
         )
 
 

@@ -526,3 +526,54 @@ def test_patterns_structural_digest_exists_and_loads():
         assert "num_beats" in digest[key]
         assert "gmms" in digest[key]
         assert len(digest[key]["gmms"]) == digest[key]["num_gmms"]
+
+
+def test_cepstrogram_fixture_exists_and_loads():
+    """Wave 4g fixture (tools/generate_leftovers_fixtures.py):
+    Cepstrogram/MFCC golden outputs."""
+    path = FIXTURES_DIR / "cepstrogram.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        expected_keys = {
+            "spectrogram_input", "cepstrogram_default", "mfcc_default",
+            "mfcc_custom",
+        }
+        missing = expected_keys - set(data.files)
+        assert not missing, f"cepstrogram.npz missing keys: {sorted(missing)}"
+
+
+def test_hpss_fixture_exists_and_loads():
+    """Wave 4g fixture (tools/generate_leftovers_fixtures.py):
+    HarmonicPercussiveSourceSeparation.slices()/.masks() golden outputs."""
+    path = FIXTURES_DIR / "hpss.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        expected_keys = {
+            "spectrogram_input", "harmonic_slice", "percussive_slice",
+            "harmonic_mask_binary", "percussive_mask_binary",
+            "harmonic_mask_soft", "percussive_mask_soft",
+            "harmonic_slice_custom", "percussive_slice_custom",
+        }
+        missing = expected_keys - set(data.files)
+        assert not missing, f"hpss.npz missing keys: {sorted(missing)}"
+
+
+def test_signal_leftovers_fixture_exists_and_loads():
+    """Wave 4g fixture (tools/generate_leftovers_fixtures.py): `attenuate`/
+    `rescale`/`trim`/`energy`/`root_mean_square`/`sound_pressure_level`
+    golden outputs -- resolves the 4b audit-table TO-VERIFY flag."""
+    path = FIXTURES_DIR / "signal_leftovers.npz"
+    assert path.is_file(), f"missing fixture file: {path}"
+    with np.load(path) as data:
+        expected_keys = {
+            "signal_input", "attenuate_6db", "attenuate_0db",
+            "rescale_float32", "rescale_float64", "trim_input", "trim_fb",
+            "trim_f", "trim_b", "energy_1d", "root_mean_square_1d",
+            "sound_pressure_level_1d", "energy_framed",
+            "root_mean_square_framed", "sound_pressure_level_framed",
+            "energy_float", "sound_pressure_level_float",
+        }
+        missing = expected_keys - set(data.files)
+        assert not missing, (
+            f"signal_leftovers.npz missing keys: {sorted(missing)}"
+        )

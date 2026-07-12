@@ -144,6 +144,12 @@ This project targets madmom's **inference** code only:
   `DBNBarTrackingProcessor` (decode downbeats from pre-determined beat
   positions plus a downbeat activation function, e.g. `RNNBarProcessor`'s
   output, across several candidate bar lengths)
+- MFCC/cepstral features: `Cepstrogram`/`CepstrogramProcessor` (a generic
+  DCT-of-spectrogram transform) and `MFCC`/`MFCCProcessor` (the standard
+  Mel-filter -> log -> DCT pipeline, reusing the Mel filterbank above)
+- Harmonic/percussive source separation: `HarmonicPercussiveSourceSeparation`
+  (alias `HPSS`) -- median-filter-based `slices()`/`masks()` (Fitzgerald
+  2010)
 
 Out of scope, forever:
 
@@ -153,8 +159,11 @@ Out of scope, forever:
 - Training-only code. Madmom itself has essentially no gradient-based training
   code to port (its neural-net layers are forward-inference-only already).
 
-Not yet ported: the remaining audio submodules (HPSS, cepstrogram/MFCC), and
-a torch reimplementation of the RNN ensemble forward pass itself
+Every inference-relevant public class/function in upstream madmom's
+`features/`, `audio/`, and `ml/` packages is now ported (or documented as
+permanently excluded, see above) -- the numpy backend is feature-complete
+against a real madmom 0.17.dev0 install's own surface. The only remaining
+gap is a torch reimplementation of the RNN ensemble forward pass itself
 (blocked on a real design question -- madmom's LSTM layers use peephole
 connections `torch.nn.LSTM` does not implement, so this needs a custom
 cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
@@ -411,6 +420,48 @@ onsets = peak_pick(activations)  # (time, MIDI_pitch) pairs
 
 Same runtime-download/sha256/caching story as the processors above, via
 `madmom_infer/models.py`'s `notes_brnn()`/`notes_cnn()`.
+
+### MFCC / cepstral features
+
+Pure DSP, no pretrained weights:
+
+```python
+from madmom_infer.audio.spectrogram import Spectrogram, FilteredSpectrogramProcessor
+from madmom_infer.audio.filters import LogarithmicFilterbank
+from madmom_infer.audio.cepstrogram import MFCC, Cepstrogram
+
+# MFCC needs an ALREADY-filtered spectrogram to construct -- matching real
+# madmom's own (surprising, verified) behavior: a plain Spectrogram raises
+# AttributeError here, see madmom_infer/audio/cepstrogram.py's module
+# header for the full story.
+filt_spec = FilteredSpectrogramProcessor(
+    filterbank=LogarithmicFilterbank, num_bands=12, fmin=30, fmax=17000,
+)("track.wav")
+mfcc = MFCC(filt_spec)  # (num_frames, 30) MFCCs, warns and re-derives
+                        # the spectrogram from filt_spec.stft internally
+
+spec = Spectrogram("track.wav")
+cepstrogram = Cepstrogram(spec)  # DCT of the plain magnitude spectrogram
+```
+
+### Harmonic/percussive source separation
+
+```python
+import numpy as np
+from madmom_infer.audio.spectrogram import Spectrogram
+from madmom_infer.audio.hpss import HPSS
+
+spec = Spectrogram("track.wav")
+hpss = HPSS()  # alias for HarmonicPercussiveSourceSeparation
+harmonic_slice, percussive_slice = hpss.slices(np.asarray(spec))
+harmonic_mask, percussive_mask = hpss.masks(harmonic_slice, percussive_slice)
+harmonic = np.asarray(spec) * harmonic_mask
+percussive = np.asarray(spec) * percussive_mask
+```
+
+`slices()`/`masks()` are the working surface; `HPSS().process()` itself is
+NOT usable -- it's a faithfully-reproduced real madmom bug (unconditionally
+raises for every input), see `madmom_infer/audio/hpss.py`'s module header.
 
 ### Torch frontend
 

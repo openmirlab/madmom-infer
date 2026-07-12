@@ -22,8 +22,10 @@ to refer to a specific chunk of already-shipped work:
   frontend (`madmom_infer/torch/`)
 - **Phase 3b** (not started): torch NN forward pass, blocked on madmom's
   LSTM peephole connections having no `torch.nn.LSTM` equivalent
-- **Phase 4 — complete-port campaign** (started 2026-07-12, branch
-  `feat/complete-port`): port every remaining inference-relevant madmom
+- **Phase 4 — complete-port campaign** (started 2026-07-12, **DONE
+  2026-07-13**, branch `feat/complete-port`, not yet merged -- see the "4g
+  closure verdict" section below for the closing statement): port every
+  remaining inference-relevant madmom
   capability. Target surface = what the reference madmom install exposes
   (0.17.dev0, built from `../madmom-upstream`). Waves, each gated on
   golden fixtures + the full suite green before its commit:
@@ -863,6 +865,112 @@ to refer to a specific chunk of already-shipped work:
       offline suite: 264 passed, 2 skipped, 53 deselected (was 223/1/51
       after 4e); network suite: 53 passed, 1 skipped, 265 deselected, all
       green.
+  - **4g status: DONE (2026-07-13) -- final wave, campaign closed.** Ported
+    the last 4 audit-table targets and resolved the 4b TO-VERIFY flag, then
+    closed out the whole Phase-4 campaign:
+    - New `madmom_infer/audio/cepstrogram.py`: `Cepstrogram`,
+      `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` -- composition classes
+      (not `np.ndarray` subclasses, matching this project's convention),
+      reusing 4b's already-ported `MelFilterbank` (the reason that pull-
+      forward existed). **Major, real, confirmed upstream bug found and
+      reproduced bug-for-bug, not fixed**: `MFCC.__new__`'s "was this
+      spectrogram already filtered?" check unconditionally raises
+      `AttributeError` for a PLAIN `Spectrogram` (or a raw wav path/array,
+      which builds one internally) -- confirmed directly against the
+      reference venv: the base `Spectrogram` class never defines a
+      `.filterbank` attribute at all, so `MFCC(plain_spectrogram)`/
+      `MFCC(wav_path)` always crash. The ONLY input that works is an
+      ALREADY-`FilteredSpectrogram` instance, whose real `.filterbank`
+      attribute trips the "redo calculation" warn-and-recompute branch
+      (which discards that filter and rebuilds from `.stft` -- no further
+      attribute checks after that point). This project's own
+      `Spectrogram`/`FilteredSpectrogram`/`LogarithmicSpectrogram`
+      (`audio/spectrogram.py`) already have the exact matching attribute
+      shape, so the check is written as a plain (undefended) attribute
+      access, not a defensive `getattr(..., None)`, letting the identical
+      `AttributeError` propagate -- pinned by `pytest.raises`, not silently
+      "fixed" into something upstream itself never shipped working. Also
+      verbatim-reproduced: `MFCCProcessor.process()` never forwards its own
+      stored `self.transform` to the `MFCC(...)` call it makes (a custom
+      `transform=` is inert, matching upstream's own apparent oversight).
+      **Faithfulness proof**: `Cepstrogram` is bit-identical to real madmom
+      both in-process and cross-BLAS (`np.array_equal`, pure `scipy.
+      fftpack.dct`, no BLAS/build sensitivity at all); `MFCC` is
+      bit-identical CROSS-BLAS (confirmed directly against the reference
+      venv) but shows small in-process (differing-numpy/scipy-build) drift
+      -- up to ~3.8e-6 absolute on roughly [-25, 25]-range output --
+      root-caused to the compounding `np.dot`(filterbank) -> `np.log10` ->
+      `dct` chain, same class of finding as 4d's `SemitoneBandpassSpectrogram`
+      and 4e's raw RNN activations (an unstable near-zero ULP metric doesn't
+      apply here either -- most of MFCC's output floats near zero); the
+      in-process test asserts a documented `atol=1e-5` (~2.6x observed)
+      instead.
+    - New `madmom_infer/audio/hpss.py`:
+      `HarmonicPercussiveSourceSeparation` (alias `HPSS`). **Real, confirmed
+      upstream bug, reproduced faithfully**: `process()` is unconditionally
+      broken for EVERY input in real madmom 0.17.dev0 -- confirmed directly
+      against the reference venv: a `Spectrogram` input raises
+      `AttributeError` (`Spectrogram` has no `.spec` attribute, despite
+      `process()`'s own code reading `data.spec`); any other input raises
+      `UnboundLocalError` (`spectrogram` referenced before assignment,
+      since it's only assigned inside the `if isinstance(data, Spectrogram)`
+      branch). Both reproduced exactly, pinned by `pytest.raises`, not
+      "fixed" by guessing the presumably-intended `data.data`/
+      `np.asarray(data)`. `slices()`/`masks()` (the two actually-working
+      helper methods) are bit-identical to real madmom, both in-process and
+      cross-BLAS (pure `scipy.ndimage.median_filter` + elementwise mask
+      arithmetic, no BLAS at all).
+    - `madmom_infer/audio/filters.py`: `HarmonicFilterbank` -- verbatim port
+      of upstream's own unconditional `raise NotImplementedError`, confirmed
+      by reading `filters.py:1369-1379` directly (no filterbank-construction
+      code follows the raise at all -- not even `SimpleChromaFilterbank`'s
+      own dead, TODO-commented code). Audit table's lowest-priority row: no
+      processor in this project needs it.
+    - `madmom_infer/audio/signal.py`: `attenuate`, `rescale`, `trim`,
+      `energy`, `root_mean_square`, `sound_pressure_level` -- 6 verbatim
+      ports resolving the wave-4b audit-table TO-VERIFY flag (see that
+      row's own history: 4b found `smooth` missing and, rather than
+      trusting the Phase-1 audit's overstated PORTED claim for the whole
+      rest of the row, downgraded it to TO-VERIFY pending a real re-audit).
+      Re-auditing `../madmom-upstream/madmom/audio/signal.py`'s actual
+      public surface (`grep -n '^def \|^class '`) found these 6 are the
+      only genuine gaps; the rest of that flagged list (`Stream`,
+      `LoadAudioFileError`, `load_wave_file`, `write_wave_file`,
+      `load_audio_file`) is a DELIBERATE non-port: `Stream` is already
+      covered by this project's permanent online/live-audio exclusion, and
+      the other four are themselves nothing but upstream's own
+      deprecated-since-0.16 shims delegating to `madmom.io.audio.*`
+      (confirmed by reading `signal.py:442-493` directly) -- `io/*` is this
+      project's own separate, already-documented permanent EXCLUDE.
+      **Faithfulness proof**: all 6 bit-identical to real madmom, both
+      in-process and cross-BLAS (pure numpy, no BLAS at all). Found and
+      fixed a real bug in this wave's OWN first draft of `rescale()`: a
+      bare `signal.astype(dtype)` call assumed ndarray semantics this
+      project's own composition `Signal` class doesn't have (no `.astype`
+      method) -- fixed with `np.asarray(signal).astype(dtype)`, which works
+      uniformly for both a `Signal` and a plain ndarray.
+    - New `tools/generate_leftovers_fixtures.py`: output-only golden
+      fixtures for all of the above (same "reuse this project's own
+      already-golden-fixture-proven Phase-1 DSP chain to reconstruct
+      inputs" economy as `tools/generate_onset_fixtures.py`) --
+      `tests/fixtures/cepstrogram.npz`, `tests/fixtures/hpss.npz`,
+      `tests/fixtures/signal_leftovers.npz`.
+    - **Closure audit**: walked the entire audit table below top to bottom;
+      every row now reads PORTED or EXCLUDE, zero TO-PORT/TO-VERIFY rows
+      remain. Cross-checked by introspection: imported all 26 PORTED-row
+      modules and verified every named class/function actually exists and
+      is importable in `madmom_infer` (script run, zero failures -- see
+      the "4g closure verdict" section below for the full statement).
+    - 38 new tests total (`tests/test_cepstrogram.py`: 12;
+      `tests/test_hpss.py`: 9; `tests/test_signal_leftovers.py`: 13;
+      `tests/test_filters.py`: +1; `tests/test_fixtures_exist.py`: +3).
+      Full offline suite: 302 passed, 2 skipped, 53 deselected (was
+      264/2/53 after 4f); network suite: 53 passed, 1 skipped, 303
+      deselected, all green (no new network-marked tests -- none of 4g's
+      targets need model downloads).
+  - **Phase 4 complete-port campaign: DONE (2026-07-13).** See the "4g
+    closure verdict" section (right after the audit table below) for the
+    full, dated closing statement.
 
 ### 4.0 audit result (2026-07-12)
 
@@ -909,13 +1017,14 @@ EXCLUDE (why).
 | `audio/signal.py` | `Signal`, `SignalProcessor`, `FramedSignal`, `FramedSignalProcessor`, `remix`, `normalize`, `adjust_gain`, `signal_frame` | PORTED | -- | Phase 1, complete |
 | `audio/signal.py` | `smooth` | PORTED (4b) | -- | needed by `features/onsets.py`'s `peak_picking`; this row previously (Phase 1) claimed it as already PORTED -- it was not actually present in the module until this wave, correcting that overstatement here |
 | `audio/signal.py` | `resample` | PORTED (4d) -- **policy correction**: the "no ffmpeg dependency" Phase-1 exclusion (below) does not survive `SemitoneBandpassFilterbank`'s unconditional, load-bearing need for it; narrow ffmpeg-subprocess port, bit-identical to real madmom's own `resample()` (both invoke the literal same system `ffmpeg` binary), see 4d status | -- | feeds `audio/spectrogram.py`'s `SemitoneBandpassSpectrogram` |
-| `audio/signal.py` | `Stream`, `LoadAudioFileError`, `attenuate`, `rescale`, `root_mean_square`, `sound_pressure_level`, `energy`, `trim`, `load_audio_file`, `load_wave_file` (public), `write_wave_file` | TO-VERIFY | -- | this row's Phase-1 entry claimed these as PORTED; empirically NOT found in `audio/signal.py` while porting 4b's `smooth` (only a private `_load_wave_file` helper exists) -- flagged rather than silently left overstated, but a full re-audit of Phase 1's own completeness is out of scope for 4b; port on demand if/when a TO-PORT processor is found to need one (`resample` itself is no longer part of this row as of 4d, see the row above -- it moved from "known, deliberate gap" to PORTED for a real, load-bearing reason) |
+| `audio/signal.py` | `attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`, `sound_pressure_level` | PORTED (4g) | -- | resolves the 4b TO-VERIFY flag; 6 verbatim ports, bit-identical to real madmom both in-process and cross-BLAS (pure numpy, no BLAS) -- confirmed by re-grepping `../madmom-upstream/madmom/audio/signal.py`'s actual `^def \|^class ` surface, not re-trusting the old Phase-1 claim |
+| `audio/signal.py` | `Stream`, `LoadAudioFileError`, `load_audio_file`, `load_wave_file` (public), `write_wave_file` | EXCLUDE (4g, resolves the rest of the 4b TO-VERIFY flag) | -- | `Stream` is madmom's online/live-audio (PyAudio) class, already covered by this project's permanent online-processing exclusion; the other four are themselves nothing but upstream's own deprecated-since-0.16 shims that `warnings.warn()` and delegate to `madmom.io.audio.*` (confirmed by reading `signal.py:442-493` directly) -- `io/*` is this project's own separate, already-documented permanent EXCLUDE (see the `io/*`/`utils/*` row below), so porting these 4 would mean porting `io.audio` under a different name; none referenced by any `../madmom-upstream/madmom/{audio,features,ml}/*` file this project ports from |
 | `audio/filters.py` | `Filterbank`, `LogarithmicFilterbank`, `log_frequencies`, `frequencies2bins`, `bins2frequencies`, freq-conversion helpers (`hz2mel` etc.) | PORTED | -- | Phase 1 |
 | `audio/filters.py` | `MelFilterbank` | PORTED (4b) | -- | originally slotted for 4g (`cepstrogram.py` MFCC), pulled forward -- also feeds `CNNOnsetProcessor`'s 80-band mel input, which is in 4b's own scope; 4g's MFCC work reuses this instead of re-porting |
 | `audio/filters.py` | `BarkFilterbank`, `RectangularFilter`, `RectangularFilterbank` | PORTED (4f) | -- | **correction**: only `RectangularFilterbank` is actually load-bearing for `MultiBandSpectrogramProcessor`/`PatternTrackingProcessor` (confirmed by reading `audio/spectrogram.py:1310` directly) -- `BarkFilterbank`/`RectangularFilter` are unreachable from any target this project ships, ported anyway for API completeness (same precedent as `NOTES_CNN_MIREX`) |
 | `audio/filters.py` | `PitchClassProfileFilterbank`, `HarmonicPitchClassProfileFilterbank`, `SemitoneBandpassFilterbank` | PORTED (4d, scope addition -- see corrections above) | -- | feed `audio/chroma.py`'s classic (non-DNN) and CLP chroma paths |
 | `audio/filters.py` | `SimpleChromaFilterbank` | PORTED (4d) -- ported INCLUDING its unconditional `raise NotImplementedError` | -- | confirmed by reading upstream directly: not actually implemented in real madmom either (dead code below the raise); this port reproduces that state rather than finishing what upstream itself never enabled |
-| `audio/filters.py` | `HarmonicFilterbank` | TO-PORT (4g) | -- | used by `SemitoneBandpassSpectrogram`/harmonic feature paths; low priority, no processor in the named waves depends on it alone |
+| `audio/filters.py` | `HarmonicFilterbank` | PORTED (4g) -- ported INCLUDING its unconditional `raise NotImplementedError` | -- | confirmed by reading upstream directly: not actually implemented in real madmom either (no filterbank-construction code follows the raise at all), same not-actually-implemented shape as `SimpleChromaFilterbank` (4d); no processor in this project needs it, ported anyway for API-surface completeness |
 | `audio/stft.py` | `ShortTimeFourierTransform`, `ShortTimeFourierTransformProcessor`, `stft`, `fft_frequencies` | PORTED | -- | Phase 1 |
 | `audio/stft.py` | `Phase`, `LocalGroupDelay`/`LGD`, `phase`, `local_group_delay`, `lgd` | PORTED (4b) | -- | feeds onset phase-deviation family; `LocalGroupDelay` reproduces a real upstream bug on purpose (`__new__` checks `isinstance(stft, Phase)` where `stft` is an undefined name resolving to the module's own `stft()` function, so it always rebuilds rather than reusing an existing `Phase`) -- see `audio/stft.py`'s module header |
 | `audio/stft.py` | `rfft_builder` | EXCLUDE | -- | `pyfftw` acceleration hook, not a project dependency (see `audio/stft.py`'s Phase-1 header) |
@@ -923,12 +1032,12 @@ EXCLUDE (why).
 | `audio/spectrogram.py` | `SuperFluxProcessor` | PORTED (4b) | -- | onset family |
 | `audio/spectrogram.py` | `MultiBandSpectrogram`, `MultiBandSpectrogramProcessor` | PORTED (4f) -- cross-BLAS-proven exact (as part of `PatternTrackingProcessor`'s own end-to-end test) | -- | `PatternTrackingProcessor` input |
 | `audio/spectrogram.py` | `SemitoneBandpassSpectrogram` | PORTED (4d) -- own composition class, NOT a `FilteredSpectrogram` subclass; measured NOT bit-identical to real madmom across differing scipy versions (up to ~1e-5 absolute, `scipy.signal.filtfilt`/`ellip` version sensitivity, see 4d status) | -- | `CLPChromaProcessor` input; needs `audio/signal.py`'s new ffmpeg-subprocess `resample()` |
-| `audio/cepstrogram.py` | `Cepstrogram`, `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` | TO-PORT (4g) | -- | needs `MelFilterbank` first |
+| `audio/cepstrogram.py` | `Cepstrogram`, `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` | PORTED (4g) | -- | `Cepstrogram` bit-identical to real madmom (in-process and cross-BLAS); `MFCC` bit-identical cross-BLAS, `atol=1e-5`-documented in-process drift (see 4g status) -- **real, confirmed upstream bug reproduced bug-for-bug**: `MFCC` can only be constructed from an already-`FilteredSpectrogram` instance, every other input (including a plain `Spectrogram` or raw wav path) unconditionally raises `AttributeError` in real madmom too, confirmed against the reference venv |
 | `audio/chroma.py` | `DeepChromaProcessor` | PORTED (4d) -- cross-BLAS-proven exact | `CHROMA_DNN` = `chroma/2016/chroma_dnn.pkl` | pickle refs confirmed: `NeuralNetwork`, `FeedForwardLayer`, `relu`/`sigmoid` -- no new layer classes needed beyond 4a's set |
 | `audio/chroma.py` | `CLPChroma`, `CLPChromaProcessor` | PORTED (4d) -- see `SemitoneBandpassSpectrogram` row re: measured (not bit-identical) cross-scipy-version precision | -- | pure DSP, no NN weights; needs `SemitoneBandpassSpectrogram` |
 | `audio/chroma.py` | `PitchClassProfile`, `HarmonicPitchClassProfile` | PORTED (4d, scope addition) | -- | classic chroma, not DNN-based; composition subclasses of `Spectrogram`, not upstream's ndarray-view hierarchy |
 | `audio/comb_filters.pyx` | `feed_forward_comb_filter`, `feed_backward_comb_filter`, `comb_filter`, `CombFilterbankProcessor` | PORTED (4c) | -- | numpy port (same playbook as `hmm.pyx`); feeds `TempoEstimationProcessor`'s comb-filter histogram mode; bit-identical, not just ULP-close -- see 4c status below |
-| `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | TO-PORT (4g) | -- | not consumed by any other TO-PORT processor in this audit; standalone preprocessing utility |
+| `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | PORTED (4g) | -- | standalone preprocessing utility, not consumed by any other processor in this project; `slices()`/`masks()` bit-identical to real madmom (in-process and cross-BLAS) -- **real, confirmed upstream bug reproduced bug-for-bug**: `process()` unconditionally raises `AttributeError` (`Spectrogram` input, no `.spec` attribute) or `UnboundLocalError` (any other input) for EVERY call, confirmed against the reference venv |
 | `ml/hmm.py` | `TransitionModel`, `ObservationModel`, `DiscreteObservationModel`, `HiddenMarkovModel`/`HMM` | PORTED | -- | Phase 1 |
 | `ml/crf.py` | `ConditionalRandomField` | PORTED (4d) -- cross-BLAS-proven exact | -- | chord decoding (`CRFChordRecognitionProcessor`, `DeepChromaChordRecognitionProcessor`); added a `.load()` classmethod (not in upstream) delegating to the restricted unpickler, matching `NeuralNetwork.load` |
 | `ml/gmm.py` | `GMM`, `log_multivariate_normal_density`, `logsumexp`, `pinvh` | PORTED (4f) -- cross-BLAS-proven exact | -- | backs `GMMPatternTrackingObservationModel`; forward-inference only, no `fit()` (permanent scope); `GMM.__setstate__`'s legacy rename branch is load-bearing -- both target `PATTERNS_BALLROOM` files are old-format pickles |
@@ -970,6 +1079,78 @@ EXCLUDE (why).
 | **`bin/*`** | (CLI scripts, installed as `console_scripts`-style `scripts=` entries by upstream `setup.py`) | EXCLUDE | -- | this package is a library, processors are the API (Permanent exclusions) |
 | **`io/*`, `utils/*`** | `io.audio`, `io.midi`, `utils.midi`, `utils.stats` | EXCLUDE (out of this audit's stated scope: `features/`, `audio/`, `ml/` only) | -- | I/O/annotation-file helpers, not inference algorithms; flagged here rather than silently dropped, revisit only if a TO-PORT processor is found to need one (none currently do) |
 | `utils/__init__.py` | `segment_axis`, `combine_events` | PORTED (4b, narrow carve-out -- `madmom_infer/utils.py`, NOT a general `utils/*` port) | -- | correction to the row above: 4b found two real, non-speculative dependencies -- `StrideLayer` (`ml/nn/layers.py`) calls `segment_axis` (this port implements only its `axis=0`/`end='cut'` case, the only one `StrideLayer` ever uses, NOT upstream's full generality), `OnsetPeakPickingProcessor` (`features/onsets.py`) calls `combine_events` (ported in full, all 3 `combine` modes, cheap) |
+
+### 4g closure verdict (2026-07-13)
+
+**COMPLETE: every inference-relevant public class/function in upstream
+`features/`, `audio/`, and `ml/` is ported or documented-excluded.** Walked
+the audit table above top to bottom, row by row: zero rows read TO-PORT or
+TO-VERIFY; every row reads either PORTED (with the wave that ported it) or
+EXCLUDE (with a one-line reason). This is the closing statement for the
+whole Phase 4 complete-port campaign (waves 4.0, 4a-4g), not just this
+wave's own targets.
+
+**Cross-checked against reality, not just against this file's own prose**:
+a sample-the-whole-surface introspection script imported all 26 modules the
+table's PORTED rows point at (`madmom_infer.audio.{signal,filters,stft,
+spectrogram,cepstrogram,chroma,comb_filters,hpss}`, `madmom_infer.ml.{hmm,
+crf,gmm,nn,nn.layers,nn.activations}`, `madmom_infer.features.{beats_hmm,
+downbeats,beats,beats_crf,tempo,onsets,key,chords,notes_hmm,notes}`,
+`madmom_infer.processors`, `madmom_infer.utils`) and verified every single
+named class/function in this table's PORTED rows actually exists as an
+attribute of its stated module and is importable -- zero failures, run
+2026-07-13 against this wave's own dev venv.
+
+**Permanent EXCLUDE list, final (one-line reasons, cross-checked this
+wave)**:
+- `evaluation/*` (entire subpackage) -- out of this project's stated scope
+  from day one (see the top of this file); not an inference algorithm.
+- `bin/*` (CLI scripts) -- this package is a library, processors are the
+  API; re-confirmed this wave that no audit-table PORTED row secretly
+  depends on any `bin/*` code.
+- `io/*`, most of `utils/*` -- I/O/annotation-file helpers, not inference
+  algorithms; the two real, load-bearing exceptions (`utils.segment_axis`/
+  `utils.combine_events`, narrow carve-outs, wave 4b) are already PORTED,
+  not excluded (see the row above).
+- `OnlineProcessor`/streaming machinery (`Stream`, `FramedSignalProcessor`'s
+  `'stream'`-origin PyAudio integration, `OnsetPeakPickingProcessor`'s/
+  `DBNBeatTrackingProcessor`'s/`DBNTempoHistogramProcessor`'s online modes)
+  -- documented as a permanent exclusion since Phase 1/2
+  (`madmom_infer/audio/signal.py`'s module header) and re-confirmed
+  consistently at every wave that touched an `OnlineProcessor` subclass
+  (4b's `OnsetPeakPickingProcessor`, 4c's `DBNBeatTrackingProcessor`/
+  `DBNTempoHistogramProcessor`) -- this project ships the offline-batch
+  decode path only, never the live/streaming one.
+- `TCNBlock`/`TCNLayer`/`TCNBeatProcessor`/`TCNTempoHistogramProcessor`/
+  `MultiTaskLayer`/`ParallelLayer`/`SequentialLayer` -- **re-confirmed this
+  wave, not merely re-asserted**: `BEATS_TCN`'s `.pkl` files are absent
+  from `../madmom-upstream`'s `setup.py` `package_data` (only `models/
+  beats/201[56]/*`, i.e. the 2015 BLSTM + 2016 LSTM families, are actually
+  installed by a real madmom package) -- no shipped model can ever reach
+  TCN code, so it stays permanently unreachable, not merely low-priority.
+- `rfft_builder` (`audio/stft.py`) -- `pyfftw` acceleration hook, not a
+  project dependency.
+- `LoadBeatsProcessor` (`features/downbeats.py`) -- file/STDIN batch-loading
+  plumbing for `bin/` CLI scripts, not an inference algorithm (same
+  category as the `bin/*` exclusion, just defined in a features/ module).
+- `Stream`, `LoadAudioFileError`, `load_audio_file`, `load_wave_file`
+  (public), `write_wave_file` (`audio/signal.py`) -- resolved this wave
+  (see the row above): `Stream` falls under the online-streaming exclusion
+  above; the other four are themselves nothing but upstream's own
+  deprecated-since-0.16 shims delegating to the already-excluded `io.audio`
+  module (confirmed by reading `signal.py:442-493` directly).
+
+**What was NOT re-verified this wave** (stated plainly, not buried): the
+introspection check above confirms importability and attribute existence,
+not per-class behavioral correctness -- that's what each wave's own
+golden-fixture tests already established at the time it shipped (see each
+wave's status entry above for its own faithfulness proof), and this
+closure audit did not re-run every prior wave's cross-BLAS test individually
+by hand (the full-suite run below covers that mechanically). No new
+upstream source-reading was done this wave for modules outside 4g's own 4
+targets -- the closure claim rests on the audit table's accumulated,
+wave-by-wave, cited findings, not a fresh re-read of the entire upstream
+tree.
 
 ## File-top header convention
 

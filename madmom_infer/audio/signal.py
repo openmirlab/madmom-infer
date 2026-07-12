@@ -56,6 +56,31 @@ convolution smoothing) -- needed by `features/onsets.py`'s `peak_picking`,
 which imports it as `smooth_signal`. Not a Phase-1 module, but lives here
 because it's `madmom.audio.signal.smooth` upstream.
 
+**Wave 4g: resolves the 4b TO-VERIFY audit-table flag.** 4b found `smooth`
+missing and downgraded the whole rest of this row (`attenuate`, `rescale`,
+`root_mean_square`, `sound_pressure_level`, `energy`, `trim`, plus
+`Stream`/`LoadAudioFileError`/`load_wave_file`/`write_wave_file`) to
+TO-VERIFY rather than trusting the Phase-1 audit's overstated PORTED claim.
+Re-auditing that full list against `../madmom-upstream/madmom/audio/
+signal.py`'s actual public surface (`grep -n '^def \|^class '`) found: six
+real, pure-numpy functions genuinely missing and now added above
+(`attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`,
+`sound_pressure_level` -- verbatim ports, no numpy-2.x-vs-1.23.5 dtype traps
+found in any of them, confirmed by this wave's own fixtures). The rest of
+that list is a DELIBERATE non-port, not a gap: `Stream` is madmom's
+online/live-audio (PyAudio) class, already covered by this project's stated
+permanent online-processing exclusion (see this file's "Deliberately NOT
+ported" paragraph above); `LoadAudioFileError`/`load_wave_file`/
+`write_wave_file`/`load_audio_file` in upstream `audio/signal.py` are
+themselves nothing but deprecated-since-0.16 shims that immediately
+`warnings.warn()` and delegate to `madmom.io.audio.*` (confirmed by reading
+`signal.py:442-493` directly) -- `io/*` is this project's own separate,
+already-documented permanent EXCLUDE (see `CLAUDE.md`'s audit table), so
+porting these four would mean porting `io.audio` under a different name.
+None of these 4 are referenced by grepping any `../madmom-upstream/madmom/
+{audio,features,ml}/*` file this project ports from -- confirmed, not
+assumed.
+
 Reads: numpy, scipy.io.wavfile, scipy.signal (smooth's 2D path),
 madmom_infer.processors.Processor; read by: madmom_infer/audio/stft.py
 (via `FramedSignal.signal.dtype` for the int16 window-scaling convention),
@@ -159,6 +184,21 @@ def adjust_gain(signal, gain):
             "positive gain adjustments are only supported for float dtypes."
         )
     return np.asarray(signal * gain, dtype=signal.dtype)
+
+
+def attenuate(signal, attenuation):
+    """Attenuate `signal` [dB].
+
+    Verbatim port of `madmom.audio.signal.attenuate` (`signal.py:106-131`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header). Just `adjust_gain(signal,
+    -attenuation)`, short-circuited to a no-op for `attenuation == 0` (not
+    merely an optimization -- matches upstream exactly, including that a
+    zero-attenuation call skips `adjust_gain`'s dtype/sign checks entirely).
+    """
+    if attenuation == 0:
+        return signal
+    return adjust_gain(signal, -attenuation)
 
 
 def smooth(signal, kernel):
@@ -287,6 +327,115 @@ def resample(signal, sample_rate, **kwargs):
     if num_channels and num_channels > 1:
         out = out.reshape((-1, num_channels))
     return Signal(out, sample_rate=sample_rate)
+
+
+def rescale(signal, dtype=np.float32):
+    """Rescale `signal` to range [-1, 1] and return as a float dtype.
+
+    Verbatim port of `madmom.audio.signal.rescale` (`signal.py:266-292`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header).
+    """
+    if not np.issubdtype(dtype, np.floating):
+        raise ValueError(
+            "only float dtypes are supported, not %s." % dtype
+        )
+    # `np.asarray(...)` rather than a bare `.astype()` call -- unlike
+    # upstream's ndarray-subclass `Signal` (where `.astype` comes free),
+    # this project's composition `Signal` (audio/signal.py's own class) has
+    # no `.astype` method of its own; `np.asarray` works uniformly for both
+    # a `Signal` (via `__array__`) and a plain ndarray.
+    if np.issubdtype(signal.dtype, np.floating):
+        return np.asarray(signal).astype(dtype)
+    elif np.issubdtype(signal.dtype, np.integer):
+        return np.asarray(signal).astype(dtype) / np.iinfo(signal.dtype).max
+    else:
+        raise ValueError("unsupported signal dtype: %s." % signal.dtype)
+
+
+def trim(signal, where="fb"):
+    """Trim leading and/or trailing all-zero rows of `signal`.
+
+    Verbatim port of `madmom.audio.signal.trim` (`signal.py:295-329`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header). `where` is a string with
+    `'f'` to trim from the front and/or `'b'` to trim from the back
+    (default `'fb'`, both). Works on 1D or 2D (per-frame) input alike, since
+    it sums each element/row via `np.sum` before comparing to zero.
+    """
+    first = 0
+    where = where.upper()
+    if "F" in where:
+        for i in signal:
+            if np.sum(i) != 0.0:
+                break
+            else:
+                first += 1
+    last = len(signal)
+    if "B" in where:
+        for i in signal[::-1]:
+            if np.sum(i) != 0.0:
+                break
+            else:
+                last -= 1
+    return signal[first:last]
+
+
+def energy(signal):
+    """Compute the energy of a (framed) signal.
+
+    Verbatim port of `madmom.audio.signal.energy` (`signal.py:332-365`) --
+    Wave 4g addition, resolving part of the Phase-1-audit-table TO-VERIFY
+    flag 4b left open (see this module's header). If `signal` is a
+    `FramedSignal`, the energy is computed for each frame individually
+    (recursing on each frame, matching upstream exactly).
+    """
+    if isinstance(signal, FramedSignal):
+        return np.array([energy(frame) for frame in signal])
+    if not isinstance(signal, np.ndarray):
+        raise TypeError("Invalid type for signal, must be a numpy array.")
+    if np.iscomplex(signal).any():
+        signal = np.abs(signal)
+    if signal.dtype != float:
+        signal = signal.astype(float)
+    return np.dot(signal.flatten(), signal.flatten())
+
+
+def root_mean_square(signal):
+    """Compute the root mean square of a (framed) signal (a power measure).
+
+    Verbatim port of `madmom.audio.signal.root_mean_square`
+    (`signal.py:368-392`) -- Wave 4g addition, resolving part of the
+    Phase-1-audit-table TO-VERIFY flag 4b left open (see this module's
+    header). If `signal` is a `FramedSignal`, computed per-frame.
+    """
+    if isinstance(signal, FramedSignal):
+        return np.array([root_mean_square(frame) for frame in signal])
+    return np.sqrt(energy(signal) / signal.size)
+
+
+def sound_pressure_level(signal, p_ref=None):
+    """Compute the sound pressure level of a (framed) signal [dB].
+
+    Verbatim port of `madmom.audio.signal.sound_pressure_level`
+    (`signal.py:395-438`) -- Wave 4g addition, resolving part of the
+    Phase-1-audit-table TO-VERIFY flag 4b left open (see this module's
+    header). If `p_ref` is `None`, defaults to the dtype's max integer
+    value (integer dtypes) or `1.0` (float dtypes). If `signal` is a
+    `FramedSignal`, computed per-frame. `-inf` (from `log10(0)`, a silent
+    zero-signal edge case) is replaced with the smallest finite float,
+    matching `np.nan_to_num`'s default behavior exactly.
+    """
+    if isinstance(signal, FramedSignal):
+        return np.array([sound_pressure_level(frame) for frame in signal])
+    rms = root_mean_square(signal)
+    if p_ref is None:
+        if np.issubdtype(signal.dtype, np.integer):
+            p_ref = float(np.iinfo(signal.dtype).max)
+        else:
+            p_ref = 1.0
+    with np.errstate(divide="ignore"):
+        return np.nan_to_num(20.0 * np.log10(rms / p_ref))
 
 
 def _load_wave_file(filename, sample_rate=None, num_channels=None,

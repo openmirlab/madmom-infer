@@ -19,7 +19,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from madmom_infer.audio.filters import LogarithmicFilterbank, log_frequencies
+from madmom_infer.audio.filters import (
+    HarmonicFilterbank, LogarithmicFilterbank, log_frequencies,
+)
 from madmom_infer.audio.signal import FramedSignalProcessor, Signal
 from madmom_infer.audio.spectrogram import FilteredSpectrogramProcessor
 from madmom_infer.audio.stft import ShortTimeFourierTransformProcessor
@@ -161,3 +163,11 @@ def test_log_frequencies_semitone_spacing_is_midi_like():
     freqs = log_frequencies(12, 55, 3520, fref=440.0)
     assert np.any(np.isclose(freqs, 440.0))
     assert np.any(np.isclose(freqs, 880.0))
+
+
+def test_harmonic_filterbank_raises_not_implemented():
+    # Wave 4g: verbatim port of upstream's own unconditional raise --
+    # HarmonicFilterbank is not actually implemented in real madmom either,
+    # see that class's docstring.
+    with pytest.raises(NotImplementedError):
+        HarmonicFilterbank()

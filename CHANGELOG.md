@@ -7,6 +7,114 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-13
+
+**Phase 4 complete-port campaign (`feat/complete-port` branch) -- DONE.**
+Waves 4.0 and 4a-4g together port every remaining inference-relevant
+class/function madmom's own `features/`, `audio/`, and `ml/` packages
+expose (beyond the numpy DSP pipeline, forward-pass-only NN runtime, and
+`RNNDownBeatProcessor` end-to-end path Phases 1-2 already shipped):
+key detection, onset detection (spectral-flux family + RNN/CNN), beat
+tracking (RNN/DBN/CRF/tempo-driven + multi-model selection), tempo
+estimation (ACF/comb/DBN histograms), downbeat/bar tracking (GRU ensemble
++ CLP-chroma-synced features + rhythmic pattern tracking via GMMs), chroma
+(DNN, classic PCP/HPCP, and CLP) + chord recognition (CRF-decoded, both
+DeepChroma and CNN-feature paths), piano note transcription (RNN/CNN +
+ADSR-HMM decoding), and this wave's own leftovers (MFCC/cepstrogram, HPSS,
+comb-filter-adjacent `audio/signal.py` utility functions). See
+`CLAUDE.md`'s "4g closure verdict" for the exhaustive, row-by-row audit
+proving every upstream `features/`/`audio/`/`ml/` public class is either
+ported or documented-excluded (permanent exclusions: `evaluation/*`,
+`bin/*`, `io/*`/most of `utils/*`, `OnlineProcessor`-based live-streaming,
+TCN layers/models -- none shipped by a real madmom install). Every wave was
+gated on golden fixtures proving bit-identical or documented-tolerance
+agreement with real (compiled) madmom, plus the full test suite green,
+before its own commit -- see each wave's entry below (newest first) for
+the individual faithfulness proofs, real upstream bugs found and
+faithfully reproduced (not silently "fixed"), and real numpy-2.x-vs-1.23.5
+compatibility fixes made along the way.
+
+**Wave 4g of the complete-port campaign: leftovers + closure.** Ports the
+final 4 targets the 4.0 audit table's own TO-PORT rows and the 4b
+TO-VERIFY flag left open, then closes out the whole campaign: `audio/
+cepstrogram.py` (`Cepstrogram`/`MFCC`, reusing wave 4b's already-ported
+`MelFilterbank`), `audio/hpss.py` (`HarmonicPercussiveSourceSeparation`),
+`audio/filters.py`'s `HarmonicFilterbank` (verbatim port of upstream's own
+unconditional `raise NotImplementedError`, same not-actually-implemented
+shape as wave 4d's `SimpleChromaFilterbank`), and the 6 real functions
+(`attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`,
+`sound_pressure_level`) the wave-4b audit-table TO-VERIFY flag left
+unresolved in `audio/signal.py` (the rest of that flagged list -- `Stream`,
+`LoadAudioFileError`, `load_wave_file`, `write_wave_file`, `load_audio_file`
+-- turned out to be upstream's own deprecated shims delegating to the
+already-permanently-excluded `io.audio` module, or the already-excluded
+online-streaming `Stream` class, not gaps this port needs to close).
+
+**Major, real, confirmed upstream bug found and reproduced bug-for-bug, not
+fixed**: `MFCC` can only be constructed from an ALREADY-`FilteredSpectrogram`
+instance in real madmom 0.17.dev0 -- every other input (a plain
+`Spectrogram`, a `LogarithmicSpectrogram`, or a raw wav path/array, which
+builds a plain `Spectrogram` internally) unconditionally raises
+`AttributeError: 'Spectrogram' object has no attribute 'filterbank'`,
+confirmed directly against the reference venv. `HarmonicPercussiveSource
+Separation.process()` is similarly unconditionally broken for every input
+(`AttributeError` for a `Spectrogram` input accessing a nonexistent `.spec`
+attribute; `UnboundLocalError` for anything else, `spectrogram` referenced
+before assignment) -- both confirmed empirically, both pinned by
+`pytest.raises` tests rather than "fixed" into working code upstream itself
+never shipped working. `Cepstrogram` (no such check), `HPSS.slices()`/
+`.masks()`, and all 6 new `audio/signal.py` functions ARE fully usable and
+bit-identical to real madmom.
+
+### Added
+- `madmom_infer/audio/cepstrogram.py` (new module): `Cepstrogram`,
+  `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` -- composition classes
+  (not `np.ndarray` subclasses), reusing wave 4b's `MelFilterbank`.
+  Bit-identical to real madmom cross-BLAS (`np.array_equal`); in-process
+  (differing-numpy/scipy-build) `MFCC` drift measured up to ~3.8e-6
+  absolute (asserted at `atol=1e-5`, ~2.6x observed -- an unstable-near-zero
+  ULP metric doesn't apply here, same documented-absolute-tolerance
+  precedent as wave 4d's `SemitoneBandpassSpectrogram` and wave 4e's raw
+  RNN activations); `Cepstrogram` is bit-identical even in-process (no
+  BLAS/build sensitivity at all -- pure `scipy.fftpack.dct`).
+  `MFCCProcessor.process()` verbatim-reproduces an upstream oversight: it
+  never forwards its own stored `self.transform` to the `MFCC(...)` call it
+  makes, so a custom `transform=` argument is inert (ported as-is).
+- `madmom_infer/audio/hpss.py` (new module):
+  `HarmonicPercussiveSourceSeparation` (alias `HPSS`). `slices()`/`masks()`
+  are bit-identical to real madmom, both in-process and cross-BLAS (pure
+  `scipy.ndimage.median_filter` + elementwise mask arithmetic, no BLAS).
+  `process()` is a faithful bug-for-bug port of a real, unconditional
+  upstream crash (see above).
+- `madmom_infer/audio/filters.py`: `HarmonicFilterbank` -- verbatim port of
+  upstream's own unconditional `raise NotImplementedError`, confirmed by
+  reading `filters.py:1369-1379` directly (no filterbank-construction code
+  follows the raise at all, unlike `SimpleChromaFilterbank`'s at-least-dead
+  TODO-commented code).
+- `madmom_infer/audio/signal.py`: `attenuate`, `rescale`, `trim`, `energy`,
+  `root_mean_square`, `sound_pressure_level` -- verbatim ports, all 6
+  bit-identical to real madmom (pure numpy, no BLAS), resolving the wave-4b
+  audit-table TO-VERIFY flag. Also fixed a real bug in this wave's own
+  first draft of `rescale()`: a bare `signal.astype(dtype)` call assumed
+  ndarray semantics that this project's own composition `Signal` class
+  doesn't have (`Signal` has no `.astype` method) -- fixed with
+  `np.asarray(signal).astype(dtype)`, which works uniformly for both a
+  `Signal` and a plain ndarray.
+- `tools/generate_leftovers_fixtures.py` (new script): output-only golden
+  fixtures for all of the above, reusing this project's own already-golden-
+  fixture-proven Phase-1 DSP chain to reconstruct inputs (same economy as
+  `tools/generate_onset_fixtures.py`) -- `tests/fixtures/cepstrogram.npz`,
+  `tests/fixtures/hpss.npz`, `tests/fixtures/signal_leftovers.npz`.
+- 38 new tests total (`tests/test_cepstrogram.py`: 12;
+  `tests/test_hpss.py`: 9; `tests/test_signal_leftovers.py`: 13;
+  `tests/test_filters.py`: +1; `tests/test_fixtures_exist.py`: +3 -- all
+  fully offline, including the 3 cross-BLAS tests, which shell out to the
+  reference venv but need no network). Full offline suite: 302 passed, 2
+  skipped, 53 deselected (was 264/2/53 after 4f); network suite unchanged
+  at 53 passed, 1 skipped (no new network-marked tests this wave -- none of
+  4g's targets need model downloads), 303 deselected (was 265 after 4f,
+  grown by the same 38 new offline tests).
+
 **Wave 4f of the complete-port campaign (`feat/complete-port` branch): CRF
 beat detection + rhythmic pattern tracking.** Adds a numpy port of madmom's
 Cython CRF beat-tracking Viterbi decoder (`features/beats_crf.py`,
