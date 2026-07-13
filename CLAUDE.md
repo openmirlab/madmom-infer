@@ -1,5 +1,33 @@
 # madmom-infer -- CLAUDE.md
 
+<!-- shape:dev-workflow start -->
+## Dev workflow
+
+This project is driven by the **shape / nav** skill workflow. The
+planning board lives in `docs/blueprints/`.
+
+| You want to... | Verb |
+|---|---|
+| Decide what to work on next / refresh the board | `/shape:align` -> `docs/blueprints/plan.md` |
+| Scope a feature against the actual code | `/nav:plan` -> `docs/blueprints/plans/` |
+| Implement a small decided change | `/nav:do` |
+| Drive the in-progress board to done | `/shape:build` |
+| Behaviour-preserving structural move | `/nav:refactor` |
+| Re-sync file-top headers after restructuring | `/nav:sync` |
+| Regenerate / render the repo map | `/nav:map` -> `docs/codebase-map/index.html` |
+| Audit architecture | `/nav:audit` |
+
+**Standing pointers:** plan board = `docs/blueprints/plan.md` (no
+`overview.html` -- solo repo, deviation recorded in the plan's own
+header) · durable why = `docs/blueprints/decisions.md` · grounded plans =
+`docs/blueprints/plans/` · pre-implementation architecture plan (mostly
+historical) = `docs/DESIGN.md`.
+
+**Communication:** converse with the user in Traditional Chinese
+(Taiwanese phrasing), plain and direct; keep code, identifiers, and
+commit messages in English.
+<!-- shape:dev-workflow end -->
+
 ## Scope and status
 
 madmom-infer is a from-scratch reimplementation of CPJKU/madmom's
@@ -1179,7 +1207,7 @@ grasp any file from its first ~12 lines without reading the whole thing.
 
 **When a wave finds a confirmed upstream bug**, the default is
 bug-for-bug reproduction (pinned by a test expecting the same failure),
-never a silent fix -- see `docs/DECISIONS.md`'s 2026-07-13 entry for the
+never a silent fix -- see `docs/blueprints/decisions.md`'s entry for the
 full rationale and the three cases found so far (`correlation_diff`,
 `MFCC`, `HPSS.process`). Read that entry before "fixing" anything a wave
 already ported as broken-on-purpose.
