@@ -244,10 +244,13 @@ to refer to a specific chunk of already-shipped work:
       `peak_picking`, `OnsetPeakPickingProcessor` (offline-only, plain
       `Processor`, `OnlineProcessor`'s streaming machinery dropped per this
       project's stated permanent exclusion). Found and faithfully
-      reproduced two more real upstream quirks: `correlation_diff` crashes
+      reproduced two more real upstream quirks: `correlation_diff` crashed
       under Python 3 in REAL madmom too (`len(c) / 2` used as a slice index
       -- confirmed by running real madmom's own function against the
-      reference venv, not merely inspecting source), and
+      reference venv, not merely inspecting source; **fixed in place
+      2026-07-13** once this project's bug-for-bug-fidelity policy was
+      reversed, see `docs/blueprints/decisions.md`'s "Fix inherited defects
+      after migration" and the 4g audit-table row below), and
       `SpectralOnsetProcessor.__init__` only appends `onset_method` to its
       processor chain when it had to look it up from a string -- an
       already-callable `onset_method` argument is silently NOT added to
@@ -901,27 +904,36 @@ to refer to a specific chunk of already-shipped work:
       `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` -- composition classes
       (not `np.ndarray` subclasses, matching this project's convention),
       reusing 4b's already-ported `MelFilterbank` (the reason that pull-
-      forward existed). **Major, real, confirmed upstream bug found and
-      reproduced bug-for-bug, not fixed**: `MFCC.__new__`'s "was this
-      spectrogram already filtered?" check unconditionally raises
-      `AttributeError` for a PLAIN `Spectrogram` (or a raw wav path/array,
-      which builds one internally) -- confirmed directly against the
-      reference venv: the base `Spectrogram` class never defines a
-      `.filterbank` attribute at all, so `MFCC(plain_spectrogram)`/
-      `MFCC(wav_path)` always crash. The ONLY input that works is an
-      ALREADY-`FilteredSpectrogram` instance, whose real `.filterbank`
-      attribute trips the "redo calculation" warn-and-recompute branch
-      (which discards that filter and rebuilds from `.stft` -- no further
-      attribute checks after that point). This project's own
-      `Spectrogram`/`FilteredSpectrogram`/`LogarithmicSpectrogram`
-      (`audio/spectrogram.py`) already have the exact matching attribute
-      shape, so the check is written as a plain (undefended) attribute
-      access, not a defensive `getattr(..., None)`, letting the identical
-      `AttributeError` propagate -- pinned by `pytest.raises`, not silently
-      "fixed" into something upstream itself never shipped working. Also
-      verbatim-reproduced: `MFCCProcessor.process()` never forwards its own
-      stored `self.transform` to the `MFCC(...)` call it makes (a custom
-      `transform=` is inert, matching upstream's own apparent oversight).
+      forward existed). **Major, real, confirmed upstream bug found**:
+      `MFCC.__new__`'s "was this spectrogram already filtered?" check
+      unconditionally raises `AttributeError` for a PLAIN `Spectrogram` (or
+      a raw wav path/array, which builds one internally) -- confirmed
+      directly against the reference venv: the base `Spectrogram` class
+      never defines a `.filterbank` attribute at all, so
+      `MFCC(plain_spectrogram)`/`MFCC(wav_path)` always crashed in real
+      madmom. The ONLY input that worked was an ALREADY-`FilteredSpectrogram`
+      instance, whose real `.filterbank` attribute trips the "redo
+      calculation" warn-and-recompute branch (which discards that filter
+      and rebuilds from `.stft` -- no further attribute checks after that
+      point). This wave (4g, 2026-07-13) initially reproduced the bug
+      bug-for-bug -- a plain (undefended) attribute access letting the
+      identical `AttributeError` propagate, pinned by `pytest.raises` --
+      per this project's then-current bug-for-bug-fidelity policy; also
+      verbatim-reproduced at the time: `MFCCProcessor.process()` never
+      forwarded its own stored `self.transform` to the `MFCC(...)` call it
+      makes (a custom `transform=` was inert, matching upstream's own
+      apparent oversight). **Superseded, same day (2026-07-13)**: the
+      bug-for-bug-fidelity policy was reversed (see
+      `docs/blueprints/decisions.md`'s "Fix inherited defects after
+      migration") and both defects were fixed in place instead --
+      `MFCC` now inspects filtering/scaling attributes defensively
+      (`getattr(..., None)`), so raw audio, a plain `Spectrogram`, and an
+      already-filtered `Spectrogram` all follow the documented Mel -> log
+      -> DCT path correctly (the warn-and-recompute behavior for genuinely
+      already-filtered input is unchanged); `MFCCProcessor.process()` now
+      forwards its stored `self.transform`. Tests assert correct MFCC
+      output and transform forwarding, replacing the old `pytest.raises`
+      expectations.
       **Faithfulness proof**: `Cepstrogram` is bit-identical to real madmom
       both in-process and cross-BLAS (`np.array_equal`, pure `scipy.
       fftpack.dct`, no BLAS/build sensitivity at all); `MFCC` is
@@ -936,19 +948,27 @@ to refer to a specific chunk of already-shipped work:
       instead.
     - New `madmom_infer/audio/hpss.py`:
       `HarmonicPercussiveSourceSeparation` (alias `HPSS`). **Real, confirmed
-      upstream bug, reproduced faithfully**: `process()` is unconditionally
-      broken for EVERY input in real madmom 0.17.dev0 -- confirmed directly
-      against the reference venv: a `Spectrogram` input raises
-      `AttributeError` (`Spectrogram` has no `.spec` attribute, despite
-      `process()`'s own code reading `data.spec`); any other input raises
-      `UnboundLocalError` (`spectrogram` referenced before assignment,
-      since it's only assigned inside the `if isinstance(data, Spectrogram)`
-      branch). Both reproduced exactly, pinned by `pytest.raises`, not
-      "fixed" by guessing the presumably-intended `data.data`/
-      `np.asarray(data)`. `slices()`/`masks()` (the two actually-working
-      helper methods) are bit-identical to real madmom, both in-process and
-      cross-BLAS (pure `scipy.ndimage.median_filter` + elementwise mask
-      arithmetic, no BLAS at all).
+      upstream bug found**: `process()` is unconditionally broken for EVERY
+      input in real madmom 0.17.dev0 -- confirmed directly against the
+      reference venv: a `Spectrogram` input raises `AttributeError`
+      (`Spectrogram` has no `.spec` attribute, despite `process()`'s own
+      code reading `data.spec`); any other input raises `UnboundLocalError`
+      (`spectrogram` referenced before assignment, since it's only assigned
+      inside the `if isinstance(data, Spectrogram)` branch). This wave (4g,
+      2026-07-13) initially reproduced both failures exactly, pinned by
+      `pytest.raises`, per this project's then-current bug-for-bug-fidelity
+      policy. **Superseded, same day (2026-07-13)**: the policy was
+      reversed (see `docs/blueprints/decisions.md`'s "Fix inherited defects
+      after migration") and `process()` was fixed in place instead -- it now
+      normalizes any 2-D spectrogram-like input via `np.asarray`, composes
+      the already-correct `slices()`/`masks()` helpers, and raises a clear
+      `ValueError` for non-2-D input, satisfying the `Processor` contract
+      for every valid call instead of failing for all of them. Tests assert
+      correct harmonic/percussive output, replacing the old `pytest.raises`
+      expectations. `slices()`/`masks()` (the two helper methods, never
+      themselves broken) remain bit-identical to real madmom, both
+      in-process and cross-BLAS (pure `scipy.ndimage.median_filter` +
+      elementwise mask arithmetic, no BLAS at all).
     - `madmom_infer/audio/filters.py`: `HarmonicFilterbank` -- verbatim port
       of upstream's own unconditional `raise NotImplementedError`, confirmed
       by reading `filters.py:1369-1379` directly (no filterbank-construction
@@ -1061,12 +1081,12 @@ EXCLUDE (why).
 | `audio/spectrogram.py` | `SuperFluxProcessor` | PORTED (4b) | -- | onset family |
 | `audio/spectrogram.py` | `MultiBandSpectrogram`, `MultiBandSpectrogramProcessor` | PORTED (4f) -- cross-BLAS-proven exact (as part of `PatternTrackingProcessor`'s own end-to-end test) | -- | `PatternTrackingProcessor` input |
 | `audio/spectrogram.py` | `SemitoneBandpassSpectrogram` | PORTED (4d) -- own composition class, NOT a `FilteredSpectrogram` subclass; measured NOT bit-identical to real madmom across differing scipy versions (up to ~1e-5 absolute, `scipy.signal.filtfilt`/`ellip` version sensitivity, see 4d status) | -- | `CLPChromaProcessor` input; needs `audio/signal.py`'s new ffmpeg-subprocess `resample()` |
-| `audio/cepstrogram.py` | `Cepstrogram`, `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` | PORTED (4g) | -- | `Cepstrogram` bit-identical to real madmom (in-process and cross-BLAS); `MFCC` bit-identical cross-BLAS, `atol=1e-5`-documented in-process drift (see 4g status) -- **real, confirmed upstream bug reproduced bug-for-bug**: `MFCC` can only be constructed from an already-`FilteredSpectrogram` instance, every other input (including a plain `Spectrogram` or raw wav path) unconditionally raises `AttributeError` in real madmom too, confirmed against the reference venv |
+| `audio/cepstrogram.py` | `Cepstrogram`, `CepstrogramProcessor`, `MFCC`, `MFCCProcessor` | PORTED (4g) | -- | `Cepstrogram` bit-identical to real madmom (in-process and cross-BLAS); `MFCC` bit-identical cross-BLAS, `atol=1e-5`-documented in-process drift (see 4g status) -- **fixed in place 2026-07-13** (previously reproduced a confirmed upstream bug bug-for-bug: real madmom's `MFCC` could only be constructed from an already-`FilteredSpectrogram` instance, every other input unconditionally raising `AttributeError`; see `docs/blueprints/decisions.md`'s "Fix inherited defects after migration"): `MFCC` now inspects filtering/scaling attributes defensively so raw audio, a plain `Spectrogram`, and an already-filtered `Spectrogram` all follow the Mel -> log -> DCT path correctly, and `MFCCProcessor` now forwards its stored `transform` |
 | `audio/chroma.py` | `DeepChromaProcessor` | PORTED (4d) -- cross-BLAS-proven exact | `CHROMA_DNN` = `chroma/2016/chroma_dnn.pkl` | pickle refs confirmed: `NeuralNetwork`, `FeedForwardLayer`, `relu`/`sigmoid` -- no new layer classes needed beyond 4a's set |
 | `audio/chroma.py` | `CLPChroma`, `CLPChromaProcessor` | PORTED (4d) -- see `SemitoneBandpassSpectrogram` row re: measured (not bit-identical) cross-scipy-version precision | -- | pure DSP, no NN weights; needs `SemitoneBandpassSpectrogram` |
 | `audio/chroma.py` | `PitchClassProfile`, `HarmonicPitchClassProfile` | PORTED (4d, scope addition) | -- | classic chroma, not DNN-based; composition subclasses of `Spectrogram`, not upstream's ndarray-view hierarchy |
 | `audio/comb_filters.pyx` | `feed_forward_comb_filter`, `feed_backward_comb_filter`, `comb_filter`, `CombFilterbankProcessor` | PORTED (4c) | -- | numpy port (same playbook as `hmm.pyx`); feeds `TempoEstimationProcessor`'s comb-filter histogram mode; bit-identical, not just ULP-close -- see 4c status below |
-| `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | PORTED (4g) | -- | standalone preprocessing utility, not consumed by any other processor in this project; `slices()`/`masks()` bit-identical to real madmom (in-process and cross-BLAS) -- **real, confirmed upstream bug reproduced bug-for-bug**: `process()` unconditionally raises `AttributeError` (`Spectrogram` input, no `.spec` attribute) or `UnboundLocalError` (any other input) for EVERY call, confirmed against the reference venv |
+| `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | PORTED (4g) | -- | standalone preprocessing utility, not consumed by any other processor in this project; `slices()`/`masks()` bit-identical to real madmom (in-process and cross-BLAS) -- **fixed in place 2026-07-13** (previously reproduced a confirmed upstream bug bug-for-bug: real madmom's `process()` unconditionally raised `AttributeError` or `UnboundLocalError` for EVERY call; see `docs/blueprints/decisions.md`'s "Fix inherited defects after migration"): `process()` now normalizes any 2-D spectrogram-like input via `np.asarray`, composes `slices()`/`masks()`, and raises a clear `ValueError` for non-2-D input, satisfying the `Processor` contract for every valid call |
 | `ml/hmm.py` | `TransitionModel`, `ObservationModel`, `DiscreteObservationModel`, `HiddenMarkovModel`/`HMM` | PORTED | -- | Phase 1 |
 | `ml/crf.py` | `ConditionalRandomField` | PORTED (4d) -- cross-BLAS-proven exact | -- | chord decoding (`CRFChordRecognitionProcessor`, `DeepChromaChordRecognitionProcessor`); added a `.load()` classmethod (not in upstream) delegating to the restricted unpickler, matching `NeuralNetwork.load` |
 | `ml/gmm.py` | `GMM`, `log_multivariate_normal_density`, `logsumexp`, `pinvh` | PORTED (4f) -- cross-BLAS-proven exact | -- | backs `GMMPatternTrackingObservationModel`; forward-inference only, no `fit()` (permanent scope); `GMM.__setstate__`'s legacy rename branch is load-bearing -- both target `PATTERNS_BALLROOM` files are old-format pickles |
@@ -1092,7 +1112,7 @@ EXCLUDE (why).
 | `features/beats.py` | `TCNBeatProcessor`, TCN-specific parts of `detect_beats`, `threshold_activations` | EXCLUDE | `BEATS_TCN` (not shipped) | see corrections above; `threshold_activations` itself is already ported (`features/downbeats.py`) and reused, not duplicated; **correction (4c): `detect_beats` itself is NOT TCN-specific**, see row above -- only ever excluded here because no 4c target needed it, not because it's actually TCN-only |
 | `features/tempo.py` | `TempoEstimationProcessor`, `TempoHistogramProcessor`, `ACFTempoHistogramProcessor`, `CombFilterTempoHistogramProcessor`, `DBNTempoHistogramProcessor`, `detect_tempo`, `dominant_interval`, `interval_histogram_acf`, `interval_histogram_comb`, `smooth_histogram` | PORTED (4c) | -- | comb variant needed `audio/comb_filters.py` (this wave); all offline-only (`OnlineProcessor` stays a permanent exclusion, same precedent as `DBNBeatTrackingProcessor`/`OnsetPeakPickingProcessor`) |
 | `features/tempo.py` | `TCNTempoHistogramProcessor` | EXCLUDE | -- | only consumes `TCNBeatProcessor` output, which can't exist (no shipped model) |
-| `features/onsets.py` | `SpectralOnsetProcessor`, `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`, `complex_domain`, `rectified_complex_domain`, `high_frequency_content`, `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`, `normalized_weighted_phase_deviation`, `correlation_diff`, `wrap_to_pi`, `peak_picking`, `OnsetPeakPickingProcessor` | PORTED (4b) | -- | pure DSP, no NN weights; `correlation_diff` is a faithful port of a function real madmom itself crashes on under Python 3 (confirmed empirically against the reference venv) -- ported bug-for-bug, pinned by a `pytest.raises(TypeError)` test, not a golden output; `OnsetPeakPickingProcessor` is offline-only (no `OnlineProcessor`, a stated permanent exclusion) |
+| `features/onsets.py` | `SpectralOnsetProcessor`, `spectral_diff`, `spectral_flux`, `superflux`, `complex_flux`, `complex_domain`, `rectified_complex_domain`, `high_frequency_content`, `modified_kullback_leibler`, `phase_deviation`, `weighted_phase_deviation`, `normalized_weighted_phase_deviation`, `correlation_diff`, `wrap_to_pi`, `peak_picking`, `OnsetPeakPickingProcessor` | PORTED (4b) | -- | pure DSP, no NN weights; `correlation_diff` **fixed in place 2026-07-13** (previously ported bug-for-bug: real madmom itself crashes on this function under Python 3, confirmed empirically against the reference venv, pinned by a `pytest.raises(TypeError)` test rather than a golden output; see `docs/blueprints/decisions.md`'s "Fix inherited defects after migration") -- now uses explicit integer division for the correlation midpoint and is covered by golden-output tests instead; `OnsetPeakPickingProcessor` is offline-only (no `OnlineProcessor`, a stated permanent exclusion) |
 | `features/onsets.py` | `RNNOnsetProcessor` | PORTED (4b) | `ONSETS_RNN`, `ONSETS_BRNN` | pickle refs: `FeedForwardLayer`/`RecurrentLayer`/`BidirectionalLayer` -- all already PORTED (Phase 2), no new layer classes; `online=True` (`ONSETS_RNN`) IS supported (unlike `OnsetPeakPickingProcessor`'s online mode) -- it only selects different pretrained weights/frame sizes, not actual streaming; `ONSETS_BRNN_PP` has no registry entry (only loaded by the excluded `bin/SuperFluxNN` CLI script, no processor this project ports needs it) |
 | `features/onsets.py` | `CNNOnsetProcessor` | PORTED (4b, reuses 4a's conv layers) | `ONSETS_CNN` | pickle refs: `ConvolutionalLayer`,`MaxPoolLayer`,`BatchNormLayer`,`FeedForwardLayer`,`StrideLayer` (all PORTED, `StrideLayer` new in 4b) + `MelFilterbank` input (pulled forward from 4g into 4b, see `audio/filters.py` row) |
 | `features/key.py` | `CNNKeyRecognitionProcessor`, `key_prediction_to_label`, `add_axis` | PORTED (4a) | `KEY_CNN` = `key/2018/key_cnn.pkl` | pickle refs confirmed above; cross-BLAS-proven exact (`tests/test_key.py`) |
@@ -1206,12 +1226,27 @@ grasp any file from its first ~12 lines without reading the whole thing.
 
 ## Golden-fixture testing philosophy (numpy backend is the reference; torch frontend is Phase 3a, shipped)
 
-**When a wave finds a confirmed upstream bug**, the default is
-bug-for-bug reproduction (pinned by a test expecting the same failure),
-never a silent fix -- see `docs/blueprints/decisions.md`'s entry for the
-full rationale and the three cases found so far (`correlation_diff`,
-`MFCC`, `HPSS.process`). Read that entry before "fixing" anything a wave
-already ported as broken-on-purpose.
+**Current policy (in force since 2026-07-13)**: once migration is
+validated and stable, a confirmed inherited defect is judged against this
+project's own public contract, reasonable API usage, and result
+correctness -- not against matching an upstream failure -- and is fixed in
+place rather than preserved forever. See `docs/blueprints/decisions.md`'s
+"Fix inherited defects after migration" for the full rationale and the
+first repair set (`correlation_diff`, `MFCC`, `MFCCProcessor`,
+`HPSS.process()`), all fixed in place 2026-07-13. Preserve migration
+assets users and model files depend on (import paths, public names,
+processor composition, serialized-model compatibility, numerically
+validated inference behavior); don't add a second "clean" namespace beside
+a fixed legacy symbol. Tests for a repaired symbol should assert useful,
+correct behavior, not an inherited exception.
+
+**This supersedes the original policy** (in force 2026-07-12 through
+2026-07-13, while Phase 4 was still landing waves): when a wave found a
+confirmed upstream bug, the default was bug-for-bug reproduction (pinned by
+a test expecting the same failure), never a silent fix. That is what
+produced the four symbols above in their originally-broken shape; it no
+longer applies to new findings -- read the current `decisions.md` entry
+before treating any inherited failure as permanent.
 
 This project follows the same pattern established by the sibling
 all-in-one-infer package's pure-Python NATTEN replacement:
