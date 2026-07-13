@@ -18,13 +18,13 @@ Reads: madmom_infer/__about__.py (version string), madmom_infer/api.py
 
 from madmom_infer.__about__ import __version__
 from madmom_infer.api import (
-    AnalysisResult, Analyzer, analyze, chroma, detect_beats, detect_downbeats,
-    detect_key, detect_onsets, estimate_tempo, hpss, mfcc, recognize_chords,
-    transcribe_notes,
+    AnalysisResult, MadmomAnalyzer, analyze, chroma, detect_beats,
+    detect_downbeats, detect_key, detect_onsets, estimate_tempo, hpss, mfcc,
+    recognize_chords, transcribe_notes,
 )
 
 __all__ = [
-    "__version__", "AnalysisResult", "Analyzer", "analyze", "chroma",
+    "__version__", "AnalysisResult", "MadmomAnalyzer", "analyze", "chroma",
     "detect_beats", "detect_downbeats", "detect_key", "detect_onsets",
     "estimate_tempo", "hpss", "mfcc", "recognize_chords",
     "transcribe_notes",

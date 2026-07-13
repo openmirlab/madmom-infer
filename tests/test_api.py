@@ -8,7 +8,7 @@ import pytest
 from scipy.io import wavfile
 
 import madmom_infer as mm
-from madmom_infer.api import Analyzer, _audio_signal
+from madmom_infer.api import MadmomAnalyzer, _audio_signal
 
 WAV = Path(__file__).parent / "fixtures" / "wavs" / "mono_44100.wav"
 
@@ -54,7 +54,7 @@ def test_reused_analyzer_feeds_cached_processor_a_stable_dtype(monkeypatch):
         seen_dtypes.append(signal.dtype)
         return np.zeros((1, 12), dtype=np.float32)
 
-    analyzer = Analyzer(tasks=("chroma",))
+    analyzer = MadmomAnalyzer(tasks=("chroma",))
     monkeypatch.setattr(analyzer, "_build_processor", lambda task: processor)
     analyzer(WAV, sample_rate=rate)
     analyzer(data[::2], sample_rate=rate // 2)
@@ -68,21 +68,21 @@ def test_reused_analyzer_feeds_cached_processor_a_stable_dtype(monkeypatch):
 def test_analyzer_reuse_across_resampling_matches_fresh(task):
     rate, data = wavfile.read(WAV)
     half_rate_audio = data[::2]
-    shared = Analyzer(tasks=(task,))
+    shared = MadmomAnalyzer(tasks=(task,))
 
     shared(WAV, sample_rate=rate)
     reused = shared(half_rate_audio, sample_rate=rate // 2)[task]
-    fresh = Analyzer(tasks=(task,))(
+    fresh = MadmomAnalyzer(tasks=(task,))(
         half_rate_audio, sample_rate=rate // 2)[task]
     np.testing.assert_array_equal(reused, fresh)
 
-    shared = Analyzer(tasks=(task,))
+    shared = MadmomAnalyzer(tasks=(task,))
     shared(half_rate_audio, sample_rate=rate // 2)
     reused = shared(WAV, sample_rate=rate)[task]
-    fresh = Analyzer(tasks=(task,))(WAV, sample_rate=rate)[task]
+    fresh = MadmomAnalyzer(tasks=(task,))(WAV, sample_rate=rate)[task]
     np.testing.assert_array_equal(reused, fresh)
 
 
 def test_analyzer_rejects_unknown_task():
     with pytest.raises(ValueError, match="unknown analysis task"):
-        Analyzer(tasks=("genre",))
+        MadmomAnalyzer(tasks=("genre",))

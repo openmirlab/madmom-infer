@@ -38,7 +38,7 @@ None — the Phase 4 complete-port campaign just closed (merged to main,
 
 ## ✅ Shipped
 
-Clean task-level API (`Analyzer` plus ten one-shot MIR tasks, shared input
+Clean task-level API (`MadmomAnalyzer` plus ten one-shot MIR tasks, shared input
 normalization/resampling and lazy model reuse) and repair of the four confirmed
 inherited defects (`correlation_diff`, `MFCC`, `MFCCProcessor.transform`,
 `HPSS.process()`), Phase 4 complete-port campaign (key detection, onset detection, tempo

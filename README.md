@@ -198,23 +198,23 @@ tempo = mm.estimate_tempo("track.wav", sample_rate=44100)
 key = mm.detect_key("track.wav", sample_rate=44100)
 
 # Reuse loaded models and shared intermediate results for several tasks.
-result = mm.Analyzer(tasks=["beats", "tempo", "key"])(
+result = mm.MadmomAnalyzer(tasks=["beats", "tempo", "key"])(
     "track.wav", sample_rate=44100
 )
 print(result.beats, result.tempo, result.key)
 ```
 
 Each one-shot call above (`detect_beats`, `estimate_tempo`, ...) builds and
-discards its own `Analyzer` internally -- convenient for a single call, but it
-reloads models every time. Processing many files, or several tasks on the same
-audio, should go through one `Analyzer` instance instead (as above), so models
-load once and shared intermediates (beat activations for `beats`+`tempo`,
-chroma for `chroma`+`chords`) aren't recomputed.
+discards its own `MadmomAnalyzer` internally -- convenient for a single call,
+but it reloads models every time. Processing many files, or several tasks on
+the same audio, should go through one `MadmomAnalyzer` instance instead (as
+above), so models load once and shared intermediates (beat activations for
+`beats`+`tempo`, chroma for `chroma`+`chords`) aren't recomputed.
 
 The complete task vocabulary is `onsets`, `beats`, `downbeats`, `tempo`,
 `key`, `chords`, `notes`, `chroma`, `mfcc`, and `hpss`. Unlike the other nine,
 `mfcc()` and `hpss()` also accept an existing `Spectrogram` directly (skipping
-re-normalization); the other task functions and `Analyzer` only take raw
+re-normalization); the other task functions and `MadmomAnalyzer` only take raw
 audio. The original madmom-style processors below remain supported for
 custom models, decoders, and pipeline composition.
 

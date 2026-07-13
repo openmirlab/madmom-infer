@@ -36,7 +36,7 @@ def _audio_signal(audio, sample_rate=None, target_rate=MODEL_SAMPLE_RATE):
 
     The stable dtype is part of the clean-API boundary: advanced processors
     cache dtype-scaled FFT windows, so allowing dtype to vary across calls
-    would make a reusable ``Analyzer`` depend on its input history.
+    would make a reusable ``MadmomAnalyzer`` depend on its input history.
     """
     if isinstance(audio, Spectrogram):
         raise TypeError("this task expects audio, not a Spectrogram")
@@ -79,7 +79,7 @@ def _spectrogram(audio, sample_rate=None):
 
 @dataclass(frozen=True)
 class AnalysisResult:
-    """Named results returned by a multi-task :class:`Analyzer` call."""
+    """Named results returned by a multi-task :class:`MadmomAnalyzer` call."""
 
     values: dict
 
@@ -93,7 +93,7 @@ class AnalysisResult:
             raise AttributeError(task) from exc
 
 
-class Analyzer:
+class MadmomAnalyzer:
     """Lazily build and reuse canonical pipelines for selected MIR tasks."""
 
     def __init__(self, tasks=TASKS, beats_per_bar=(3, 4)):
@@ -180,12 +180,12 @@ class Analyzer:
 
 
 def analyze(audio, *, tasks=TASKS, sample_rate=None, beats_per_bar=(3, 4)):
-    return Analyzer(tasks=tasks, beats_per_bar=beats_per_bar)(
+    return MadmomAnalyzer(tasks=tasks, beats_per_bar=beats_per_bar)(
         audio, sample_rate=sample_rate)
 
 
 def _one(task, audio, sample_rate=None, **kwargs):
-    return Analyzer(tasks=(task,), **kwargs)(audio, sample_rate=sample_rate)[task]
+    return MadmomAnalyzer(tasks=(task,), **kwargs)(audio, sample_rate=sample_rate)[task]
 
 
 def detect_onsets(audio, *, sample_rate=None): return _one("onsets", audio, sample_rate)
