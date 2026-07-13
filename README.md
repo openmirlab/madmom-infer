@@ -204,10 +204,19 @@ result = mm.Analyzer(tasks=["beats", "tempo", "key"])(
 print(result.beats, result.tempo, result.key)
 ```
 
+Each one-shot call above (`detect_beats`, `estimate_tempo`, ...) builds and
+discards its own `Analyzer` internally -- convenient for a single call, but it
+reloads models every time. Processing many files, or several tasks on the same
+audio, should go through one `Analyzer` instance instead (as above), so models
+load once and shared intermediates (beat activations for `beats`+`tempo`,
+chroma for `chroma`+`chords`) aren't recomputed.
+
 The complete task vocabulary is `onsets`, `beats`, `downbeats`, `tempo`,
-`key`, `chords`, `notes`, `chroma`, `mfcc`, and `hpss`. The original
-madmom-style processors below remain supported for custom models, decoders,
-and pipeline composition.
+`key`, `chords`, `notes`, `chroma`, `mfcc`, and `hpss`. Unlike the other nine,
+`mfcc()` and `hpss()` also accept an existing `Spectrogram` directly (skipping
+re-normalization); the other task functions and `Analyzer` only take raw
+audio. The original madmom-style processors below remain supported for
+custom models, decoders, and pipeline composition.
 
 ```python
 from madmom_infer.features.downbeats import (
