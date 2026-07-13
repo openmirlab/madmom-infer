@@ -31,35 +31,10 @@ real madmom has `.bin_frequencies is None` too -- this port sets it
 explicitly rather than omitting the attribute, to make that `None`-ness
 introspectable rather than an `AttributeError` trap.
 
-**`MFCCProcessor.process()` silently ignores its own stored `self.
-transform`, verbatim** -- confirmed by reading `cepstrogram.py:296-298`
-directly: `MFCCProcessor.__init__` stores `transform` but `.process()`
-never forwards it to the `MFCC(...)` call it makes, unlike every other
-stored parameter. This looks like an oversight (the same "ported as-is, not
-silently fixed" class of finding as `features/onsets.py`'s
-`SpectralOnsetProcessor.__init__`, Wave 4b) -- a custom `transform=`
-argument to `MFCCProcessor` is inert in real madmom, and stays inert here.
-
-**Major, real, confirmed upstream bug in `MFCC` itself, reproduced
-bug-for-bug -- not a gap this port introduces**: `MFCC.__new__`'s "was this
-spectrogram already filtered/scaled?" check (`cepstrogram.py:197-204`)
-unconditionally raises `AttributeError` for the seemingly-primary use case
--- constructing an `MFCC` from a PLAIN `Spectrogram` (or a raw wav path/
-array, which builds one internally) -- because the base `Spectrogram` class
-never defines a `.filterbank` attribute at all (confirmed directly against
-the reference venv: `hasattr(plain_spectrogram, 'filterbank')` is `False`,
-and `MFCC(plain_spectrogram)`/`MFCC(wav_path)` both raise `AttributeError:
-'Spectrogram' object has no attribute 'filterbank'`). The ONLY input that
-doesn't crash is an ALREADY-`FilteredSpectrogram` instance (see `MFCC.
-__init__`'s own docstring below for the exact mechanics of why that one
-case accidentally works). `MFCCProcessor.process()` inherits this
-brokenness unconditionally, since it just calls `MFCC(data, ...)` on
-whatever `data` its caller passes -- meaning `MFCCProcessor` only works at
-all when the pipeline it sits in happens to hand it a `FilteredSpectrogram`.
-Ported faithfully (see `MFCC.__init__`'s docstring for the exact
-non-defensive attribute-access shape that reproduces it), same "bug-for-bug,
-not silently fixed" precedent as `features/onsets.py`'s `correlation_diff`
-and `audio/hpss.py`'s `HarmonicPercussiveSourceSeparation.process`.
+`MFCC` accepts raw audio, plain spectrograms, and already-filtered
+spectrograms. Optional filtering/scaling attributes are inspected
+defensively, and `MFCCProcessor` forwards every stored option, including a
+custom transform.
 
 Reads: scipy.fftpack.dct, numpy, madmom_infer.audio.filters (Filterbank,
 MelFilterbank), madmom_infer.audio.spectrogram.Spectrogram,
@@ -194,31 +169,6 @@ class MFCC(Cepstrogram):
         If no `Spectrogram` instance was given, one is instantiated with
         these additional keyword arguments.
 
-    Notes
-    -----
-    **Real, confirmed upstream bug, reproduced on purpose, not fixed**:
-    `spectrogram.filterbank is not None or spectrogram.mul is not None or
-    spectrogram.add is not None` (the "was this already filtered/scaled?"
-    check below) unconditionally raises `AttributeError` for a PLAIN
-    `Spectrogram` -- verified against the reference venv:
-    `MFCC(plain_spectrogram)` (and, since an unrecognized `spectrogram`
-    argument is turned into a plain `Spectrogram` internally, `MFCC(wav_
-    path)` too) always raises `AttributeError: 'Spectrogram' object has no
-    attribute 'filterbank'`. Only an ALREADY-`FilteredSpectrogram` instance
-    works: its `.filterbank` attribute is a real, non-`None` value, which
-    trips the warn-and-recompute branch below -- discarding that filter,
-    rebuilding a fresh plain `Spectrogram` from `.stft`, and proceeding
-    normally with THIS class's own filterbank from there (no further
-    attribute checks). This project's own `Spectrogram`/`FilteredSpectrogram`/
-    `LogarithmicSpectrogram` (`audio/spectrogram.py`) reproduce the exact
-    same attribute shape (`Spectrogram` has no `.filterbank` at all;
-    `FilteredSpectrogram.filterbank` is a real attribute;
-    `LogarithmicSpectrogram.filterbank` is a property forwarding to
-    `self.spectrogram.filterbank`, raising the same way), so this check is
-    written as a plain, undefended attribute access -- exactly like
-    upstream -- rather than a defensive `getattr(..., None)`, to let the
-    same `AttributeError` propagate identically.
-
     From https://en.wikipedia.org/wiki/Mel-frequency_cepstrum, MFCCs are
     commonly derived as: (1) FFT of a windowed signal excerpt, (2) map
     powers onto the mel scale via triangular overlapping windows, (3) take
@@ -233,9 +183,9 @@ class MFCC(Cepstrogram):
         if not isinstance(spectrogram, Spectrogram):
             spectrogram = Spectrogram(spectrogram, **kwargs)
 
-        if (spectrogram.filterbank is not None
-                or spectrogram.mul is not None
-                or spectrogram.add is not None):
+        if (getattr(spectrogram, "filterbank", None) is not None
+                or getattr(spectrogram, "mul", None) is not None
+                or getattr(spectrogram, "add", None) is not None):
             warnings.warn(
                 "Spectrogram was filtered or scaled already, redo "
                 "calculation!"
@@ -274,10 +224,8 @@ class MFCCProcessor(Processor):
     """Processor wrapper: filter a magnitude spectrogram through a Mel
     filterbank, log-compress it, then DCT-transform the result into MFCCs.
 
-    Port of `madmom.audio.cepstrogram.MFCCProcessor`
-    (`cepstrogram.py:243-298`) -- **including its own stored `transform`
-    never actually being forwarded to `MFCC(...)`, see this module's
-    header**.
+    Modernized port of `madmom.audio.cepstrogram.MFCCProcessor`
+    (`cepstrogram.py:243-298`); all stored options are forwarded to `MFCC`.
 
     Parameters
     ----------
@@ -295,8 +243,7 @@ class MFCCProcessor(Processor):
     add : float, optional
         Add this value before taking the logarithm of the magnitudes.
     transform : numpy ufunc, optional
-        Stored but NOT applied by `process()` -- matches upstream's own
-        apparent oversight, see this module's header.
+        Transformation applied by `process()`.
     """
 
     def __init__(self, num_bands=MFCC_BANDS, fmin=MFCC_FMIN, fmax=MFCC_FMAX,
@@ -314,10 +261,9 @@ class MFCCProcessor(Processor):
     def process(self, data, **kwargs):
         """Return the `MFCC` of `data` (usually a spectrogram).
 
-        Matches `MFCCProcessor.process` (`cepstrogram.py:281-298`) exactly
-        -- `self.transform` is intentionally NOT forwarded here, see this
-        module's header.
+        The stored transform and MFCC options are applied to every call.
         """
-        return MFCC(data, num_bands=self.num_bands, fmin=self.fmin,
+        return MFCC(data, transform=self.transform,
+                    num_bands=self.num_bands, fmin=self.fmin,
                     fmax=self.fmax, norm_filters=self.norm_filters,
                     mul=self.mul, add=self.add)

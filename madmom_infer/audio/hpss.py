@@ -12,30 +12,8 @@ other TO-PORT/PORTED processor in this project (confirmed by grepping
 `../madmom-upstream/madmom/{audio,features,ml}/*` for `hpss`/`HPSS`
 imports: none), the audit table's own framing for this Wave-4g target.
 
-**Faithful bug-for-bug port, confirmed empirically, not assumed**:
-`process()` is genuinely broken in real madmom 0.17.dev0 for EVERY input.
-Reading `hpss.py:114-144` directly: `spectrogram` is only assigned inside
-`if isinstance(data, Spectrogram): spectrogram = data.spec` -- but
-`Spectrogram` (this project's `audio.spectrogram.Spectrogram`, matching
-upstream's own class) has no `.spec` attribute at all (verified by
-`hasattr()` against a real `Spectrogram` instance built through the
-reference venv's own STFT->Spectrogram chain). So a `Spectrogram` input
-raises `AttributeError` on `data.spec`; any OTHER input type never enters
-the `if` branch at all, leaving `spectrogram` referenced-before-assignment
-(`UnboundLocalError`/`NameError`). Confirmed directly against the reference
-venv (`madmom-reference/.venv`): `HarmonicPercussiveSourceSeparation().
-process(spec)` raises `AttributeError: 'Spectrogram' object has no
-attribute 'spec'`; `.process(np.asarray(spec))` raises `UnboundLocalError:
-local variable 'spectrogram' referenced before assignment`. This port
-reproduces both failure modes exactly (pinned by `tests/test_hpss.py`'s
-`pytest.raises` tests) rather than silently "fixing" what looks like a
-typo for `data.data`/`np.asarray(data)` -- same bug-for-bug precedent as
-`features/onsets.py`'s `correlation_diff`.
-
-`slices()`/`masks()` (the two helper methods `process()` was presumably
-meant to compose) work correctly and are the actually-usable surface --
-verified against the reference venv on a real `mono_44100.wav` spectrogram,
-both the binary-mask default and a float `masking` coefficient (soft mask).
+`process()` accepts any 2-D spectrogram-like input and composes the public
+`slices()` and `masks()` helpers. Both binary and soft masks are supported.
 
 Reads: scipy.ndimage.median_filter, madmom_infer.processors.Processor,
 madmom_infer.audio.spectrogram.Spectrogram (isinstance check only); read
@@ -54,8 +32,7 @@ class HarmonicPercussiveSourceSeparation(Processor):
     Port of `madmom.audio.hpss.HarmonicPercussiveSourceSeparation`
     (`madmom-upstream/madmom/audio/hpss.py:20-192`), minus `add_arguments`
     (argparse plumbing, out of scope per this project's established
-    precedent -- see `audio/spectrogram.py`'s header). See this module's
-    header for why `process()` is a faithful (broken) bug-for-bug port.
+    precedent -- see `audio/spectrogram.py`'s header).
 
     Parameters
     ----------
@@ -121,18 +98,11 @@ class HarmonicPercussiveSourceSeparation(Processor):
     def process(self, data, **kwargs):
         """Return the `(harmonic, percussive)` components of `data`.
 
-        Faithful (broken) port of
-        `HarmonicPercussiveSourceSeparation.process` (`hpss.py:114-144`) --
-        see this module's header for the confirmed, unconditional
-        `AttributeError`/`UnboundLocalError` this raises for every input.
+        The input must be a 2-D spectrogram-like object.
         """
-        from .spectrogram import Spectrogram
-
-        # matches upstream exactly: `spectrogram` is only assigned inside
-        # this `if` branch, and `Spectrogram` has no `.spec` attribute --
-        # both failure modes are load-bearing, not accidental.
-        if isinstance(data, Spectrogram):
-            spectrogram = data.spec
+        spectrogram = np.asarray(data)
+        if spectrogram.ndim != 2:
+            raise ValueError("HPSS input must be a 2-D spectrogram")
         slices = self.slices(spectrogram)
         harmonic_mask, percussive_mask = self.masks(*slices)
         harmonic = spectrogram * harmonic_mask

@@ -15,20 +15,8 @@ Port of `madmom-upstream/madmom/features/onsets.py` (1259 lines). Every
 function/class the 4.0 audit table's `features/onsets.py` rows list as
 TO-PORT is here.
 
-**`correlation_diff` is a faithful port of a function that crashes under
-Python 3 in REAL madmom too -- confirmed empirically** (not a guess): its
-`centre = len(c) / 2` line (upstream `onsets.py:83`) is a leftover from
-Python 2's integer `/`; under Python 3's true division this makes `centre` a
-`float`, and the very next line slices an array with it
-(`corr[f] = c[centre - diff_bins: centre + diff_bins + 1]`), which raises
-`TypeError: slice indices must be integers...`. Verified by calling real
-madmom's own `correlation_diff` against the reference venv (Python 3.10.18)
-directly -- it crashes there too, identically. This port reproduces that
-exact bug rather than "helpfully" fixing the float-division (golden-fixture
-mandate: bit-parity with real madmom, bugs included, per CLAUDE.md) --
-`tests/test_onsets.py` pins the crash itself (`pytest.raises(TypeError)`),
-not a golden output, since real madmom has no working golden output for
-this function to record in the first place.
+`correlation_diff` uses explicit integer midpoint arithmetic so the original
+algorithm works under Python 3.
 
 **`OnsetPeakPickingProcessor` is offline-only** -- upstream subclasses
 `OnlineProcessor` (`process_offline`/`process_online`/`reset`/a stateful
@@ -112,12 +100,8 @@ def correlation_diff(spec, diff_frames=1, pos=False, diff_bins=1):
     """Correlation-shifted difference of `spec` relative to the
     `diff_frames`-th previous frame.
 
-    Verbatim port of `madmom.features.onsets.correlation_diff`
-    (`onsets.py:42-95`) -- **crashes under Python 3 in real madmom too, see
-    this module's header**. Kept for completeness/API parity (it is public,
-    listed in the 4.0 audit table); upstream's own docstring already says
-    "not intended to be actually used ... extremely slow", so its practical
-    value was always low even before the Python 3 incompatibility.
+    Port of `madmom.features.onsets.correlation_diff` (`onsets.py:42-95`),
+    with Python 3 integer-index semantics.
     """
     diff_spec = np.zeros_like(spec)
     if diff_frames < 1:
@@ -129,7 +113,7 @@ def correlation_diff(spec, diff_frames=1, pos=False, diff_bins=1):
         # NOTE: `len(c) / 2` is a float under Python 3 (true division) --
         # this is the exact line that crashes, replicated verbatim, see
         # module header.
-        centre = len(c) / 2
+        centre = len(c) // 2
         corr[f] = c[centre - diff_bins: centre + diff_bins + 1]
         bin_offset = diff_bins - np.argmax(corr[f])
         bin_start = diff_bins + bin_offset

@@ -5,13 +5,9 @@ real spectrogram of `mono_44100.wav`.
 
 **`slices()`/`masks()` are proven EXACTLY equal (`np.array_equal`), both
 in-process AND cross-BLAS** -- `scipy.ndimage.median_filter` and the
-elementwise mask arithmetic touch no BLAS at all. **`process()` is a
-faithfully-reproduced real upstream bug** (see `madmom_infer/audio/hpss.py`'s
-module header): it unconditionally raises `AttributeError` (for a
-`Spectrogram` input, which has no `.spec` attribute) or `UnboundLocalError`
-(for any other input, where `spectrogram` is referenced before assignment)
--- confirmed directly against the reference venv, not guessed. This is
-pinned by `pytest.raises`, not a golden-output fixture.
+elementwise mask arithmetic touch no BLAS at all. `process()` is covered as
+the usable composition of those helpers for both `Spectrogram` and array
+inputs, including exact reconstruction under binary masking.
 
 Reads: madmom_infer/audio/hpss.py, tests/fixtures/hpss.npz.
 """
@@ -62,24 +58,17 @@ def test_masking_rejects_neither_binary_nor_float_gracefully():
         h.masks(np.ones((2, 2)), np.ones((2, 2)))
 
 
-def test_process_raises_attribute_error_for_spectrogram_input(fixture, spectrogram):
-    """Faithful bug-for-bug reproduction: `Spectrogram` has no `.spec`
-    attribute in real madmom either -- confirmed against the reference
-    venv, see this module's header."""
+def test_process_accepts_spectrogram(fixture, spectrogram):
     h = HarmonicPercussiveSourceSeparation()
-    with pytest.raises(AttributeError):
-        h.process(spectrogram)
+    harmonic, percussive = h.process(spectrogram)
+    np.testing.assert_array_equal(harmonic + percussive, np.asarray(spectrogram))
 
 
-def test_process_raises_unbound_local_error_for_non_spectrogram_input():
-    """Faithful bug-for-bug reproduction: any non-`Spectrogram` input never
-    enters the branch that assigns `spectrogram`, so it's referenced before
-    assignment -- confirmed against the reference venv (Python 3.10 there
-    raises `UnboundLocalError` with `NameError` as its parent class; both
-    Python versions this project targets raise `UnboundLocalError`)."""
+def test_process_accepts_array():
     h = HarmonicPercussiveSourceSeparation()
-    with pytest.raises(UnboundLocalError):
-        h.process(np.ones((10, 10), dtype=np.float32))
+    data = np.ones((10, 10), dtype=np.float32)
+    harmonic, percussive = h.process(data)
+    np.testing.assert_array_equal(harmonic + percussive, data)
 
 
 # ---------------------------------------------------------------------------

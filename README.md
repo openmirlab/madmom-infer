@@ -185,6 +185,30 @@ pip install "madmom-infer[torch]"
 
 ## Quick Start
 
+The task-level API is the shortest route from audio to a musical result. It
+accepts paths, NumPy arrays, and metadata-bearing `Signal` objects; always pass
+`sample_rate` for arrays. Audio is converted to the rate required by the
+pretrained pipelines automatically.
+
+```python
+import madmom_infer as mm
+
+beats = mm.detect_beats("track.wav", sample_rate=44100)
+tempo = mm.estimate_tempo("track.wav", sample_rate=44100)
+key = mm.detect_key("track.wav", sample_rate=44100)
+
+# Reuse loaded models and shared intermediate results for several tasks.
+result = mm.Analyzer(tasks=["beats", "tempo", "key"])(
+    "track.wav", sample_rate=44100
+)
+print(result.beats, result.tempo, result.key)
+```
+
+The complete task vocabulary is `onsets`, `beats`, `downbeats`, `tempo`,
+`key`, `chords`, `notes`, `chroma`, `mfcc`, and `hpss`. The original
+madmom-style processors below remain supported for custom models, decoders,
+and pipeline composition.
+
 ```python
 from madmom_infer.features.downbeats import (
     RNNDownBeatProcessor,
@@ -426,19 +450,10 @@ Same runtime-download/sha256/caching story as the processors above, via
 Pure DSP, no pretrained weights:
 
 ```python
-from madmom_infer.audio.spectrogram import Spectrogram, FilteredSpectrogramProcessor
-from madmom_infer.audio.filters import LogarithmicFilterbank
+from madmom_infer.audio.spectrogram import Spectrogram
 from madmom_infer.audio.cepstrogram import MFCC, Cepstrogram
 
-# MFCC needs an ALREADY-filtered spectrogram to construct -- matching real
-# madmom's own (surprising, verified) behavior: a plain Spectrogram raises
-# AttributeError here, see madmom_infer/audio/cepstrogram.py's module
-# header for the full story.
-filt_spec = FilteredSpectrogramProcessor(
-    filterbank=LogarithmicFilterbank, num_bands=12, fmin=30, fmax=17000,
-)("track.wav")
-mfcc = MFCC(filt_spec)  # (num_frames, 30) MFCCs, warns and re-derives
-                        # the spectrogram from filt_spec.stft internally
+mfcc = MFCC("track.wav", sample_rate=44100)  # (num_frames, 30) MFCCs
 
 spec = Spectrogram("track.wav")
 cepstrogram = Cepstrogram(spec)  # DCT of the plain magnitude spectrogram
@@ -459,9 +474,8 @@ harmonic = np.asarray(spec) * harmonic_mask
 percussive = np.asarray(spec) * percussive_mask
 ```
 
-`slices()`/`masks()` are the working surface; `HPSS().process()` itself is
-NOT usable -- it's a faithfully-reproduced real madmom bug (unconditionally
-raises for every input), see `madmom_infer/audio/hpss.py`'s module header.
+`HPSS().process()` composes the same `slices()` and `masks()` operations and
+returns the harmonic and percussive spectrograms directly.
 
 ### Torch frontend
 

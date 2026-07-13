@@ -28,14 +28,9 @@ sign-crossing elements would otherwise dominate a raw ULP-distance metric,
 exactly the class of instability documented for the two prior waves' own
 "raw, not-a-probability" outputs.
 
-**Major real, confirmed upstream bug in `MFCC` -- ported bug-for-bug, not
-fixed**: see `madmom_infer/audio/cepstrogram.py`'s module header. `MFCC`
-can only be constructed from an ALREADY-`FilteredSpectrogram` instance;
-every other input (a plain `Spectrogram`, a `LogarithmicSpectrogram`, or a
-raw wav path/array) raises `AttributeError` in real madmom 0.17.dev0,
-confirmed directly against the reference venv. This is pinned by
-`pytest.raises`, not a golden-output fixture, and this file's fixture-
-exactness tests use the one input shape that actually works.
+`MFCC` is also covered through its repaired product contract: plain
+`Spectrogram` and raw wav inputs work, pre-filtered input retains its warning
+and recomputation behavior, and `MFCCProcessor` applies its stored transform.
 
 Reads: madmom_infer/audio/cepstrogram.py, tests/fixtures/cepstrogram.npz.
 """
@@ -113,19 +108,13 @@ def test_mfcc_rejects_non_filterbank_type(filtered_spectrogram):
             MFCC(filtered_spectrogram, filterbank=object())
 
 
-def test_mfcc_from_plain_spectrogram_raises_attribute_error(spectrogram):
-    """Faithful bug-for-bug reproduction: a plain `Spectrogram` has no
-    `.filterbank` attribute -- confirmed against the reference venv, see
-    this module's header."""
-    with pytest.raises(AttributeError):
-        MFCC(spectrogram)
+def test_mfcc_from_plain_spectrogram(spectrogram):
+    assert MFCC(spectrogram).shape == (len(spectrogram), 30)
 
 
-def test_mfcc_from_wav_path_raises_attribute_error():
-    """Same bug as above: a raw wav-path argument builds a plain
-    `Spectrogram` internally, hitting the identical `AttributeError`."""
-    with pytest.raises(AttributeError):
-        MFCC(str(WAV_PATH), sample_rate=44100, num_channels=1)
+def test_mfcc_from_wav_path():
+    assert MFCC(str(WAV_PATH), sample_rate=44100,
+                num_channels=1).shape[1] == 30
 
 
 def test_mfcc_from_filtered_spectrogram_warns_and_recomputes(filtered_spectrogram):
@@ -136,10 +125,7 @@ def test_mfcc_from_filtered_spectrogram_warns_and_recomputes(filtered_spectrogra
     assert mfcc.shape[1] == 30  # MFCC_BANDS default
 
 
-def test_mfcc_processor_ignores_stored_transform(filtered_spectrogram):
-    """Verbatim-ported upstream oversight: `MFCCProcessor.process()` never
-    forwards its own stored `self.transform` to `MFCC(...)` -- see this
-    module's header."""
+def test_mfcc_processor_applies_stored_transform(filtered_spectrogram):
     custom_transform_calls = []
 
     def spy_transform(data):
@@ -150,7 +136,7 @@ def test_mfcc_processor_ignores_stored_transform(filtered_spectrogram):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         proc.process(filtered_spectrogram)
-    assert custom_transform_calls == []  # never invoked -- inert, as upstream
+    assert len(custom_transform_calls) == 1
 
 
 # ---------------------------------------------------------------------------

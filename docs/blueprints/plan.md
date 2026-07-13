@@ -23,10 +23,6 @@ None — the Phase 4 complete-port campaign just closed (merged to main,
   `torch.nn.Conv1d`/`MaxPool`/`BatchNorm` equivalents, unlike the
   LSTM/GRU path (see Future below). Worth scoping as its own wave now
   that the models exist to port against.
-- **Clean API surface for the bug-for-bug symbols** — `decisions.md`'s
-  bug-for-bug entry; new, differently-named convenience functions
-  (`madmom_infer.mfcc(path)` etc.) that don't claim madmom parity,
-  sitting alongside the faithful originals. Discussed, not scheduled.
 
 ## ⏸ Future —— deferred
 
@@ -42,7 +38,10 @@ None — the Phase 4 complete-port campaign just closed (merged to main,
 
 ## ✅ Shipped
 
-Phase 4 complete-port campaign (key detection, onset detection, tempo
+Clean task-level API (`Analyzer` plus ten one-shot MIR tasks, shared input
+normalization/resampling and lazy model reuse) and repair of the four confirmed
+inherited defects (`correlation_diff`, `MFCC`, `MFCCProcessor.transform`,
+`HPSS.process()`), Phase 4 complete-port campaign (key detection, onset detection, tempo
 estimation, chord recognition, chroma, piano note transcription,
 MFCC/cepstrogram, HPSS, CRF beat detection, GMM pattern tracking — v0.3.0,
 302 offline tests, 21 cross-BLAS exactness proofs, zero TO-PORT rows

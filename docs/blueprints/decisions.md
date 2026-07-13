@@ -7,37 +7,35 @@
 > written before this `blueprints/` tree existed) since it already fit the
 > shape. New entries follow the normal thought → graduate path.
 
-## Bug-for-bug fidelity for confirmed upstream bugs
+## Fix inherited defects after migration
 
-**The call**: when a port wave finds a real, confirmed bug in upstream
-madmom, reproduce it exactly (pinned by a test expecting the same
-failure) — never silently fix it. The product's whole claim is "behaves
-exactly like real madmom, just installable," proven by golden-fixture
-byte comparison; a silent fix breaks that claim in a way users can't
-detect, and "fixed" is usually an undocumented API redesign in disguise
-(deciding the *right* behavior is a real design question, not a
-side-effect of porting).
+**The call**: migration is complete, so current `madmom-infer` behavior is
+judged against this project's own public contract, reasonable API usage,
+and result correctness. Upstream madmom remains useful as provenance for
+algorithms, model formats, and the origin of inherited behavior, but
+matching an upstream failure is not a reason to preserve it. A behavior is
+a product bug when valid input violates the documented contract, a public
+processor cannot perform its advertised operation, an accepted option is
+silently ignored, or the implementation produces an incorrect result.
 
-**How it shows up**: three symbols ship broken-on-purpose, each with a
-docstring citing the reference-venv proof and a pinning test —
-`correlation_diff` (`features/onsets.py`, crashes under Python 3 in real
-madmom too — a Py2 integer-division assumption — pinned via
-`pytest.raises(TypeError)`, no golden output exists to record);
-`MFCC` (`audio/cepstrogram.py`, only accepts an already-`FilteredSpectrogram`
-input — every other input, including a raw wav path, raises
-`AttributeError` in real madmom too); `HPSS.process()`
-(`audio/hpss.py`, unconditionally broken for every input in every
-version of madmom — the underlying `slices()`/`masks()` building blocks
-are correct and verified bit-identical, and are the documented supported
-path around the broken convenience method).
+**How it shows up**: preserve migration assets that users and model files
+depend on — import paths, public names where practical, processor
+composition, serialized-model compatibility, and numerically validated
+inference behavior. Fix confirmed defects in place instead of adding a
+parallel "clean" namespace. The first confirmed repair set is
+`correlation_diff` (valid input currently crashes because of Python 2
+division semantics), `MFCC` (raw audio and a plain `Spectrogram` currently
+fail despite being valid constructor inputs), `MFCCProcessor` (its stored
+`transform` option is ignored), and `HPSS.process()` (every input currently
+fails, violating the `Processor` contract). Tests for these symbols should
+assert useful behavior and numerical correctness, not inherited
+exceptions.
 
-**What was rejected**: deleting `correlation_diff` outright (an
-EXCLUDE-style removal, same class as the TCN exclusions) — rejected
-because real madmom's `from madmom.features.onsets import
-correlation_diff` succeeds at import time; deleting the symbol would turn
-an import-time success into an import-time failure, a *worse*
-compatibility break than the call-time crash already being reproduced.
-A future "clean API surface" layer — new, differently-named convenience
-functions that don't claim madmom parity, sitting alongside the
-bug-for-bug originals — was discussed and is a live option, but not
-scheduled (see `plan.md`).
+**What was rejected**: bug-for-bug fidelity as an ongoing product
+principle, because it turns known defects into permanent API commitments
+after the migration goal has already been achieved. A second clean API
+beside deliberately broken legacy symbols was also rejected: it would
+duplicate concepts, leave traps in the primary namespace, and make users
+choose between two APIs without a product need. Upstream comparisons can
+still be used as diagnostic evidence, but they are no longer the release
+criterion for changed or newly fixed behavior.

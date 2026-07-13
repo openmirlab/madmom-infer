@@ -16,9 +16,9 @@ Several independent things are verified here:
    value (see `tools/generate_onset_fixtures.py`'s module header).
 2. **`StrideLayer` correctness, fully OFFLINE**: same self-contained
    (input, output, params) design as `test_key.py`'s per-layer-type tests.
-3. **`correlation_diff` crashes under Python 3 in real madmom too** (see
-   `madmom_infer/features/onsets.py`'s module header) -- pinned as an
-   expected `TypeError`, not a golden output (there isn't one to record).
+3. **`correlation_diff` works under Python 3**: the inherited Python-2
+   midpoint division is repaired and covered by a deterministic shape,
+   finiteness, and initial-frame test.
 4. **Unpickling correctness** (network): `onsets_rnn_1.pkl`/
    `onsets_brnn_1.pkl`/`onsets_cnn.pkl` structural digests match real
    madmom's own unpickling exactly.
@@ -239,12 +239,12 @@ def test_spectral_onset_processor_superflux_matches_fixture(dsp_fixture):
         np.asarray(out), dsp_fixture["sodf_superflux"], maxulp=MAX_ULP_DSP)
 
 
-def test_correlation_diff_raises_typeerror():
-    """Real madmom's own `correlation_diff` crashes under Python 3 -- see
-    this module's + `madmom_infer/features/onsets.py`'s module headers."""
+def test_correlation_diff_returns_finite_differences():
     spec = np.random.RandomState(0).rand(10, 20).astype(np.float32)
-    with pytest.raises(TypeError):
-        correlation_diff(spec)
+    out = correlation_diff(spec)
+    assert out.shape == spec.shape
+    assert np.isfinite(out).all()
+    np.testing.assert_array_equal(out[0], 0)
 
 
 def test_peak_picking_finds_expected_peaks():
