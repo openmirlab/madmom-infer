@@ -3,10 +3,9 @@
 > 2026-07-13 · status index (one layer, by status). Only "what to do +
 > which doc". Design in `thoughts/`, why in `decisions.md`.
 >
-> **Deviation**: no `overview.html` — solo-maintained repo, zero human
-> readers for a rendered board. `plan.md` is the sole maintained board;
-> generate a human view on demand if one is ever actually wanted, don't
-> pre-scaffold it.
+> `plan.md` is the single maintained board. A visual view, if ever
+> wanted, renders on demand via `/shape:mockup` — never a standing
+> `overview.html` file (shape ADR-063).
 
 ## 🚧 In progress
 

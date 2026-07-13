@@ -9,6 +9,7 @@ planning board lives in `docs/blueprints/`.
 | You want to... | Verb |
 |---|---|
 | Decide what to work on next / refresh the board | `/shape:align` -> `docs/blueprints/plan.md` |
+| See the board rendered visually | `/shape:mockup` -> an on-demand board snapshot |
 | Scope a feature against the actual code | `/nav:plan` -> `docs/blueprints/plans/` |
 | Implement a small decided change | `/nav:do` |
 | Drive the in-progress board to done | `/shape:build` |
@@ -17,11 +18,11 @@ planning board lives in `docs/blueprints/`.
 | Regenerate / render the repo map | `/nav:map` -> `docs/codebase-map/index.html` |
 | Audit architecture | `/nav:audit` |
 
-**Standing pointers:** plan board = `docs/blueprints/plan.md` (no
-`overview.html` -- solo repo, deviation recorded in the plan's own
-header) · durable why = `docs/blueprints/decisions.md` · grounded plans =
-`docs/blueprints/plans/` · pre-implementation architecture plan (mostly
-historical) = `docs/DESIGN.md`.
+**Standing pointers:** plan board = `docs/blueprints/plan.md` (agent AND
+human -- a visual view renders on demand via `/shape:mockup`, never a
+standing `overview.html`) · durable why = `docs/blueprints/decisions.md`
+· grounded plans = `docs/blueprints/plans/` · pre-implementation
+architecture plan (mostly historical) = `docs/DESIGN.md`.
 
 **Communication:** converse with the user in Traditional Chinese
 (Taiwanese phrasing), plain and direct; keep code, identifiers, and
