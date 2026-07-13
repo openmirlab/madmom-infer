@@ -1177,6 +1177,13 @@ grasp any file from its first ~12 lines without reading the whole thing.
 
 ## Golden-fixture testing philosophy (numpy backend is the reference; torch frontend is Phase 3a, shipped)
 
+**When a wave finds a confirmed upstream bug**, the default is
+bug-for-bug reproduction (pinned by a test expecting the same failure),
+never a silent fix -- see `docs/DECISIONS.md`'s 2026-07-13 entry for the
+full rationale and the three cases found so far (`correlation_diff`,
+`MFCC`, `HPSS.process`). Read that entry before "fixing" anything a wave
+already ported as broken-on-purpose.
+
 This project follows the same pattern established by the sibling
 all-in-one-infer package's pure-Python NATTEN replacement:
 
