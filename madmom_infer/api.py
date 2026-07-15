@@ -104,6 +104,54 @@ class MadmomAnalyzer:
         self.beats_per_bar = beats_per_bar
         self._processors = {}
         self._call_lock = RLock()
+        self._status = "new"
+
+    @property
+    def status(self):
+        """Lifecycle state: ``new``, ``ready``, or ``released``."""
+        return self._status
+
+    def load(self):
+        """Build all selected pipelines and return this analyzer."""
+        with self._call_lock:
+            if self._status == "ready":
+                return self
+            self._status = "loading"
+            try:
+                for task in self.tasks:
+                    self._processor(task)
+            except Exception:
+                self._status = "failed"
+                raise
+            self._status = "ready"
+            return self
+
+    def infer(self, audio, *, sample_rate=None):
+        """Run inference on an explicitly loaded analyzer."""
+        if self._status != "ready":
+            raise RuntimeError("MadmomAnalyzer must be loaded before infer()")
+        return self(audio, sample_rate=sample_rate)
+
+    def release(self):
+        """Release in-memory processors; disk checkpoint cache is preserved."""
+        with self._call_lock:
+            self._processors.clear()
+            self._status = "released"
+        return self
+
+    close = release
+
+    def cache_info(self):
+        """Return package-owned checkpoint cache state for this analyzer."""
+        from .models import cache_info
+        return cache_info()
+
+    def __enter__(self):
+        return self.load()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release()
+        return False
 
     def _processor(self, task):
         if task not in self._processors:
@@ -134,6 +182,8 @@ class MadmomAnalyzer:
 
     def __call__(self, audio, *, sample_rate=None):
         with self._call_lock:
+            if self._status in ("new", "released"):
+                self.load()
             return self._analyze(audio, sample_rate=sample_rate)
 
     def _analyze(self, audio, *, sample_rate=None):

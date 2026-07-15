@@ -22,10 +22,14 @@ from madmom_infer.api import (
     detect_downbeats, detect_key, detect_onsets, estimate_tempo, hpss, mfcc,
     recognize_chords, transcribe_notes,
 )
+from madmom_infer.models import (CheckpointSpec, cache_info, checkpoint_catalog,
+                                 checkpoint_config_path, download_checkpoint,
+                                 validate_checkpoint_config)
 
 __all__ = [
     "__version__", "AnalysisResult", "MadmomAnalyzer", "analyze", "chroma",
     "detect_beats", "detect_downbeats", "detect_key", "detect_onsets",
     "estimate_tempo", "hpss", "mfcc", "recognize_chords",
-    "transcribe_notes",
+    "transcribe_notes", "CheckpointSpec", "checkpoint_catalog", "cache_info",
+    "download_checkpoint", "checkpoint_config_path", "validate_checkpoint_config",
 ]

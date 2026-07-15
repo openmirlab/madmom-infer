@@ -1,0 +1,423 @@
+# Release-pinned checkpoint metadata for madmom-infer.
+[schema]
+version = 1
+
+[package]
+name = "madmom-infer"
+config_revision = "2026-07-15"
+
+[defaults]
+base_url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master"
+
+[metadata]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[models.downbeats_blstm]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_1.pkl"
+sha256 = "b02c4b8aa963069449422fd5cc55bd4077105fe268b0d83036b7d68b5520f38d"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_2.pkl"
+sha256 = "6fa9d138ed84bed14ab5ef6f81f3a7e1a125ff8c571a255f6ce91ccf93390eee"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_3.pkl"
+sha256 = "adf6a3e3bf345a9172e8252a511dae28622afe26ee653354c0d4c9e37de8f89a"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_4.pkl"
+sha256 = "a4f9a09b1588ca74b0157251364650d3fe81e383019b5986941415e08b37fcde"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_5.pkl"
+sha256 = "e40aea9b8221babaf14a9211a48dccc3ebcecdf8bcd6d62d60f0949445de9bb6"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_6.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_6.pkl"
+sha256 = "89b6854c5d6b2381687731aedc9bce6c84894021d1c2eeb60d161cefe997d68c"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_7.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_7.pkl"
+sha256 = "371a319a66d32bee6ab8d4a15f6ae9e4ee22ff97b4276736bab93d9a994c06c1"
+
+[[models.downbeats_blstm.files]]
+path = "downbeats/2016/downbeats_blstm_8.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_blstm_8.pkl"
+sha256 = "a0d20e1922872a3e5b74df451d8b5701de6ca88d9f5739f313fb2991d7a84c77"
+
+[models.key_cnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.key_cnn.files]]
+path = "key/2018/key_cnn.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/key/2018/key_cnn.pkl"
+sha256 = "c58ba553be1048877662a663a2670c0051b3c2c66d109b6042ba722ed0bfc7a6"
+
+[models.onsets_rnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_1.pkl"
+sha256 = "5374f4a5fd12c9419de6195d77f20de7553b8b858d1408942b35bf04dc674901"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_2.pkl"
+sha256 = "2169734fc38a2366c49b98e2950f0743bcf7c659097db7798fbb0bc570bdfb22"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_3.pkl"
+sha256 = "bfb88d92ca0f7dcb11749edba9ff1c954536e0d84ba0660f6e201af9cc43050d"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_4.pkl"
+sha256 = "77af66643507873a0a1a6835c8dfccdb35ea0baace5e44ce0653211827a9db97"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_5.pkl"
+sha256 = "2c5b97872b568dab9e9aa67899c379026df5793f129595c070d4e58f0caa512d"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_6.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_6.pkl"
+sha256 = "3395a9be0e4c2b1fb37b58616a3ed499c6fd994bdd29e644144e8a06664180d5"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_7.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_7.pkl"
+sha256 = "d36d4f14b91aad277e6d5f8dad542297ada35f075a95cbb62f8fde34766c8e26"
+
+[[models.onsets_rnn.files]]
+path = "onsets/2013/onsets_rnn_8.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_rnn_8.pkl"
+sha256 = "fafc8535a5654b2225739eff6803897f36f5945a411cbeaf36a2228ed00deaea"
+
+[models.onsets_brnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_1.pkl"
+sha256 = "cd3552b4476f6cafb73c3937e07d954056b4ebd972114b67641ae5726c3233fd"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_2.pkl"
+sha256 = "041d72ce5fb5d466aeb65b1555f3cbb83db6ed659f30299c15cb5024f22cee21"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_3.pkl"
+sha256 = "0b2d2f805f5f9eca7a08174bfb3fdef7ed4cd04a75845dea925061262c634819"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_4.pkl"
+sha256 = "5394e8a6ef0d6b316a7dea0150ebf8d32b0a91267ba2cbb3108b9b8aabf11d17"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_5.pkl"
+sha256 = "cbe6967220a327e8691a45ab40adf6a98089c77b4969a6e9c961d308e3e29eb5"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_6.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_6.pkl"
+sha256 = "686cde0a80a83b3efb0986f8a4c8c170353727ebd03920fac525959e4d7f3f2f"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_7.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_7.pkl"
+sha256 = "14788a5834c73b09bebed233cb870cfd0af41915e6ee2639fbca1e43bdeae410"
+
+[[models.onsets_brnn.files]]
+path = "onsets/2013/onsets_brnn_8.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_brnn_8.pkl"
+sha256 = "0b24555e609460b5a134645fb439e7088fb518007a165e6b9d469b7cf7d65de4"
+
+[models.onsets_cnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.onsets_cnn.files]]
+path = "onsets/2013/onsets_cnn.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/onsets/2013/onsets_cnn.pkl"
+sha256 = "ac7aad3f99c45ecea846406c867dec83fbdab114399b00bcb12eaaeffd5a990e"
+
+[models.beats_lstm]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_1.pkl"
+sha256 = "baab78a188d220d6972fdb91040f375ae711d96489bdb471ff7268124cc47725"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_2.pkl"
+sha256 = "af222e0cb79f49b680a87952e13dd755b71f5b81128b3318d4e99bdd458dba26"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_3.pkl"
+sha256 = "fc54ea5248fca54385312e17974cac07ca4a1a97432dc1dd1c02c364b4cd717a"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_4.pkl"
+sha256 = "7a355cf7167607f3543e73b8b2ba06ffa481d1cd7443376d4e3378ef6d28f1ae"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_5.pkl"
+sha256 = "849d563129e1b77df72c9b5e0d13a02f5a3eeffe3189b91a3edb73f864dc19c9"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_6.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_6.pkl"
+sha256 = "cae69664e3058ad3fed74dcd53414284096913cae8c9b2726375a555701202c8"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_7.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_7.pkl"
+sha256 = "bbc47b60c3c7e3f2026e234847aa91b41d3faf8cc61f81b8f523c4567a7b6c46"
+
+[[models.beats_lstm.files]]
+path = "beats/2016/beats_lstm_8.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2016/beats_lstm_8.pkl"
+sha256 = "78459e9ef8af334ffa88eb8a36ababf04e51d7abdad2daaabd56dd99ccad2f3e"
+
+[models.beats_blstm]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_1.pkl"
+sha256 = "bd6545fe694264491ee95e03508d318d164b7f2abac1f48edd0121389506bf5f"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_2.pkl"
+sha256 = "89ab1defb1b34712bdd0c9f84a756178e809612720733ed7b3a5cc47420689d7"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_3.pkl"
+sha256 = "4a3f63f1fe361a354cb5f646349522b87482f29baadacf2d20441d5c52c5282a"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_4.pkl"
+sha256 = "4a4469fc00dc4c90b028866a9d268fd19429c6a3f298c70838571e90db248f18"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_5.pkl"
+sha256 = "017fd2e6808f43b9cddb61ac115c8d899f6fcdd3801338c6f76b1b30c3c3dbfd"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_6.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_6.pkl"
+sha256 = "055e8c8715ce4e71e9855e348ff1816fb7630a4d10117d8e4c11684770d64240"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_7.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_7.pkl"
+sha256 = "35ba5622e6c8f6c24b7efee1dbb31a78468b3106a7e4a8e3bfa2761f326b51dc"
+
+[[models.beats_blstm.files]]
+path = "beats/2015/beats_blstm_8.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/beats/2015/beats_blstm_8.pkl"
+sha256 = "fc25b6890baaeecd2304e18078ee1ce6a0014a69fdba95590a4ebee6cd847f64"
+
+[models.downbeats_bgru_rhythmic]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.downbeats_bgru_rhythmic.files]]
+path = "downbeats/2016/downbeats_bgru_rhythmic_0.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_rhythmic_0.pkl"
+sha256 = "50e7bcb8b6d5be58c35463caca79b624552469b23f94f353a97e319b38a3ee33"
+
+[[models.downbeats_bgru_rhythmic.files]]
+path = "downbeats/2016/downbeats_bgru_rhythmic_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_rhythmic_1.pkl"
+sha256 = "78f82313bec5f129bd9eed03a13718d6e81b5b6587c4bbdd7e5b4c4616e18436"
+
+[[models.downbeats_bgru_rhythmic.files]]
+path = "downbeats/2016/downbeats_bgru_rhythmic_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_rhythmic_2.pkl"
+sha256 = "d959a9478dd08ba3543c45df1ff89a80e8319d4c353f4e591ea93d52d317ff09"
+
+[[models.downbeats_bgru_rhythmic.files]]
+path = "downbeats/2016/downbeats_bgru_rhythmic_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_rhythmic_3.pkl"
+sha256 = "81089b0d9cfed8b21ffdb6584cac5f055ed97372612d6a0d4eb503494842763f"
+
+[[models.downbeats_bgru_rhythmic.files]]
+path = "downbeats/2016/downbeats_bgru_rhythmic_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_rhythmic_4.pkl"
+sha256 = "c3ea8025bbfc3f7660aea1c92b901c7f35b71c64d5c57a8485fd9011409f6a39"
+
+[[models.downbeats_bgru_rhythmic.files]]
+path = "downbeats/2016/downbeats_bgru_rhythmic_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_rhythmic_5.pkl"
+sha256 = "452708ef3c3a38523c259eaacc94dca84fb444e7a2553ee4a93fce20ef9397bb"
+
+[models.downbeats_bgru_harmonic]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.downbeats_bgru_harmonic.files]]
+path = "downbeats/2016/downbeats_bgru_harmonic_0.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_harmonic_0.pkl"
+sha256 = "8d677435269025d71f1beb85c11e9c130eacb1fdbeca45d054969299fd18eea9"
+
+[[models.downbeats_bgru_harmonic.files]]
+path = "downbeats/2016/downbeats_bgru_harmonic_1.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_harmonic_1.pkl"
+sha256 = "f8797e7d8ce9d064714f3b9b4ccdc03413e5c91b25d6a275024efea72d8aef01"
+
+[[models.downbeats_bgru_harmonic.files]]
+path = "downbeats/2016/downbeats_bgru_harmonic_2.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_harmonic_2.pkl"
+sha256 = "a29d2acbffe75485e6476c63df461f90640bb9de6fd534b61a6bd8f938db46ee"
+
+[[models.downbeats_bgru_harmonic.files]]
+path = "downbeats/2016/downbeats_bgru_harmonic_3.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_harmonic_3.pkl"
+sha256 = "649ccc0a015020b74c5b437789926082bbbea7f9fe1950125b5e5d094b3d6d8f"
+
+[[models.downbeats_bgru_harmonic.files]]
+path = "downbeats/2016/downbeats_bgru_harmonic_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_harmonic_4.pkl"
+sha256 = "28ec3216a4368071eae0c2311bab138fca0b0dbca6791441b7ba290f34c29217"
+
+[[models.downbeats_bgru_harmonic.files]]
+path = "downbeats/2016/downbeats_bgru_harmonic_5.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/downbeats/2016/downbeats_bgru_harmonic_5.pkl"
+sha256 = "82f71f78943399af650fccee59a9118ba64784e22fac4446ae820c5ec96d6933"
+
+[models.chroma_dnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.chroma_dnn.files]]
+path = "chroma/2016/chroma_dnn.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/chroma/2016/chroma_dnn.pkl"
+sha256 = "d91aff59113ec6b85de9c9b1aafb065ed0c756072284cebc61564237e901ca94"
+
+[models.chords_dccrf]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.chords_dccrf.files]]
+path = "chords/2016/chords_dccrf.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/chords/2016/chords_dccrf.pkl"
+sha256 = "64e72027c989d6db8ecaa2f097592d3124b94f0362bde225d0c686a8a68d8d03"
+
+[models.chords_cnn_feat]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.chords_cnn_feat.files]]
+path = "chords/2016/chords_cnnfeat.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/chords/2016/chords_cnnfeat.pkl"
+sha256 = "59ac731a514880d7ec22ed9ee33935fc1683d2a03d8a7b4b81d26a3da944ce7d"
+
+[models.chords_cfcrf]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.chords_cfcrf.files]]
+path = "chords/2016/chords_cnncrf.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/chords/2016/chords_cnncrf.pkl"
+sha256 = "4b8a63b4bb5bea076cf1babc76d5cb0a3618e6125d9a3a998f441d61308676af"
+
+[models.notes_brnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.notes_brnn.files]]
+path = "notes/2013/notes_brnn.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/notes/2013/notes_brnn.pkl"
+sha256 = "963cc5b21877d03a0a77636080fa62d6b66d7521ae0c90a6ad9f2f1923ac36ff"
+
+[models.notes_cnn]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.notes_cnn.files]]
+path = "notes/2019/notes_cnn.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/notes/2019/notes_cnn.pkl"
+sha256 = "48ac7581cf5bb7d205d47fdb5b819a163e23250c22de3de5287a78dce9581f5d"
+
+[models.patterns_ballroom]
+license = "CC BY-NC-SA 4.0"
+provenance = "CPJKU/madmom_models"
+source_revision = "master"
+updated_at = "2026-07-15"
+
+[[models.patterns_ballroom.files]]
+path = "patterns/2013/ballroom_pattern_3_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/patterns/2013/ballroom_pattern_3_4.pkl"
+sha256 = "e4955a6b878be8226e5db860a2d1d3cd62db15c58f54dabff14f7e4564b3d9cb"
+
+[[models.patterns_ballroom.files]]
+path = "patterns/2013/ballroom_pattern_4_4.pkl"
+url = "https://raw.githubusercontent.com/CPJKU/madmom_models/master/patterns/2013/ballroom_pattern_4_4.pkl"
+sha256 = "d16b5455f610bf5e68da48aef04a3882305e292a825a51c6f5d5a162c1f2ee28"
+

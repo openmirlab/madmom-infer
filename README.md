@@ -204,6 +204,31 @@ result = mm.MadmomAnalyzer(tasks=["beats", "tempo", "key"])(
 print(result.beats, result.tempo, result.key)
 ```
 
+For an explicit model lifecycle, use the analyzer as a context manager. The
+`load()` step downloads and verifies any required checkpoints, `infer()` runs
+only when the session is ready, and `release()`/`close()` drops in-memory
+processors while preserving the disk cache:
+
+```python
+with mm.MadmomAnalyzer(tasks=["beats", "tempo"]) as session:
+    result = session.infer("track.wav", sample_rate=44100)
+    print(session.status)  # ready
+# session is released here; cached checkpoint files remain on disk
+```
+
+Checkpoint metadata is release-pinned inside this package. Inspect it with
+`mm.checkpoint_catalog()` or cache state with `mm.cache_info()`. Download
+helpers accept an explicit cache root and URL override while always verifying
+the pinned SHA-256 digest, so an integration layer can customize storage or
+transport without adding a shared runtime dependency.
+
+The source of that metadata is the package-owned machine-readable file
+`madmom_infer/config/checkpoints.toml`. It records each model key, artifact
+path, URL base, checksum, license, provenance, and source revision. Validate
+the installed file (or a proposed replacement) with
+`mm.validate_checkpoint_config(path)`; runtime never consults a central or
+live catalog.
+
 Each one-shot call above (`detect_beats`, `estimate_tempo`, ...) builds and
 discards its own `MadmomAnalyzer` internally -- convenient for a single call,
 but it reloads models every time. Processing many files, or several tasks on

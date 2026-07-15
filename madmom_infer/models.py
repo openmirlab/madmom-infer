@@ -156,9 +156,128 @@ CNNPianoNoteProcessor.__init__), madmom_infer/features/downbeats.py
 import hashlib
 import os
 import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
 
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.9/3.10
+    tomllib = None
+
+
+def _legacy_toml_load(path):
+    """Small TOML reader for the package's deliberately simple schema."""
+    import ast
+    result = {}
+    section = None
+    current_file = None
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[[") and line.endswith("]]" ):
+            section = line[2:-2]
+            if section.startswith("models.") and section.endswith(".files"):
+                model = section.split(".")[1]
+                result.setdefault("models", {}).setdefault(model, {}).setdefault("files", []).append({})
+                current_file = result["models"][model]["files"][-1]
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1]
+            current_file = None
+            if section.startswith("models."):
+                model = section.split(".", 1)[1]
+                result.setdefault("models", {}).setdefault(model, {})
+            else:
+                result.setdefault(section, {})
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip()
+        value = ast.literal_eval(value)
+        target = current_file
+        if target is None:
+            if section.startswith("models."):
+                target = result["models"][section.split(".", 1)[1]]
+            else:
+                target = result[section]
+        target[key] = value
+    return result
+
 MODELS_REPO_RAW_BASE = "https://raw.githubusercontent.com/CPJKU/madmom_models/master"
+
+
+@dataclass(frozen=True)
+class CheckpointSpec:
+    """Release-pinned metadata for one model family."""
+
+    name: str
+    files: tuple
+    url: str
+    sha256: tuple
+    license: str = ""
+    provenance: str = ""
+    source_revision: str = ""
+    updated_at: str = ""
+    artifact_urls: tuple = ()
+
+    @property
+    def size(self):
+        return len(self.files)
+
+
+def _checkpoint_config_path():
+    return Path(__file__).with_name("config") / "checkpoints.toml"
+
+
+def _load_checkpoint_config(path=None):
+    """Load and validate this package's release-pinned checkpoint config."""
+    path = Path(path) if path is not None else _checkpoint_config_path()
+    try:
+        if tomllib is None:
+            config = _legacy_toml_load(path)
+        else:
+            with path.open("rb") as fh:
+                config = tomllib.load(fh)
+    except (OSError, ValueError, SyntaxError, tomllib.TOMLDecodeError if tomllib else ValueError) as exc:
+        raise ValueError("invalid checkpoint config: %s" % path) from exc
+    if config.get("schema", {}).get("version") != 1:
+        raise ValueError("unsupported checkpoint config schema version")
+    defaults = config.get("defaults", {})
+    base_url = defaults.get("base_url")
+    if not isinstance(base_url, str) or not base_url.startswith("https://"):
+        raise ValueError("checkpoint config defaults.base_url must be HTTPS")
+    models = config.get("models")
+    if not isinstance(models, dict) or not models:
+        raise ValueError("checkpoint config must define models")
+    loaded = {}
+    for name, metadata in models.items():
+        files = metadata.get("files") if isinstance(metadata, dict) else None
+        if not isinstance(name, str) or not name or not isinstance(files, list) or not files:
+            raise ValueError("model %r must define non-empty files" % name)
+        parsed = []
+        for item in files:
+            relpath, digest = item.get("path"), item.get("sha256")
+            if (not isinstance(relpath, str) or not relpath or Path(relpath).is_absolute()
+                    or not isinstance(digest, str) or len(digest) != 64
+                    or any(c not in "0123456789abcdef" for c in digest.lower())):
+                raise ValueError("invalid checkpoint metadata for %s" % name)
+            item_url = item.get("url")
+            if item_url is not None and (not isinstance(item_url, str)
+                                         or not item_url.startswith("https://")):
+                raise ValueError("invalid checkpoint URL for %s" % name)
+            parsed.append(_ModelFile(relpath, digest.lower(), item_url))
+        loaded[name] = parsed
+    return {"base_url": base_url.rstrip("/"), "models": loaded, "raw": config}
+
+
+def checkpoint_config_path():
+    """Return the installed package-owned checkpoint config path."""
+    return _checkpoint_config_path()
+
+
+def validate_checkpoint_config(path=None):
+    """Validate a checkpoint TOML file and return its normalized metadata."""
+    return _load_checkpoint_config(path)
 
 
 def _cache_root() -> Path:
@@ -178,11 +297,12 @@ def _cache_root() -> Path:
 class _ModelFile:
     """One remote model file: its repo-relative path and known-good sha256."""
 
-    __slots__ = ("relpath", "sha256")
+    __slots__ = ("relpath", "sha256", "url")
 
-    def __init__(self, relpath: str, sha256: str):
+    def __init__(self, relpath: str, sha256: str, url: str = None):
         self.relpath = relpath
         self.sha256 = sha256
+        self.url = url
 
 
 def _sha256_of(path: Path) -> str:
@@ -194,7 +314,7 @@ def _sha256_of(path: Path) -> str:
 
 
 def download(model_file: "_ModelFile", cache_root: Path = None,
-             force: bool = False) -> Path:
+             force: bool = False, url: str = None) -> Path:
     """Download (if not already cached) one model file, verify its sha256,
     and return the local cache path.
 
@@ -225,7 +345,10 @@ def download(model_file: "_ModelFile", cache_root: Path = None,
         local_path.unlink()
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
-    url = f"{MODELS_REPO_RAW_BASE}/{model_file.relpath}"
+    # A caller-supplied URL is an explicit transport override.  Otherwise
+    # honor the artifact URL pinned in the package-owned config, falling back
+    # to the legacy family base URL for source-defined model files.
+    url = url or model_file.url or f"{MODELS_REPO_RAW_BASE}/{model_file.relpath}"
     tmp_path = local_path.with_suffix(local_path.suffix + ".part")
     with urllib.request.urlopen(url, timeout=30) as resp, open(tmp_path, "wb") as fh:
         fh.write(resp.read())
@@ -696,3 +819,97 @@ def patterns_ballroom(cache_root: Path = None, force: bool = False):
     """
     return [download(f, cache_root=cache_root, force=force)
             for f in _PATTERNS_BALLROOM_FILES]
+
+
+# Replace the historical inline declarations with the package-owned config.
+# The declarations remain above as a readable compatibility fallback for
+# source checkouts, but runtime metadata always comes from checkpoints.toml.
+_CHECKPOINT_CONFIG = _load_checkpoint_config()
+MODELS_REPO_RAW_BASE = _CHECKPOINT_CONFIG["base_url"]
+for _family_name, _family_files in _CHECKPOINT_CONFIG["models"].items():
+    globals()["_" + _family_name.upper() + "_FILES"] = _family_files
+
+# This snapshot is assembled only from the package's pinned, hash-verified
+# declarations above.  It is intentionally runtime-local: callers may use it
+# to inspect or override a source URL, but inference never contacts a catalog
+# service.
+_MODEL_FAMILY_FILES = {
+    "downbeats_blstm": _DOWNBEATS_BLSTM_FILES,
+    "key_cnn": _KEY_CNN_FILES,
+    "onsets_rnn": _ONSETS_RNN_FILES,
+    "onsets_brnn": _ONSETS_BRNN_FILES,
+    "onsets_cnn": _ONSETS_CNN_FILES,
+    "beats_lstm": _BEATS_LSTM_FILES,
+    "beats_blstm": _BEATS_BLSTM_FILES,
+    "downbeats_bgru_rhythmic": _DOWNBEATS_BGRU_RHYTHMIC_FILES,
+    "downbeats_bgru_harmonic": _DOWNBEATS_BGRU_HARMONIC_FILES,
+    "chroma_dnn": _CHROMA_DNN_FILES,
+    "chords_dccrf": _CHORDS_DCCRF_FILES,
+    "chords_cnn_feat": _CHORDS_CNN_FEAT_FILES,
+    "chords_cfcrf": _CHORDS_CFCRF_FILES,
+    "notes_brnn": _NOTES_BRNN_FILES,
+    "notes_cnn": _NOTES_CNN_FILES,
+    "patterns_ballroom": _PATTERNS_BALLROOM_FILES,
+}
+
+
+def checkpoint_catalog():
+    """Return the package-owned, release-pinned checkpoint metadata snapshot.
+
+    The returned mapping is a copy and may be used by an integration layer
+    without making this package depend on that layer.
+    """
+    raw_models = _CHECKPOINT_CONFIG["raw"].get("models", {})
+    defaults = _CHECKPOINT_CONFIG["raw"].get("metadata", {})
+    return {
+        name: CheckpointSpec(
+            name=name,
+            files=tuple(item.relpath for item in files),
+            url=MODELS_REPO_RAW_BASE,
+            sha256=tuple(item.sha256 for item in files),
+            license=raw_models.get(name, {}).get("license", defaults.get("license", "")),
+            provenance=raw_models.get(name, {}).get("provenance", defaults.get("provenance", "")),
+            source_revision=raw_models.get(name, {}).get("source_revision", defaults.get("source_revision", "")),
+            updated_at=raw_models.get(name, {}).get("updated_at", defaults.get("updated_at", "")),
+            artifact_urls=tuple(item.url or f"{MODELS_REPO_RAW_BASE}/{item.relpath}" for item in files),
+        )
+        for name, files in _MODEL_FAMILY_FILES.items()
+    }
+
+
+def cache_info(name=None, cache_root: Path = None):
+    """Describe disk-cache state without loading model objects."""
+    catalog = checkpoint_catalog()
+    names = [name] if name is not None else list(catalog)
+    if any(item not in catalog for item in names):
+        unknown = sorted(set(names) - set(catalog))
+        raise KeyError("unknown checkpoint family: %s" % unknown)
+    root = cache_root or _cache_root()
+    result = {}
+    for family in names:
+        spec = catalog[family]
+        files = []
+        for relpath, digest in zip(spec.files, spec.sha256):
+            path = root / relpath
+            exists = path.is_file()
+            files.append({"path": path, "exists": exists,
+                          "verified": exists and _sha256_of(path) == digest})
+        result[family] = {"files": files,
+                          "complete": all(item["verified"] for item in files)}
+    return result
+
+
+def download_checkpoint(name, cache_root: Path = None, force: bool = False,
+                        url: str = None):
+    """Download one catalog family with an optional base-URL override.
+
+    The override changes transport only; every file is still checked against
+    the package-pinned SHA-256 digest before it becomes visible in the cache.
+    """
+    try:
+        files = _MODEL_FAMILY_FILES[name]
+    except KeyError as exc:
+        raise KeyError("unknown checkpoint family: %s" % name) from exc
+    return [download(item, cache_root=cache_root, force=force,
+                     url=(f"{url.rstrip('/')}/{item.relpath}" if url else None))
+            for item in files]

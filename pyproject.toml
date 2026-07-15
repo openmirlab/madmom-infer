@@ -71,6 +71,7 @@ path = "madmom_infer/__about__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["madmom_infer"]
+include = ["madmom_infer/config/checkpoints.toml"]
 
 [tool.hatch.build.targets.sdist]
 packages = ["madmom_infer"]
