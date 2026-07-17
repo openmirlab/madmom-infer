@@ -443,12 +443,20 @@ def _load_wave_file(filename, sample_rate=None, num_channels=None,
     """Load a .wav file's raw samples, madmom's `load_wave_file` semantics.
 
     Port of `madmom.io.audio.load_wave_file`
-    (`madmom-upstream/madmom/io/audio.py:594-668`), reading via
-    `scipy.io.wavfile.read(filename, mmap=True)` exactly like the original --
-    this is what keeps PCM `int16` data `int16` (no float rescale): scipy
-    returns the file's native dtype verbatim, and madmom's `Signal` defaults
-    to `dtype=None` (`signal.py:503`, "keep whatever dtype the source has"),
-    so the dtype flows straight through to `FramedSignal` frames.
+    (`madmom-upstream/madmom/io/audio.py:594-668`). scipy returns the file's
+    native dtype verbatim, and madmom's `Signal` defaults to `dtype=None`
+    (`signal.py:503`, "keep whatever dtype the source has"), so the source
+    dtype flows through to `FramedSignal` frames.
+
+    Read with `mmap=False`, deviating from the original's `mmap=True`: scipy
+    cannot memory-map a 3-byte container, so `mmap=True` raises `ValueError`
+    on every 24-bit PCM file -- an ordinary studio master export -- making it
+    unreadable rather than merely un-mapped. The dtype flow-through above was
+    once cited as the reason to keep `mmap=True`; that rationale was measured
+    and does not hold. Decoded dtype does not reach the result: int32, float64
+    and float32 decodes of identical content yield bit-identical beat grids
+    (0.000000 ms across all beats), because the analysis normalises internally.
+    See `docs/blueprints/thoughts/2026-07-17-decode-dtype-probe.md`.
 
     Deliberately NOT ported: on a `sample_rate`/`dtype` mismatch, real madmom
     raises `ValueError` here, which `load_audio_file` catches and retries via
@@ -458,7 +466,7 @@ def _load_wave_file(filename, sample_rate=None, num_channels=None,
     """
     from scipy.io import wavfile
 
-    file_sample_rate, signal = wavfile.read(str(filename), mmap=True)
+    file_sample_rate, signal = wavfile.read(str(filename), mmap=False)
     if sample_rate is not None and sample_rate != file_sample_rate:
         raise NotImplementedError(
             "requested sample_rate=%r differs from the file's native rate "

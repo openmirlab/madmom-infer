@@ -268,3 +268,59 @@ def test_framed_signal_shape_includes_channels_for_multichannel():
     assert frames.shape == (frames.num_frames, 6, 2)
     assert frames.ndim == 3
     assert frames[0].shape == (6, 2)
+
+
+def test_signal_from_wav_24bit_loads_without_mmap_error(tmp_path):
+    """Regression for the `mmap=True` 3-byte-container bug.
+
+    scipy cannot memory-map a 3-byte container: `wavfile.read(path,
+    mmap=True)` raises `ValueError: mmap=True not compatible with 3-byte
+    container size` on EVERY 24-bit PCM wav -- an ordinary studio master
+    export -- which made such files entirely unreadable. `_load_wave_file`
+    must read with `mmap=False` (madmom_infer/audio/signal.py) for this to
+    work at all; no other fixture in this suite is 24-bit, and every wav
+    written via `scipy.io.wavfile.write` up above is a 16- or 32-bit
+    container even when the source array is int32 (scipy.io.wavfile.write
+    always emits a container as wide as the array dtype, and there is no
+    24-bit numpy dtype), so none of them exercised this path.
+
+    The fixture is built with the stdlib `wave` module instead, packing
+    samples into 3-byte little-endian frames by hand, and its bit depth is
+    asserted directly off the fmt chunk (`wave.Wave_read.getsampwidth()`)
+    so this test fails loudly rather than silently passing against a
+    fixture that drifted off 24-bit.
+    """
+    import struct
+    import wave
+
+    path = tmp_path / "mono24_44100.wav"
+    sample_rate = 44100
+    num_samples = 1000
+    # 24-bit signed PCM range is [-2**23, 2**23 - 1]; stay comfortably
+    # inside it while covering both signs.
+    samples = np.linspace(-2**22, 2**22, num_samples, dtype=np.int64)
+
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(3)  # bytes per sample -> 24-bit container
+        w.setframerate(sample_rate)
+        # little-endian 32-bit two's complement, truncated to its low 3
+        # bytes, is exactly little-endian 24-bit two's complement for any
+        # value that fits in 24 bits signed.
+        frames = b"".join(struct.pack("<i", int(s))[:3] for s in samples)
+        w.writeframes(frames)
+
+    # Assert the fixture is genuinely 24-bit before trusting it as a
+    # regression guard -- this is the exact trap the bug hid behind.
+    with wave.open(str(path), "rb") as w:
+        assert w.getsampwidth() == 3, (
+            "fixture drifted off 24-bit (sampwidth=%d); this test would "
+            "guard nothing" % w.getsampwidth()
+        )
+
+    # The real API: Signal(path) -> _load_wave_file -> wavfile.read. Fails
+    # with mmap=True, must pass with mmap=False.
+    sig = Signal(str(path))
+    assert sig.sample_rate == sample_rate
+    assert len(sig) == num_samples
+    assert np.asarray(sig).dtype == np.int32
