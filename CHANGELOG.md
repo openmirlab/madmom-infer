@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `MadmomAnalyzer(..., tempo_from_downbeat_activations=True)` — an opt-in that lets
+  the `tempo` task read column 0 of `RNNDownBeatProcessor`'s `(n, 2)` output instead
+  of running a second, independent eight-net `RNNBeatProcessor` ensemble over the
+  same signal. A `downbeats` + `onsets` + `tempo` analysis of a 64 s file drops from
+  11.8 s to 8.2 s (−31%). Off by default and refused unless both `tempo` and
+  `downbeats` are selected: the two activations are *not* interchangeable, so this is
+  a diagnostics-grade approximation, not a parity-preserving optimisation. See
+  `MadmomAnalyzer`'s docstring and `docs/blueprints/decisions.md`.
+
+### Changed
+
+- `MadmomAnalyzer._analyze` now memoizes the downbeat RNN's activations per call
+  (`_downbeat_activations`), the way it already memoized beat activations and chroma,
+  so `downbeats` and a flag-enabled `tempo` share one ensemble run.
+
 ## [0.3.0] - 2026-07-13
 
 **Phase 4 complete-port campaign (`feat/complete-port` branch) -- DONE.**
