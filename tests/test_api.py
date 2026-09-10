@@ -86,3 +86,78 @@ def test_analyzer_reuse_across_resampling_matches_fresh(task):
 def test_analyzer_rejects_unknown_task():
     with pytest.raises(ValueError, match="unknown analysis task"):
         MadmomAnalyzer(tasks=("genre",))
+
+
+def test_tempo_from_downbeat_activations_needs_both_tasks():
+    with pytest.raises(ValueError, match="needs both 'tempo' and 'downbeats'"):
+        MadmomAnalyzer(tasks=("tempo",), tempo_from_downbeat_activations=True)
+    with pytest.raises(ValueError, match="needs both 'tempo' and 'downbeats'"):
+        MadmomAnalyzer(tasks=("downbeats",), tempo_from_downbeat_activations=True)
+
+
+def test_tempo_from_downbeat_activations_skips_the_beat_ensemble(monkeypatch):
+    """The whole point of the flag: `RNNBeatProcessor` is never built or run."""
+    analyzer = MadmomAnalyzer(tasks=("downbeats", "tempo"),
+                              tempo_from_downbeat_activations=True)
+    assert analyzer._build_processor("tempo") is None
+
+    calls = {"downbeat_frontend": 0}
+
+    def downbeat_frontend(signal):
+        calls["downbeat_frontend"] += 1
+        # (num_frames, 2): column 0 is the beat activation, column 1 the downbeat one
+        activations = np.zeros((300, 2), dtype=np.float32)
+        activations[::40, 0] = 1.0
+        activations[::160, 1] = 1.0
+        return activations
+
+    monkeypatch.setattr(analyzer, "_build_processor",
+                        lambda task: (downbeat_frontend, lambda act: act)
+                        if task == "downbeats" else None)
+    result = analyzer(np.zeros(44100, dtype=np.float32), sample_rate=44100)
+
+    # one ensemble run, feeding both tasks
+    assert calls["downbeat_frontend"] == 1
+    assert set(result.values) == {"downbeats", "tempo"}
+    assert result["tempo"].shape[1] == 2
+
+
+def test_downbeat_activations_are_not_shared_when_the_flag_is_off(monkeypatch):
+    """Default stays bug-for-bug: `tempo` runs its own ensemble."""
+    analyzer = MadmomAnalyzer(tasks=("downbeats", "tempo"))
+    calls = {"downbeats": 0, "tempo": 0}
+
+    def downbeat_frontend(signal):
+        calls["downbeats"] += 1
+        return np.zeros((300, 2), dtype=np.float32)
+
+    def beat_ensemble(signal):
+        calls["tempo"] += 1
+        return np.zeros(300, dtype=np.float32)
+
+    monkeypatch.setattr(analyzer, "_build_processor",
+                        lambda task: (downbeat_frontend, lambda act: act)
+                        if task == "downbeats" else beat_ensemble)
+    analyzer(np.zeros(44100, dtype=np.float32), sample_rate=44100)
+
+    assert calls == {"downbeats": 1, "tempo": 1}
+
+
+@pytest.mark.network
+def test_tempo_from_downbeat_activations_leaves_downbeats_bit_identical():
+    """`downbeats` never rides on the flag; only `tempo`'s input changes.
+
+    Deliberately no assertion on the tempo VALUES: the two activations are not
+    interchangeable (see `MadmomAnalyzer`'s docstring), and this fixture is 1.5 s
+    of audio -- far too short for tempo estimation to mean anything, so its two
+    leading candidates disagree (240.0 vs 230.8 BPM) purely as noise. What the
+    flag guarantees is the shape of the contract, not agreement.
+    """
+    rate, _ = wavfile.read(WAV)
+    shared = MadmomAnalyzer(tasks=("downbeats", "tempo"),
+                            tempo_from_downbeat_activations=True)(WAV, sample_rate=rate)
+    separate = MadmomAnalyzer(tasks=("downbeats", "tempo"))(WAV, sample_rate=rate)
+
+    np.testing.assert_array_equal(shared["downbeats"], separate["downbeats"])
+    assert shared["tempo"].ndim == 2 and shared["tempo"].shape[1] == 2
+    assert np.all(shared["tempo"][:, 0] > 0)

@@ -38,6 +38,11 @@ None — the Phase 4 complete-port campaign just closed (merged to main,
 
 ## ✅ Shipped
 
+- **`tempo_from_downbeat_activations`** — opt-in on `MadmomAnalyzer` letting
+  `tempo` read the downbeat ensemble's beat column instead of running a
+  second eight-net BLSTM ensemble (−31% on a `downbeats`+`onsets`+`tempo`
+  analysis). Deliberately not the default; why in `decisions.md`.
+
 Clean task-level API (`MadmomAnalyzer` plus ten one-shot MIR tasks, shared input
 normalization/resampling and lazy model reuse) and repair of the four confirmed
 inherited defects (`correlation_diff`, `MFCC`, `MFCCProcessor.transform`,

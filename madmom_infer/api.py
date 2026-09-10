@@ -94,14 +94,37 @@ class AnalysisResult:
 
 
 class MadmomAnalyzer:
-    """Lazily build and reuse canonical pipelines for selected MIR tasks."""
+    """Lazily build and reuse canonical pipelines for selected MIR tasks.
 
-    def __init__(self, tasks=TASKS, beats_per_bar=(3, 4)):
+    ``tempo_from_downbeat_activations`` trades a documented accuracy deviation for
+    roughly a third of the wall time of a ``downbeats`` + ``tempo`` analysis. Both
+    tasks otherwise run a *separate* eight-net RNN ensemble over the same signal,
+    and `RNNDownBeatProcessor`'s ``(n, 2)`` output already carries a beat
+    activation in column 0 -- so with the flag set, ``tempo`` reads that column
+    instead of running `RNNBeatProcessor`. Off by default: the two activations are
+    NOT interchangeable in general (the joint beat/downbeat net emphasises a
+    different periodicity, so the column-0 curve tracks at double tempo under
+    `DBNBeatTrackingProcessor` -- which is why ``beats`` never rides on it, only
+    ``tempo``, whose autocorrelation is octave-tolerant). Measured on five music
+    files from 13 s to 4 min, the leading tempo candidate agreed on four and
+    diverged on a percussion-free vocal stem; on audio too short for tempo
+    estimation to mean anything the two disagree freely. Candidate *strengths*
+    shift on every file. So this is a diagnostics-grade approximation, not a
+    parity-preserving optimisation. Raises `ValueError` unless both tasks are
+    selected.
+    """
+
+    def __init__(self, tasks=TASKS, beats_per_bar=(3, 4),
+                 tempo_from_downbeat_activations=False):
         self.tasks = tuple(tasks)
         unknown = set(self.tasks) - TASKS
         if unknown:
             raise ValueError("unknown analysis task(s): %s" % sorted(unknown))
+        if tempo_from_downbeat_activations and not {"tempo", "downbeats"} <= set(self.tasks):
+            raise ValueError(
+                "tempo_from_downbeat_activations needs both 'tempo' and 'downbeats' tasks")
         self.beats_per_bar = beats_per_bar
+        self.tempo_from_downbeat_activations = tempo_from_downbeat_activations
         self._processors = {}
         self._call_lock = RLock()
         self._status = "new"
@@ -158,11 +181,17 @@ class MadmomAnalyzer:
             self._processors[task] = self._build_processor(task)
         return self._processors[task]
 
+    def _tempo_rides_on_downbeats(self):
+        """True when ``tempo`` reads the downbeat net instead of its own ensemble."""
+        return self.tempo_from_downbeat_activations and "downbeats" in self.tasks
+
     def _build_processor(self, task):
         if task == "onsets":
             from .features.onsets import CNNOnsetProcessor, OnsetPeakPickingProcessor
             return CNNOnsetProcessor(), OnsetPeakPickingProcessor(fps=100)
         if task in ("beats", "tempo"):
+            if task == "tempo" and self._tempo_rides_on_downbeats():
+                return None
             from .features.beats import RNNBeatProcessor
             return RNNBeatProcessor()
         if task == "downbeats":
@@ -186,6 +215,13 @@ class MadmomAnalyzer:
                 self.load()
             return self._analyze(audio, sample_rate=sample_rate)
 
+    def _downbeat_activations(self, signal, shared):
+        """Run the downbeat RNN ensemble once per call and memoize its ``(n, 2)`` output."""
+        if "downbeat_activations" not in shared:
+            frontend, _ = self._processor("downbeats")
+            shared["downbeat_activations"] = frontend(signal)
+        return shared["downbeat_activations"]
+
     def _analyze(self, audio, *, sample_rate=None):
         signal = _audio_signal(audio, sample_rate)
         values = {}
@@ -195,17 +231,22 @@ class MadmomAnalyzer:
                 frontend, decode = self._processor(task)
                 values[task] = decode(frontend(signal))
             elif task in ("beats", "tempo"):
-                if "beat_activations" not in shared:
-                    shared["beat_activations"] = self._processor(task)(signal)
+                if task == "tempo" and self._tempo_rides_on_downbeats():
+                    activations = np.ascontiguousarray(
+                        self._downbeat_activations(signal, shared)[:, 0], dtype=np.float32)
+                else:
+                    if "beat_activations" not in shared:
+                        shared["beat_activations"] = self._processor(task)(signal)
+                    activations = shared["beat_activations"]
                 if task == "beats":
                     from .features.beats import DBNBeatTrackingProcessor
-                    values[task] = DBNBeatTrackingProcessor(fps=100)(shared["beat_activations"])
+                    values[task] = DBNBeatTrackingProcessor(fps=100)(activations)
                 else:
                     from .features.tempo import TempoEstimationProcessor
-                    values[task] = TempoEstimationProcessor(fps=100)(shared["beat_activations"])
+                    values[task] = TempoEstimationProcessor(fps=100)(activations)
             elif task == "downbeats":
-                frontend, decode = self._processor(task)
-                values[task] = decode(frontend(signal))
+                _, decode = self._processor(task)
+                values[task] = decode(self._downbeat_activations(signal, shared))
             elif task == "key":
                 from .features.key import key_prediction_to_label
                 values[task] = key_prediction_to_label(self._processor(task)(signal))
