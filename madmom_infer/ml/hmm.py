@@ -2,7 +2,7 @@
 
 Phase-1 centerpiece of madmom-infer: replaces the compiled HiddenMarkovModel.viterbi()
 with vectorized numpy. Feasible because the beat/downbeat state space is small
-(~11k-15k states per bar-length HMM) and transitions are sparse (CSR degree ranges
+(~11k-22k states per bar-length HMM) and transitions are sparse (CSR degree ranges
 from 1 for "same tempo" transitions up to a few dozen for beat-boundary tempo-change
 transitions) -- confirmed by sizing the original madmom's BarStateSpace/
 BarTransitionModel construction.
@@ -21,6 +21,8 @@ in the linear (non-log) domain, per-frame renormalized, matching hmm.pyx:591-659
 Observation densities stay in their compact `(frames, observation_classes)` form
 and are mapped to states one frame at a time, matching upstream hmm.pyx; expanding
 them to `(frames, states)` is both slower and prohibitively memory-heavy on songs.
+Backtracking stores state indices as `uint16` when the state space fits and
+falls back to `uint32` above 65,536 states; the public path remains `uint32`.
 
 Both `np.fmax.reduceat`/`np.add.reduceat` have a documented gotcha: consecutive
 identical indices (a zero-length CSR segment, i.e. a state with no incoming
@@ -414,8 +416,11 @@ class HiddenMarkovModel(object):
         om_pointers = np.asarray(om.pointers, dtype=np.uint32)
         om_densities = np.asarray(om.log_densities(observations), dtype=float)
 
-        # back-tracking pointers, one row per frame
-        bt_pointers = np.zeros((num_observations, num_states), dtype=np.uint32)
+        # Backtracking only stores state indices. Beat/downbeat HMMs stay well
+        # below 65,536 states, so use two bytes per pointer there; generic
+        # larger HMMs retain the uint32 representation.
+        bt_dtype = np.uint16 if num_states <= 65536 else np.uint32
+        bt_pointers = np.zeros((num_observations, num_states), dtype=bt_dtype)
 
         # previous viterbi variables, init with the initial state distribution
         previous_viterbi = np.log(self.initial_distribution).astype(float)

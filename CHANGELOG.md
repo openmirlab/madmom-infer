@@ -41,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `HiddenMarkovModel.viterbi()` now stores backtracking state indices as
+  `uint16` when the HMM has at most 65,536 states, while preserving the public
+  `uint32` path and falling back to `uint32` for larger generic HMMs. On the
+  fixed 270-second beat-grid input, three direct host-side runs kept the full
+  result identical: NumPy median inference time fell from 45.55 s to 43.88 s
+  with peak RSS down 27 MiB; after the Torch framing improvement below, CUDA
+  median host RSS fell from 3244 MiB to 2093 MiB and inference time from
+  28.99 s to 28.22 s, with incremental VRAM unchanged at 2334 MiB.
+
 - Torch spectrogram framing now pads each waveform once and exposes
   integer-hop frames through an overlapping `Tensor.unfold` view instead of
   caching dense `(frames, frame_size)` index and validity tensors for every

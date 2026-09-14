@@ -1304,7 +1304,9 @@ all-in-one-infer package's pure-Python NATTEN replacement:
   `HiddenMarkovModel.viterbi()` must keep observation densities in
   their compact `(frames, observation_classes)` representation and map them
   to states inside the frame loop, matching upstream `hmm.pyx`; never restore
-  the removed `(frames, states)` density matrix. The 2026-09-14 270-second
+  the removed `(frames, states)` density matrix. Its internal backtracking
+  matrix uses `uint16` through 65,536 states and `uint32` above that boundary;
+  the returned path remains `uint32`. The 2026-09-14 270-second
   probe measured bit-identical output, peak RSS 4.59 -> 1.60 GiB, and decoder
   wall time 28.61 -> 12.34 seconds. A 270-second full audio-in A/B using
   repeated CPJKU/madmom sample audio kept beats, downbeats, and tempo

@@ -73,6 +73,44 @@ def test_toy_hmm_viterbi_exact_path(toy_hmm_fixture):
     assert log_prob == pytest.approx(float(d["viterbi_log_prob"]), abs=1e-10)
 
 
+@pytest.mark.parametrize(
+    "num_states, expected_dtype",
+    [(65536, np.uint16), (65537, np.uint32)],
+)
+def test_viterbi_uses_smallest_safe_backpointer_dtype(
+    monkeypatch, num_states, expected_dtype
+):
+    class _TransitionModel:
+        states = np.arange(num_states, dtype=np.uint32)
+        pointers = np.arange(num_states + 1, dtype=np.uint32)
+        log_probabilities = np.zeros(num_states)
+        num_transitions = num_states
+
+    _TransitionModel.num_states = num_states
+
+    class _ObservationModel:
+        pointers = np.zeros(num_states, dtype=np.uint32)
+
+        def log_densities(self, observations):
+            return np.zeros((len(observations), 1))
+
+    allocated_dtypes = []
+    original_zeros = np.zeros
+
+    def capture_backpointer_dtype(shape, *args, **kwargs):
+        if shape == (1, num_states):
+            allocated_dtypes.append(kwargs.get("dtype"))
+        return original_zeros(shape, *args, **kwargs)
+
+    monkeypatch.setattr(hmm_module.np, "zeros", capture_backpointer_dtype)
+    path, _ = HiddenMarkovModel(
+        _TransitionModel(), _ObservationModel()
+    ).viterbi([0])
+
+    assert allocated_dtypes == [expected_dtype]
+    assert path.dtype == np.uint32
+
+
 def test_viterbi_maps_observation_densities_one_frame_at_a_time(monkeypatch):
     """Guard against rebuilding the removed frames-by-states allocation."""
     tm = TransitionModel.from_dense(
