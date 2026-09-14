@@ -23,14 +23,14 @@ explicitly OUT of Phase-2 scope -- `RNNDownBeatProcessor`/`DOWNBEATS_BLSTM`
 is the one target this phase proves end-to-end.
 
 madmom's `__init__` builds one `HiddenMarkovModel` per bar length and its
-`process()` decodes each with `self.map` -- `map` (builtin, sequential) unless
-`num_threads` > 1, in which case it swaps in `multiprocessing.Pool(...).map`
-(downbeats.py:230-235). all-in-one-infer (the only phase-1 caller, see
-all-in-one-fix/src/allin1_infer/postprocessing/metrical.py:26-30) never passes
-`num_threads`, so madmom's own default is already sequential -- this port just
-always uses a plain Python loop over `self.hmms` and drops the
-`multiprocessing.Pool` branch entirely (documented here so a future reader
-doesn't go looking for it and wonder if it was missed).
+`process()` decodes each with `self.map` -- builtin sequential `map` by default,
+or `multiprocessing.Pool.map` when `num_threads > 1` (downbeats.py:230-235).
+This port preserves the default and the opt-in speed knob, but uses an in-process
+`ThreadPoolExecutor`: NumPy's Viterbi kernels release the GIL, model/activation
+arrays stay shared instead of being pickled into child processes, and the pool is
+closed at the end of each call. Parallel meters deliberately trade higher transient
+host RSS for lower latency; see the constructor documentation and CHANGELOG's
+270-second measurements.
 
 Wave 4c adds `SyncronizeFeaturesProcessor` (pure numpy, no NN weights --
 average feature frames into per-beat-subdivision bins) and `RNNBarProcessor`
@@ -112,6 +112,8 @@ read by: madmom_infer/features/tempo.py does NOT read this file
 """
 
 import warnings
+
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
@@ -276,6 +278,10 @@ class DBNDownBeatTrackingProcessor(Processor):
         (down-)beat activation function).
     fps : float, optional
         Frames per second.
+    num_threads : int, optional
+        Number of in-process threads used to decode independent bar-length
+        hypotheses. The default of 1 preserves sequential decoding and its
+        lower transient memory use.
 
     References
     ----------
@@ -322,7 +328,7 @@ class DBNDownBeatTrackingProcessor(Processor):
     def __init__(self, beats_per_bar, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
                  num_tempi=NUM_TEMPI, transition_lambda=TRANSITION_LAMBDA,
                  observation_lambda=OBSERVATION_LAMBDA, threshold=THRESHOLD,
-                 correct=CORRECT, fps=None, **kwargs):
+                 correct=CORRECT, fps=None, num_threads=1, **kwargs):
         # pylint: disable=unused-argument
         # expand arguments to arrays
         beats_per_bar = np.array(beats_per_bar, ndmin=1)
@@ -345,11 +351,9 @@ class DBNDownBeatTrackingProcessor(Processor):
             raise ValueError('`min_bpm`, `max_bpm`, `num_tempi`, `num_beats` '
                              'and `transition_lambda` must all have the same '
                              'length.')
-        # Note: madmom supports a `num_threads` kwarg that swaps in a
-        # multiprocessing.Pool(...).map for `self.map`; this port always
-        # decodes the (2, for beats_per_bar=[3, 4]) bar-length HMMs
-        # sequentially with the builtin `map` -- see this module's docstring
-        # for why that already matches madmom's own default behavior.
+        self.num_threads = int(num_threads)
+        if self.num_threads < 1:
+            raise ValueError('`num_threads` must be at least 1.')
         # convert timing information to construct a beat state space
         min_interval = 60. * fps / max_bpm
         max_interval = 60. * fps / min_bpm
@@ -392,8 +396,18 @@ class DBNDownBeatTrackingProcessor(Processor):
         # return no beats if no activations given / remain after thresholding
         if not activations.any():
             return np.empty((0, 2))
-        # (sequential) decoding of the activations with each bar-length HMM
-        results = [hmm.viterbi(activations) for hmm in self.hmms]
+        # Meter hypotheses are independent until winner selection. Keep the
+        # upstream-compatible sequential default; callers with RAM headroom
+        # can opt into thread-level parallel decoding without copying models
+        # or activations into child processes.
+        if self.num_threads > 1 and len(self.hmms) > 1:
+            workers = min(self.num_threads, len(self.hmms))
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = [executor.submit(hmm.viterbi, activations)
+                           for hmm in self.hmms]
+                results = [future.result() for future in futures]
+        else:
+            results = [hmm.viterbi(activations) for hmm in self.hmms]
         # choose the best HMM (highest log probability)
         best = int(np.argmax([r[1] for r in results]))
         # the best path through the state space

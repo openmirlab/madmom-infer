@@ -91,6 +91,36 @@ def test_analyzer_rejects_unknown_task():
         MadmomAnalyzer(tasks=("genre",))
 
 
+def test_analyzer_rejects_non_positive_downbeat_decoder_threads():
+    with pytest.raises(ValueError, match="at least 1"):
+        MadmomAnalyzer(tasks=("downbeats",), downbeat_decoder_threads=0)
+
+
+def test_analyzer_passes_downbeat_decoder_threads_to_processor(monkeypatch):
+    from madmom_infer.features import downbeats
+
+    captured = {}
+
+    monkeypatch.setattr(
+        downbeats, "RNNDownBeatProcessor", lambda **kwargs: "frontend"
+    )
+
+    def decoder(**kwargs):
+        captured.update(kwargs)
+        return "decoder"
+
+    monkeypatch.setattr(downbeats, "DBNDownBeatTrackingProcessor", decoder)
+    analyzer = MadmomAnalyzer(
+        tasks=("downbeats",),
+        beats_per_bar=(3, 4, 6),
+        downbeat_decoder_threads=3,
+    )
+
+    assert analyzer._build_processor("downbeats") == ("frontend", "decoder")
+    assert captured["beats_per_bar"] == (3, 4, 6)
+    assert captured["num_threads"] == 3
+
+
 def test_tempo_from_downbeat_activations_needs_both_tasks():
     with pytest.raises(ValueError, match="needs both 'tempo' and 'downbeats'"):
         MadmomAnalyzer(tasks=("tempo",), tempo_from_downbeat_activations=True)

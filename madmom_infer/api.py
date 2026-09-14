@@ -14,6 +14,9 @@ discrete-state -- no autograd/batching benefit, see
 still never imports torch -- these parameters only reach
 ``madmom_infer.torch`` lazily, when a task actually built with
 ``backend="torch"`` is used.
+``downbeat_decoder_threads`` optionally runs independent bar-length HMMs in
+parallel. It defaults to one because lower latency costs additional transient
+host memory.
 """
 
 from dataclasses import dataclass
@@ -123,11 +126,16 @@ class MadmomAnalyzer:
     shift on every file. So this is a diagnostics-grade approximation, not a
     parity-preserving optimisation. Raises `ValueError` unless both tasks are
     selected.
+
+    ``downbeat_decoder_threads`` can decode independent bar-length HMMs in
+    parallel. The default of one preserves the lower-memory sequential path;
+    values above one reduce latency when several ``beats_per_bar`` hypotheses
+    are configured, at the cost of additional transient host memory.
     """
 
     def __init__(self, tasks=TASKS, beats_per_bar=(3, 4),
                  tempo_from_downbeat_activations=False,
-                 backend="numpy", device=None):
+                 backend="numpy", device=None, downbeat_decoder_threads=1):
         from .backends import validate_backend
 
         self.tasks = tuple(tasks)
@@ -144,6 +152,9 @@ class MadmomAnalyzer:
         self.tempo_from_downbeat_activations = tempo_from_downbeat_activations
         self.backend = backend
         self.device = device
+        self.downbeat_decoder_threads = int(downbeat_decoder_threads)
+        if self.downbeat_decoder_threads < 1:
+            raise ValueError("downbeat_decoder_threads must be at least 1")
         self._processors = {}
         self._call_lock = RLock()
         self._status = "new"
@@ -219,7 +230,8 @@ class MadmomAnalyzer:
             from .features.downbeats import RNNDownBeatProcessor, DBNDownBeatTrackingProcessor
             return (RNNDownBeatProcessor(backend=backend, device=device),
                     DBNDownBeatTrackingProcessor(
-                        beats_per_bar=self.beats_per_bar, fps=100))
+                        beats_per_bar=self.beats_per_bar, fps=100,
+                        num_threads=self.downbeat_decoder_threads))
         if task == "key":
             from .features.key import CNNKeyRecognitionProcessor
             return CNNKeyRecognitionProcessor(backend=backend, device=device)
@@ -294,9 +306,10 @@ class MadmomAnalyzer:
 
 
 def analyze(audio, *, tasks=TASKS, sample_rate=None, beats_per_bar=(3, 4),
-            backend="numpy", device=None):
+            backend="numpy", device=None, downbeat_decoder_threads=1):
     return MadmomAnalyzer(tasks=tasks, beats_per_bar=beats_per_bar,
-                          backend=backend, device=device)(
+                          backend=backend, device=device,
+                          downbeat_decoder_threads=downbeat_decoder_threads)(
         audio, sample_rate=sample_rate)
 
 
@@ -309,9 +322,11 @@ def detect_onsets(audio, *, sample_rate=None, backend="numpy", device=None):
 def detect_beats(audio, *, sample_rate=None, backend="numpy", device=None):
     return _one("beats", audio, sample_rate, backend=backend, device=device)
 def detect_downbeats(audio, *, sample_rate=None, beats_per_bar=(3, 4),
-                      backend="numpy", device=None):
+                     backend="numpy", device=None,
+                     downbeat_decoder_threads=1):
     return _one("downbeats", audio, sample_rate, beats_per_bar=beats_per_bar,
-                backend=backend, device=device)
+                backend=backend, device=device,
+                downbeat_decoder_threads=downbeat_decoder_threads)
 def estimate_tempo(audio, *, sample_rate=None, backend="numpy", device=None):
     return _one("tempo", audio, sample_rate, backend=backend, device=device)
 def detect_key(audio, *, sample_rate=None, backend="numpy", device=None):

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `downbeat_decoder_threads=` on `MadmomAnalyzer`, `analyze()`, and
+  `detect_downbeats()`, plus `num_threads=` on
+  `DBNDownBeatTrackingProcessor`. Values above one decode independent meter
+  hypotheses in a shared-memory thread pool while preserving the sequential
+  default and exact output. On the fixed 270-second input with 3/4, 4/4, and
+  6/4 hypotheses, three-run median Torch CUDA time was 18.76 s with one
+  thread, 15.37 s with two, and 12.75 s with three. Two threads left peak RSS
+  effectively unchanged; three raised it from 2091 MiB to 2744 MiB. All
+  modes used 2333 MiB incremental VRAM. NumPy medians were 36.40 s, 33.01 s,
+  and 30.34 s respectively, with no distinguishable full-pipeline RSS change.
+
 - `backend="torch"`/`device=` on every NN-backed processor
   (`RNNDownBeatProcessor`, `RNNBarProcessor`, `RNNBeatProcessor`,
   `RNNOnsetProcessor`, `CNNOnsetProcessor`, `CNNKeyRecognitionProcessor`,

@@ -46,6 +46,15 @@ Internally, this file still tracks work by phase (matching test/script
 names like `tools/generate_phase2_fixtures.py`), since that's a stable way
 to refer to a specific chunk of already-shipped work:
 
+- **Meter-decoder latency option** (complete, 2026-09-14):
+  `downbeat_decoder_threads=` exposes shared-memory parallel decoding of
+  independent downbeat meter HMMs while keeping the default at one. On the
+  fixed 270-second, three-meter benchmark, Torch CUDA medians were 18.76 s,
+  15.37 s, and 12.75 s for one, two, and three threads; only three threads
+  materially raised host RSS (2091 -> 2744 MiB), and VRAM stayed at 2333 MiB.
+  NumPy medians were 36.40 s, 33.01 s, and 30.34 s with no distinguishable
+  full-pipeline RSS change. Complete result hashes matched within each backend.
+
 - **Phase 1** (complete): DSP pipeline (framing, STFT, filterbanks,
   log-spectrograms) + numpy Viterbi decoder
 - **Phase 2** (complete): forward-pass-only NN runtime + restricted model

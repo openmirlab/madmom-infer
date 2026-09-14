@@ -37,6 +37,27 @@ def test_dbn_downbeat_exact_beat_times():
     np.testing.assert_array_equal(result, d["result"])
 
 
+def test_parallel_meter_decode_matches_sequential():
+    d = np.load(os.path.join(FIXTURES_DIR, "dbn_downbeat_decode.npz"))
+    sequential = DBNDownBeatTrackingProcessor(
+        beats_per_bar=[3, 4], fps=100, num_threads=1
+    )
+    parallel = DBNDownBeatTrackingProcessor(
+        beats_per_bar=[3, 4], fps=100, num_threads=2
+    )
+
+    np.testing.assert_array_equal(
+        parallel(d["activations"]), sequential(d["activations"])
+    )
+
+
+def test_downbeat_decoder_rejects_non_positive_thread_count():
+    with np.testing.assert_raises_regex(ValueError, "at least 1"):
+        DBNDownBeatTrackingProcessor(
+            beats_per_bar=[3, 4], fps=100, num_threads=0
+        )
+
+
 def test_threshold_activations_basic():
     act = np.array([0.0, 0.02, 0.1, 0.2, 0.03, 0.0])
     thresholded, first = threshold_activations(act, 0.05)

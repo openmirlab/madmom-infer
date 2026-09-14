@@ -251,6 +251,27 @@ re-normalization); the other task functions and `MadmomAnalyzer` only take raw
 audio. The original madmom-style processors below remain supported for
 custom models, decoders, and pipeline composition.
 
+Downbeat analysis can optionally decode independent meter hypotheses in
+parallel. The default stays sequential to preserve the lowest transient host
+memory use. With several candidates such as `(3, 4, 6)`, use two threads as a
+balanced latency setting or one thread per candidate when latency matters more
+than RAM:
+
+```python
+result = mm.MadmomAnalyzer(
+    tasks=("downbeats", "tempo"),
+    beats_per_bar=(3, 4, 6),
+    downbeat_decoder_threads=2,
+)("track.wav")
+```
+
+This only parallelizes the CPU HMM decoders; it does not change their paths or
+move them to the GPU. In a three-run direct benchmark on a 270-second file,
+Torch CUDA end-to-end time was 18.76 s with one decoder thread, 15.37 s with
+two, and 12.75 s with three. Two threads kept peak host RSS effectively flat;
+three added about 653 MiB. Incremental VRAM stayed at 2333 MiB in all modes.
+The full result was identical across thread counts.
+
 ```python
 from madmom_infer.features.downbeats import (
     RNNDownBeatProcessor,
