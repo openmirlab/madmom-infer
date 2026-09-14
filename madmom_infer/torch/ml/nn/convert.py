@@ -26,6 +26,9 @@ deliberately doesn't make:
    flow into them, e.g. for fine-tuning) or plain buffers (the default --
    frozen, inference-only, but the INPUT still gets gradients since every
    op in `layers.py` is autograd-differentiable regardless).
+3. **`fast_recurrent`**: forwarded only to eligible stacked LSTMs. It is an
+   opt-in request for `triton_lstm.py`'s CUDA float32 no-grad gate fusion;
+   unsupported and grad-enabled calls retain the eager implementation.
 
 `to_torch` also accepts a plain Python list of `NeuralNetwork` instances
 (an ensemble not already wrapped in a `NeuralNetworkEnsemble`) --
@@ -308,7 +311,7 @@ def _convert_graph_node(node, trainable):
 # -- public API ------------------------------------------------------------
 
 
-def _convert_single(obj, trainable):
+def _convert_single(obj, trainable, fast_recurrent=False):
     """Convert one ensemble member: either a `NeuralNetwork`, or (see
     `notes_cnn.pkl`, CLAUDE.md's Wave 4e) a raw `SequentialProcessor`/
     `ParallelProcessor` graph -- `NeuralNetworkEnsemble.load` wraps
@@ -316,7 +319,9 @@ def _convert_single(obj, trainable):
     `average_predictions`), so an ensemble's members are not guaranteed
     to all be bare `NeuralNetwork` instances."""
     if isinstance(obj, NeuralNetwork):
-        stacked = _try_stack_networks([obj], trainable)
+        stacked = _try_stack_networks(
+            [obj], trainable, fast_recurrent=fast_recurrent
+        )
         if stacked is not None:
             return stacked
         layer_modules = [_convert_layer(layer, trainable) for layer in obj.layers]
@@ -332,7 +337,7 @@ def _convert_single(obj, trainable):
     )
 
 
-def ensemble_to_torch(networks, trainable=False):
+def ensemble_to_torch(networks, trainable=False, fast_recurrent=False):
     """Convert a list of `madmom_infer.ml.nn.NeuralNetwork` (or raw
     processor-graph) instances into a single averaging-ensemble
     `torch.nn.Module` (mirrors `madmom_infer.ml.nn.average_predictions`
@@ -347,10 +352,15 @@ def ensemble_to_torch(networks, trainable=False):
     otherwise (mixed-type members, e.g. `notes_cnn`'s raw processor
     graphs, or a non-stackable/mismatched architecture)."""
     if all(isinstance(net, NeuralNetwork) for net in networks):
-        stacked = _try_stack_networks(networks, trainable)
+        stacked = _try_stack_networks(
+            networks, trainable, fast_recurrent=fast_recurrent
+        )
         if stacked is not None:
             return stacked
-    modules = [_convert_single(nn, trainable) for nn in networks]
+    modules = [
+        _convert_single(nn, trainable, fast_recurrent=fast_recurrent)
+        for nn in networks
+    ]
     return _torch_layers.EnsembleModule(modules)
 
 
@@ -444,7 +454,7 @@ def _squeeze_keep_batch(x):
     return x
 
 
-def to_torch(obj, trainable=False):
+def to_torch(obj, trainable=False, fast_recurrent=False):
     """Convert an already-loaded numpy `madmom_infer.ml.nn` object (or a
     plain list of `NeuralNetwork`s) into an equivalent `torch.nn.Module`.
 
@@ -458,15 +468,24 @@ def to_torch(obj, trainable=False):
 
     `trainable=True` makes every copied weight/bias/etc. an
     `nn.Parameter` instead of a frozen buffer (see this module's header).
+
+    `fast_recurrent=True` opts eligible stacked peephole LSTMs into a
+    CUDA float32 no-grad Triton path. Unsupported calls keep the eager,
+    differentiable implementation.
     """
     if isinstance(obj, (list, tuple)):
-        return ensemble_to_torch(list(obj), trainable=trainable)
+        return ensemble_to_torch(
+            list(obj), trainable=trainable, fast_recurrent=fast_recurrent
+        )
     if isinstance(obj, NeuralNetworkEnsemble):
         networks_processor = obj.processors[0]
         return ensemble_to_torch(list(networks_processor.processors),
-                                  trainable=trainable)
+                                  trainable=trainable,
+                                  fast_recurrent=fast_recurrent)
     if isinstance(obj, NeuralNetwork):
-        stacked = _try_stack_networks([obj], trainable)
+        stacked = _try_stack_networks(
+            [obj], trainable, fast_recurrent=fast_recurrent
+        )
         if stacked is not None:
             return stacked
         layer_modules = [_convert_layer(layer, trainable) for layer in obj.layers]

@@ -272,6 +272,34 @@ two, and 12.75 s with three. Two threads kept peak host RSS effectively flat;
 three added about 653 MiB. Incremental VRAM stayed at 2333 MiB in all modes.
 The full result was identical across thread counts.
 
+CUDA inference can additionally opt into fused recurrent gate updates:
+
+```python
+result = mm.MadmomAnalyzer(
+    tasks=("downbeats", "tempo"),
+    beats_per_bar=(3, 4, 6),
+    backend="torch",
+    device="cuda",
+    fast_recurrent=True,
+    downbeat_decoder_threads=2,
+)("track.wav")
+```
+
+`fast_recurrent=True` is a best-effort inference accelerator, not a new model.
+It applies only to CUDA float32 no-grad stacked peephole LSTMs. CPU, autograd,
+unsupported models, and installations without a working Triton compiler fall
+back to the existing eager Torch implementation. The option is off by default
+because fused long-sequence arithmetic is not bit-identical: on the fixed
+270-second input, decoded downbeats stayed exact while raw activations had mean
+absolute drift 0.000216 and maximum drift 0.071. When combined with the already
+approximate `tempo_from_downbeat_activations=True`, leading tempo candidates
+stayed fixed but low-ranked strengths/order moved slightly.
+
+The same three-run benchmark fell from 18.76 to 15.25 seconds with one decoder
+thread, or from 12.75 to 9.22 seconds with three. Incremental VRAM fell from
+2333 to 2279 MiB; an empty Triton cache completed in 9.95 seconds, including
+first-call compilation.
+
 ```python
 from madmom_infer.features.downbeats import (
     RNNDownBeatProcessor,
@@ -628,6 +656,10 @@ from madmom_infer.torch.ml.nn import to_torch
 ensemble = NeuralNetworkEnsemble.load(beats_blstm())
 module = to_torch(ensemble, trainable=True)  # nn.Parameter, not frozen buffers
 ```
+
+`to_torch(..., fast_recurrent=True)` exposes the same fused recurrent request
+for direct module users. Grad-enabled calls still use eager Torch and preserve
+autograd even when the option is set.
 
 `madmom_infer.torch.features.build_pipeline(name, **kwargs)` composes the
 frontend and `to_torch` into one differentiable, audio-in ->

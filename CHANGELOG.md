@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Opt-in `fast_recurrent=True` on the Torch downbeat pipeline,
+  `RNNDownBeatProcessor`, `MadmomAnalyzer`, `analyze()`, and
+  `detect_downbeats()`. Eligible CUDA float32 no-grad stacked peephole LSTMs
+  retain cuBLAS for recurrent projections and fuse gate/peephole state updates
+  with a soft-optional Triton kernel; CPU, autograd, unsupported models, and
+  missing/failed Triton automatically use the existing eager path. On the
+  fixed 270-second input, three-run median Torch CUDA time fell from 18.76 s
+  to 15.25 s with one decoder thread, and from 12.75 s to 9.22 s with three.
+  Incremental VRAM fell from 2333 to 2279 MiB; a cold Triton cache completed
+  in 9.95 s. Decoded downbeats and onsets stayed exact. Raw downbeat
+  activations had mean absolute drift 0.000216 and maximum drift 0.071; with
+  the separate diagnostics-grade `tempo_from_downbeat_activations` option,
+  leading tempo candidates stayed fixed while two low-ranked candidates
+  exchanged order and strengths moved by less than 0.001.
+
 - `downbeat_decoder_threads=` on `MadmomAnalyzer`, `analyze()`, and
   `detect_downbeats()`, plus `num_threads=` on
   `DBNDownBeatTrackingProcessor`. Values above one decode independent meter

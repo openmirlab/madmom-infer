@@ -46,6 +46,17 @@ Internally, this file still tracks work by phase (matching test/script
 names like `tools/generate_phase2_fixtures.py`), since that's a stable way
 to refer to a specific chunk of already-shipped work:
 
+- **Opt-in fused CUDA LSTM inference** (complete, 2026-09-14):
+  `fast_recurrent=True` retains cuBLAS recurrent projections and uses Triton
+  to fuse the gate/peephole state update for eligible CUDA float32 no-grad
+  stacked LSTMs. Eager remains the default and automatic fallback for CPU,
+  autograd, unsupported models, or missing/failed Triton. On the fixed
+  270-second benchmark, median CUDA time improved 18.76 -> 15.25 s with one
+  decoder thread and 12.75 -> 9.22 s with three; incremental VRAM improved
+  2333 -> 2279 MiB. Downbeats stayed exact, but long-sequence activations are
+  tolerance-equivalent rather than bit-identical (mean drift 0.000216,
+  maximum 0.071), which is why this path is explicit.
+
 - **Meter-decoder latency option** (complete, 2026-09-14):
   `downbeat_decoder_threads=` exposes shared-memory parallel decoding of
   independent downbeat meter HMMs while keeping the default at one. On the

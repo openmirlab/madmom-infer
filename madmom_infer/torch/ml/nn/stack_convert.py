@@ -223,7 +223,7 @@ def _stack_recurrent(layers, trainable):
                                                  trainable=trainable)
 
 
-def _stack_lstm(layers, trainable):
+def _stack_lstm(layers, trainable, fast_recurrent=False):
     hidden = layers[0].input_gate.weights.shape[1]
     has_peep = layers[0].input_gate.peephole_weights is not None
     w_list, b_list, rw_list = [], [], []
@@ -256,6 +256,7 @@ def _stack_lstm(layers, trainable):
     return _torch_stacked.StackedLSTMLayer(
         w, b, rw, hidden, peep_i, peep_f, peep_o, init, cell_init,
         act_i, act_f, act_c, act_o, act_out, trainable=trainable,
+        fast_recurrent=fast_recurrent,
     )
 
 
@@ -289,7 +290,7 @@ def _stack_gru(layers, trainable):
     )
 
 
-def _stack_bidirectional(layers, trainable):
+def _stack_bidirectional(layers, trainable, fast_recurrent=False):
     # Interleave fwd/bwd sub-layers: slot 2*i = member i's fwd, 2*i+1 =
     # member i's bwd -- StackedBidirectionalLayer.forward relies on this
     # exact order (see its docstring).
@@ -297,22 +298,28 @@ def _stack_bidirectional(layers, trainable):
     for layer in layers:
         inner_layers.append(layer.fwd_layer)
         inner_layers.append(layer.bwd_layer)
-    inner = _stack_layer_position(inner_layers, trainable)
+    inner = _stack_layer_position(
+        inner_layers, trainable, fast_recurrent=fast_recurrent
+    )
     return _torch_stacked.StackedBidirectionalLayer(inner)
 
 
-def _stack_layer_position(layers, trainable):
+def _stack_layer_position(layers, trainable, fast_recurrent=False):
     """Build one `stacked.py` module covering all of `layers` (one numpy
     layer per ensemble member, all at the same position/architecture --
     guaranteed by `_ensemble_stack_signature` before this is ever
     called)."""
     sample = layers[0]
     if isinstance(sample, _np_layers.LSTMLayer):
-        return _stack_lstm(layers, trainable)
+        return _stack_lstm(
+            layers, trainable, fast_recurrent=fast_recurrent
+        )
     if isinstance(sample, _np_layers.GRULayer):
         return _stack_gru(layers, trainable)
     if isinstance(sample, _np_layers.BidirectionalLayer):
-        return _stack_bidirectional(layers, trainable)
+        return _stack_bidirectional(
+            layers, trainable, fast_recurrent=fast_recurrent
+        )
     if isinstance(sample, _np_layers.RecurrentLayer):
         return _stack_recurrent(layers, trainable)
     if isinstance(sample, _np_layers.FeedForwardLayer):
@@ -324,14 +331,17 @@ def _stack_layer_position(layers, trainable):
     )
 
 
-def _build_stacked_network(networks, trainable):
+def _build_stacked_network(networks, trainable, fast_recurrent=False):
     """Build a `StackedEnsembleModule` covering every layer position of
     `networks` (>= 1 structurally-identical `NeuralNetwork` instances --
     `_ensemble_stack_signature(networks)` must already be known non-`None`
     before calling this)."""
     num_layers = len(networks[0].layers)
     stacked_layers = [
-        _stack_layer_position([net.layers[i] for net in networks], trainable)
+        _stack_layer_position(
+            [net.layers[i] for net in networks], trainable,
+            fast_recurrent=fast_recurrent,
+        )
         for i in range(num_layers)
     ]
     ndim = _expected_unbatched_ndim(networks[0].layers)
@@ -340,11 +350,13 @@ def _build_stacked_network(networks, trainable):
     )
 
 
-def _try_stack_networks(networks, trainable):
+def _try_stack_networks(networks, trainable, fast_recurrent=False):
     """Return a `StackedEnsembleModule` for `networks` (a list of one or
     more `NeuralNetwork` instances) if they're all structurally identical
     and every layer is stackable, else `None` (the caller falls back to
     `convert.py`'s per-network/per-layer path)."""
     if _ensemble_stack_signature(networks) is None:
         return None
-    return _build_stacked_network(networks, trainable)
+    return _build_stacked_network(
+        networks, trainable, fast_recurrent=fast_recurrent
+    )

@@ -168,15 +168,24 @@ class RNNDownBeatProcessor(SequentialProcessor):
     the torch `DownbeatsPipeline` already drops the "non-beat" column
     itself, so no extra `np.delete` stage is needed on this path. `device`
     is only meaningful together with `backend="torch"`.
+
+    `fast_recurrent=True` asks the Torch pipeline to use fused Triton gate
+    updates for eligible CUDA float32 no-grad calls. It is rejected by the
+    NumPy backend and automatically falls back to eager Torch when unsupported.
     """
 
-    def __init__(self, backend="numpy", device=None, **kwargs):
+    def __init__(self, backend="numpy", device=None, fast_recurrent=False,
+                 **kwargs):
         from functools import partial
 
         from ..backends import torch_pipeline_processor, validate_backend
 
         validate_backend(backend)
         if backend == "numpy":
+            if fast_recurrent:
+                raise ValueError(
+                    "fast_recurrent is only used with backend='torch'"
+                )
             if device is not None:
                 raise ValueError("device is only used with backend='torch'")
             from madmom_infer.models import downbeats_blstm
@@ -204,7 +213,9 @@ class RNNDownBeatProcessor(SequentialProcessor):
             raise NotImplementedError(
                 "backend='torch' does not support NeuralNetworkEnsemble."
                 f"load overrides: {sorted(kwargs)}")
-        proc = torch_pipeline_processor("downbeats", device=device)
+        proc = torch_pipeline_processor(
+            "downbeats", device=device, fast_recurrent=fast_recurrent
+        )
         super().__init__((proc,))
 
 

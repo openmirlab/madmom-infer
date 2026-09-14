@@ -54,6 +54,12 @@ already fast, see the module docstring in `convert.py`):
    every timestep at once outside the loop, since it doesn't depend on
    recurrence either.
 
+An additional opt-in CUDA inference path lets `StackedLSTMLayer` retain
+cuBLAS for its recurrent projection while fusing the remaining gate and
+peephole work with Triton. `triton_lstm.py` owns eligibility and fallback;
+the eager implementation below remains the default and the only path when
+gradients are enabled.
+
 None of this changes any number computed beyond float32-noise-scale
 reordering of a handful of additions (e.g. peephole-then-recurrent vs.
 recurrent-then-peephole) -- see `tests/test_torch_nn.py`'s
@@ -167,7 +173,8 @@ class StackedLSTMLayer(nn.Module):
 
     def __init__(self, w_ih, b_ih, w_hh, hidden,
                  peep_i, peep_f, peep_o, init, cell_init,
-                 act_i, act_f, act_c, act_o, act_out, trainable=False):
+                 act_i, act_f, act_c, act_o, act_out, trainable=False,
+                 fast_recurrent=False):
         super().__init__()
         _register(self, "w_ih", w_ih, trainable)
         _register(self, "b_ih", b_ih, trainable)
@@ -183,8 +190,18 @@ class StackedLSTMLayer(nn.Module):
         self.act_i, self.act_f, self.act_c, self.act_o, self.act_out = (
             act_i, act_f, act_c, act_o, act_out
         )
+        self.fast_recurrent = bool(fast_recurrent)
 
     def forward(self, x):
+        if self.fast_recurrent:
+            from .triton_lstm import try_fast_lstm
+
+            fast_output = try_fast_lstm(self, x)
+            if fast_output is not None:
+                return fast_output
+        return self._forward_eager(x)
+
+    def _forward_eager(self, x):
         e, batch, t, in_dim = x.shape
         h = self.hidden
         w_ih = _to(self.w_ih, x)

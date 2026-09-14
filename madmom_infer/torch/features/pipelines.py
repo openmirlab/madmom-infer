@@ -18,6 +18,10 @@ Each pipeline is an `nn.Module` composing:
    `madmom_infer.torch.ml.nn.to_torch(NeuralNetwork.load(...) |
    NeuralNetworkEnsemble.load(...))`.
 
+`DownbeatsPipeline(fast_recurrent=True)` additionally transports an opt-in
+request for fused CUDA float32 no-grad LSTM gate updates. The converted
+stacked LSTM remains the single owner of eligibility and eager fallback.
+
 Every `__init__` parameter that isn't a DSP constant (frame sizes,
 `num_bands`, `fmin`/`fmax`, log `mul`/`add`, `diff_ratio`, pad widths) is
 cited to the exact numpy `__init__` it mirrors -- see each class's
@@ -161,7 +165,7 @@ class DownbeatsPipeline(nn.Module):
     `(T, 2)` or `(B, T, 2)` `[beat, downbeat]` activations.
     """
 
-    def __init__(self, dtype=torch.float32):
+    def __init__(self, dtype=torch.float32, fast_recurrent=False):
         super().__init__()
         from madmom_infer.models import downbeats_blstm
 
@@ -171,7 +175,7 @@ class DownbeatsPipeline(nn.Module):
         ]
         self.frontend = _MultiBranchFrontend(branch_kwargs, stack="cat")
         ensemble = NeuralNetworkEnsemble.load(downbeats_blstm())
-        self.nn = to_torch(ensemble)
+        self.nn = to_torch(ensemble, fast_recurrent=fast_recurrent)
 
     def forward(self, waveform):
         x, was_unbatched = ensure_batched(waveform)

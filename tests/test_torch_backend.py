@@ -173,6 +173,27 @@ def test_analyzer_torch_backend_cuda_smoke():
     assert np.asarray(result["beats"]).size > 0
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
+@pytest.mark.network
+def test_fast_recurrent_cuda_preserves_downbeat_decode():
+    from madmom_infer.features.downbeats import (
+        DBNDownBeatTrackingProcessor,
+        RNNDownBeatProcessor,
+    )
+
+    eager = RNNDownBeatProcessor(
+        backend="torch", device="cuda"
+    )(MONO_WAV)
+    fast = RNNDownBeatProcessor(
+        backend="torch", device="cuda", fast_recurrent=True
+    )(MONO_WAV)
+
+    assert not np.array_equal(fast, eager)
+    np.testing.assert_allclose(fast, eager, rtol=0, atol=1e-6)
+    decoder = DBNDownBeatTrackingProcessor(beats_per_bar=(3, 4), fps=100)
+    np.testing.assert_array_equal(decoder(fast), decoder(eager))
+
+
 # ---------------------------------------------------------------------
 # 4. validation
 # ---------------------------------------------------------------------
@@ -188,6 +209,13 @@ def test_device_with_numpy_backend_raises():
 
     with pytest.raises(ValueError):
         RNNBeatProcessor(backend="numpy", device="cpu")
+
+
+def test_fast_recurrent_with_numpy_downbeats_raises():
+    from madmom_infer.features.downbeats import RNNDownBeatProcessor
+
+    with pytest.raises(ValueError, match="backend='torch'"):
+        RNNDownBeatProcessor(backend="numpy", fast_recurrent=True)
 
 
 def test_analyzer_unknown_backend_raises():

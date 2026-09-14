@@ -16,7 +16,11 @@ WAV = Path(__file__).parent / "fixtures" / "wavs" / "mono_44100.wav"
 
 def test_top_level_import_stays_torch_free():
     # Fresh interpreter: other test modules may import torch into this process.
-    code = "import sys, madmom_infer; assert 'torch' not in sys.modules"
+    code = (
+        "import sys, madmom_infer; "
+        "assert 'torch' not in sys.modules; "
+        "assert 'triton' not in sys.modules"
+    )
     subprocess.run([sys.executable, "-c", code], check=True)
 
 
@@ -96,6 +100,15 @@ def test_analyzer_rejects_non_positive_downbeat_decoder_threads():
         MadmomAnalyzer(tasks=("downbeats",), downbeat_decoder_threads=0)
 
 
+def test_analyzer_rejects_fast_recurrent_without_torch_downbeats():
+    with pytest.raises(ValueError, match="backend='torch'"):
+        MadmomAnalyzer(tasks=("downbeats",), fast_recurrent=True)
+    with pytest.raises(ValueError, match="needs the 'downbeats' task"):
+        MadmomAnalyzer(
+            tasks=("beats",), backend="torch", fast_recurrent=True
+        )
+
+
 def test_analyzer_passes_downbeat_decoder_threads_to_processor(monkeypatch):
     from madmom_infer.features import downbeats
 
@@ -119,6 +132,27 @@ def test_analyzer_passes_downbeat_decoder_threads_to_processor(monkeypatch):
     assert analyzer._build_processor("downbeats") == ("frontend", "decoder")
     assert captured["beats_per_bar"] == (3, 4, 6)
     assert captured["num_threads"] == 3
+
+
+def test_analyzer_passes_fast_recurrent_to_torch_downbeats(monkeypatch):
+    from madmom_infer.features import downbeats
+
+    captured = {}
+
+    def frontend(**kwargs):
+        captured.update(kwargs)
+        return "frontend"
+
+    monkeypatch.setattr(downbeats, "RNNDownBeatProcessor", frontend)
+    monkeypatch.setattr(
+        downbeats, "DBNDownBeatTrackingProcessor", lambda **kwargs: "decoder"
+    )
+    analyzer = MadmomAnalyzer(
+        tasks=("downbeats",), backend="torch", fast_recurrent=True
+    )
+
+    assert analyzer._build_processor("downbeats") == ("frontend", "decoder")
+    assert captured["fast_recurrent"] is True
 
 
 def test_tempo_from_downbeat_activations_needs_both_tasks():

@@ -734,6 +734,48 @@ def test_stacked_single_network_matches_unstacked_reference():
     _assert_close(out_reference, out_stacked, atol=1e-10, name="stacked-vs-unstacked E=1")
 
 
+def test_fast_recurrent_cpu_falls_back_to_exact_eager_output():
+    rng = _rng(521)
+    networks = [
+        _make_bidir_lstm_network(rng, 4, 3, 2, n_layers=1)
+        for _ in range(2)
+    ]
+    eager = _try_stack_networks(
+        networks, trainable=False, fast_recurrent=False
+    )
+    requested = _try_stack_networks(
+        networks, trainable=False, fast_recurrent=True
+    )
+    x = torch.tensor(rng.standard_normal((17, 4)), dtype=torch.float32)
+
+    with torch.no_grad():
+        eager_output = eager(x)
+        requested_output = requested(x)
+
+    torch.testing.assert_close(requested_output, eager_output, rtol=0, atol=0)
+
+
+def test_fast_recurrent_keeps_grad_enabled_execution_differentiable():
+    rng = _rng(522)
+    networks = [
+        _make_bidir_lstm_network(rng, 3, 2, 2, n_layers=1)
+        for _ in range(2)
+    ]
+    module = _try_stack_networks(
+        networks, trainable=False, fast_recurrent=True
+    )
+    x = torch.tensor(
+        rng.standard_normal((8, 3)), dtype=torch.float32, requires_grad=True
+    )
+
+    output = module(x)
+    output.square().sum().backward()
+
+    assert x.grad is not None
+    assert torch.isfinite(x.grad).all()
+    assert x.grad.abs().sum() > 0
+
+
 def test_stacking_falls_back_for_convolutional_layers():
     rng = _rng(53)
     w = rng.standard_normal((1, 2, 3, 3))
@@ -825,3 +867,92 @@ def test_cuda_matches_cpu_stacked_ensemble():
         out_cpu = tm_cpu(torch.tensor(x_np)).numpy()
         out_cuda = tm_cuda(torch.tensor(x_np, device="cuda")).cpu().numpy()
     _assert_close(out_cpu, out_cuda, atol=1e-4, name="cuda-vs-cpu (stacked ensemble)")
+
+
+@pytest.mark.network
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
+def test_fast_recurrent_cuda_matches_eager_without_mutating_initial_state():
+    from madmom_infer.torch.ml.nn.stacked import StackedLSTMLayer
+    from madmom_infer.torch.ml.nn import triton_lstm
+
+    if triton_lstm.triton is None:
+        pytest.skip("Triton is unavailable")
+
+    ensemble = NeuralNetworkEnsemble.load(models.downbeats_blstm())
+    eager = to_torch(ensemble).to("cuda")
+    fast = to_torch(ensemble, fast_recurrent=True).to("cuda")
+    x = torch.tensor(
+        _rng(451).standard_normal((600, 314)).astype(np.float32),
+        device="cuda",
+    )
+    initial = [
+        (layer.init.clone(), layer.cell_init.clone())
+        for layer in fast.modules()
+        if isinstance(layer, StackedLSTMLayer)
+    ]
+
+    with torch.no_grad():
+        eager_output = eager(x)
+        fast_output = fast(x)
+        repeated_output = fast(x)
+
+    _assert_close(
+        eager_output.cpu().numpy(), fast_output.cpu().numpy(), atol=6e-4,
+        name="fast recurrent CUDA vs eager",
+    )
+    assert not torch.equal(fast_output, eager_output)
+    torch.testing.assert_close(repeated_output, fast_output, rtol=0, atol=0)
+    layers = [
+        layer for layer in fast.modules()
+        if isinstance(layer, StackedLSTMLayer)
+    ]
+    assert len(layers) == len(initial) > 0
+    for layer, (init, cell_init) in zip(layers, initial):
+        torch.testing.assert_close(layer.init, init, rtol=0, atol=0)
+        torch.testing.assert_close(layer.cell_init, cell_init, rtol=0, atol=0)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
+def test_fast_recurrent_compile_failure_is_cached_and_falls_back(
+        monkeypatch):
+    from madmom_infer.torch.ml.nn import triton_lstm
+
+    if triton_lstm.triton is None:
+        pytest.skip("Triton is unavailable")
+
+    rng = _rng(452)
+    networks = [
+        _make_bidir_lstm_network(rng, 4, 3, 2, n_layers=1)
+        for _ in range(2)
+    ]
+    eager = _try_stack_networks(networks, trainable=False).cuda()
+    fast = _try_stack_networks(
+        networks, trainable=False, fast_recurrent=True
+    ).cuda()
+    x = torch.tensor(
+        rng.standard_normal((20, 4)).astype(np.float32), device="cuda"
+    )
+
+    class BrokenKernel:
+        calls = 0
+
+        def __getitem__(self, _grid):
+            def launch(*_args, **_kwargs):
+                self.calls += 1
+                raise RuntimeError("synthetic compile failure")
+            return launch
+
+    broken = BrokenKernel()
+    monkeypatch.setattr(triton_lstm, "_lstm_gates_kernel", broken)
+    triton_lstm._reset_failure_for_tests()
+    try:
+        with torch.no_grad():
+            expected = eager(x)
+            first = fast(x)
+            second = fast(x)
+        torch.testing.assert_close(first, expected, rtol=0, atol=0)
+        torch.testing.assert_close(second, expected, rtol=0, atol=0)
+        assert broken.calls == 1
+        assert triton_lstm._triton_failed is True
+    finally:
+        triton_lstm._reset_failure_for_tests()
