@@ -173,7 +173,10 @@ custom GRU/LSTM (with peephole connections) forward pass -- `torch.nn.LSTM`
 has no peephole-connection equivalent, so this needed a hand-written cell,
 not a drop-in swap. Viterbi/DBN/CRF decoding stays numpy-only, permanently:
 it is sequential and discrete-state, with no GPU/autograd benefit to speak
-of.
+of. The Viterbi decoder keeps observation densities compact and maps them to
+states one frame at a time, preserving whole-song decoding without allocating
+a second frames-by-states matrix; long files therefore retain the global beat
+path without requiring independent chunk decoding.
 
 ---
 
