@@ -27,6 +27,11 @@ architecture plan (mostly historical) = `docs/DESIGN.md`.
 **Communication:** converse with the user in Traditional Chinese
 (Taiwanese phrasing), plain and direct; keep code, identifiers, and
 commit messages in English.
+
+**`docs/` is local-only** (2026-09-14 policy): everything under `docs/`,
+including the blueprints planning board, stays on disk but is untracked
+and gitignored -- it is never pushed to GitHub. Keep using it exactly as
+described above; just don't expect `git status`/GitHub to show it.
 <!-- shape:dev-workflow end -->
 
 ## Scope and status

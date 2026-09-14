@@ -46,6 +46,9 @@ uv.lock
 # Claude Code
 .claude/
 
+# docs/ is kept local-only by policy (not tracked on GitHub) -- see CLAUDE.md
+docs/
+
 # Downloaded pretrained-weights cache (madmom_infer/models.py) -- these are
 # madmom's own CC BY-NC-SA 4.0 (non-commercial) model files, downloaded at
 # runtime and cached locally. NEVER commit them -- see README.md "What this
