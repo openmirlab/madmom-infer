@@ -1,4 +1,6 @@
-"""Optional torch backend -- Phase 3a: a differentiable spectrogram frontend.
+"""Optional torch backend -- a differentiable spectrogram frontend (Phase
+3a) plus an additional NN-forward-pass backend (added afterward, see
+`madmom_infer.torch.ml.nn`).
 
 This subpackage is the opt-in torch backend the numpy-backend docstrings
 elsewhere in this repo anticipate (`madmom_infer/audio/signal.py`'s header
@@ -22,18 +24,27 @@ package does not reimplement filterbank/window construction, only the
 tensor operations that need to be differentiable
 (`madmom_infer/torch/audio/frontend.py`).
 
-Explicitly NOT in scope here (see `madmom_infer/torch/audio/frontend.py`'s
-module docstring for the full reasoning): Viterbi/DBN decoding (sequential,
-discrete-state, no autograd/batching benefit) and the NN forward pass
-(madmom's LSTMs use peephole connections `torch.nn.LSTM` does not support,
-so a torch NN backend needs a custom cell -- left for a possible Phase 3b).
 There is also no `madmom_infer.torch.audio.signal.Signal` counterpart to
 the numpy `Signal` class: this frontend takes an already-mono, already
 sample-rate-matched float waveform tensor directly, sidestepping file
 loading/downmixing (out of scope for a differentiable-frontend package).
 
-Reads: torch (guarded); read by: nothing in the numpy backend (one-way,
-opt-in dependency only).
+`madmom_infer.torch.ml.nn` (new subpackage) is the NN forward pass itself:
+differentiable, GPU-capable `torch.nn.Module` twins of every class in
+`madmom_infer.ml.nn.layers` (including a custom LSTM/GRU cell loop, since
+madmom's peephole-connected LSTM has no `torch.nn.LSTM` equivalent),
+built from an already-loaded numpy `NeuralNetwork`/`NeuralNetworkEnsemble`/
+processor-graph via `to_torch` (re-exported here). This is purely
+additive -- the numpy `madmom_infer.ml.nn` classes remain the reference
+implementation and are never modified by this package. Still out of
+scope: Viterbi/DBN decoding in torch (sequential, discrete-state -- no
+autograd/batching benefit expected there, ever) and a fully wired
+frontend-to-NN torch processor (frontend and NN conversion exist
+independently for now; composing them into one end-to-end torch pipeline
+is a later step).
+
+Reads: torch (guarded), madmom_infer.torch.ml.nn (to_torch); read by:
+nothing in the numpy backend (one-way, opt-in dependency only).
 """
 
 try:
@@ -56,6 +67,7 @@ from madmom_infer.torch.audio.frontend import (
     stft,
     temporal_difference,
 )
+from madmom_infer.torch.ml.nn import to_torch
 
 __all__ = [
     "SpectrogramFrontend",
@@ -65,4 +77,5 @@ __all__ = [
     "rnn_downbeat_frontend",
     "stft",
     "temporal_difference",
+    "to_torch",
 ]

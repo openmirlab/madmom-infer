@@ -1,5 +1,6 @@
 """User-facing contract tests for the task-level clean API."""
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -14,7 +15,9 @@ WAV = Path(__file__).parent / "fixtures" / "wavs" / "mono_44100.wav"
 
 
 def test_top_level_import_stays_torch_free():
-    assert "torch" not in sys.modules
+    # Fresh interpreter: other test modules may import torch into this process.
+    code = "import sys, madmom_infer; assert 'torch' not in sys.modules"
+    subprocess.run([sys.executable, "-c", code], check=True)
 
 
 def test_array_requires_sample_rate():
