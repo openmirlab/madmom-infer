@@ -21,10 +21,24 @@ by `np.iinfo(dtype).max` before conversion to a torch tensor; a
 float-dtype `Signal` is used as-is (matching the numpy "non-integer
 dtype: no scaling needed" branch).
 
+**TF32 finding (measured, not a bug in this module).** On Ampere+ GPUs,
+torch's default `torch.backends.cudnn.allow_tf32=True` /
+`torch.backends.cuda.matmul.allow_tf32=True` makes the CNN-heavy pipelines
+(`OnsetCNNPipeline`, `KeyPipeline`, `NoteCNNPipeline`) drift up to ~1e-3
+from the numpy reference on CUDA -- that drops to ~1e-6 with both flags set
+`False`. This module deliberately does NOT mutate those global torch flags
+itself (a library importing a side-effecting global setting on every
+process that imports it would be its own surprise); decoded results
+(beats/onsets/notes/key labels) were still identical either way in every
+case measured. Set the flags yourself before running on CUDA if you need
+the tighter tolerance (`tools/compare_torch_backend.py --allow-tf32`
+controls this for that tool specifically, default off).
+
 Reads: torch, numpy, madmom_infer.processors (Processor),
 madmom_infer.audio.signal (SignalProcessor, Signal); read by:
-madmom_infer/torch/features/__init__.py,
-tests/test_torch_pipelines.py, tools/compare_torch_backend.py.
+madmom_infer/torch/features/__init__.py, madmom_infer/backends.py,
+tests/test_torch_pipelines.py, tests/test_torch_backend.py,
+tools/compare_torch_backend.py.
 """
 
 from __future__ import annotations

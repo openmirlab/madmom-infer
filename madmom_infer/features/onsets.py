@@ -61,7 +61,10 @@ pre-processing cascade + MelFilterbank), madmom_infer/ml/nn/__init__.py
 (NeuralNetwork, NeuralNetworkEnsemble), madmom_infer/models.py
 (onsets_rnn/onsets_brnn/onsets_cnn download), madmom_infer/processors.py
 (Processor, ParallelProcessor, SequentialProcessor), madmom_infer/utils.py
-(combine_events); read by: nothing yet (Wave 4b's own end-to-end target).
+(combine_events), madmom_infer/backends.py (validate_backend,
+torch_pipeline_processor -- optional `backend="torch"` on
+RNNOnsetProcessor/CNNOnsetProcessor, lazily imports madmom_infer.torch);
+read by: nothing yet (Wave 4b's own end-to-end target).
 """
 
 import inspect
@@ -417,34 +420,58 @@ class RNNOnsetProcessor(SequentialProcessor):
     `nn_files`, if given, overrides the model list entirely (not in
     upstream -- matches `CNNKeyRecognitionProcessor`'s own convention, used
     by the cross-BLAS test to point at a local `.pkl` copy).
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps the whole
+    pipeline for `madmom_infer.torch.features.build_pipeline("onsets_rnn",
+    online=online)` run on `device`; `nn_files` overrides are not supported
+    on this path (raises `NotImplementedError` rather than silently
+    ignoring a non-default value).
     """
 
-    def __init__(self, online=False, nn_files=None, **kwargs):
-        from ..ml.nn import NeuralNetworkEnsemble
-        from ..models import onsets_brnn, onsets_rnn
+    def __init__(self, online=False, nn_files=None, backend="numpy",
+                 device=None, **kwargs):
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        if online:
-            model_files = nn_files or onsets_rnn()
-            frame_sizes = [512, 1024, 2048]
-        else:
-            model_files = nn_files or onsets_brnn()
-            frame_sizes = [1024, 2048, 4096]
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from ..ml.nn import NeuralNetworkEnsemble
+            from ..models import onsets_brnn, onsets_rnn
 
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        multi = ParallelProcessor([])
-        for frame_size in frame_sizes:
-            frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
-            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-            filt = FilteredSpectrogramProcessor(
-                num_bands=6, fmin=30, fmax=17000, norm_filters=True)
-            spec = LogarithmicSpectrogramProcessor(mul=5, add=1)
-            diff = SpectrogramDifferenceProcessor(
-                diff_ratio=0.25, positive_diffs=True, stack_diffs=np.hstack)
-            multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
-        pre_processor = SequentialProcessor((sig, multi, np.hstack))
+            if online:
+                model_files = nn_files or onsets_rnn()
+                frame_sizes = [512, 1024, 2048]
+            else:
+                model_files = nn_files or onsets_brnn()
+                frame_sizes = [1024, 2048, 4096]
 
-        nn = NeuralNetworkEnsemble.load(model_files, **kwargs)
-        super().__init__((pre_processor, nn))
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            multi = ParallelProcessor([])
+            for frame_size in frame_sizes:
+                frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
+                stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+                filt = FilteredSpectrogramProcessor(
+                    num_bands=6, fmin=30, fmax=17000, norm_filters=True)
+                spec = LogarithmicSpectrogramProcessor(mul=5, add=1)
+                diff = SpectrogramDifferenceProcessor(
+                    diff_ratio=0.25, positive_diffs=True, stack_diffs=np.hstack)
+                multi.append(
+                    SequentialProcessor((frames, stft, filt, spec, diff)))
+            pre_processor = SequentialProcessor((sig, multi, np.hstack))
+
+            nn = NeuralNetworkEnsemble.load(model_files, **kwargs)
+            super().__init__((pre_processor, nn))
+            return
+        if nn_files is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_files overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor("onsets_rnn", device=device, online=online)
+        super().__init__((proc,))
 
 
 def _cnn_onset_processor_pad(data):
@@ -466,30 +493,50 @@ class CNNOnsetProcessor(SequentialProcessor):
     Port of `madmom.features.onsets.CNNOnsetProcessor`
     (`onsets.py:808-871`). `nn_files`, if given, overrides `ONSETS_CNN`
     (not in upstream -- see `RNNOnsetProcessor`'s docstring for why).
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps the whole
+    pipeline for `madmom_infer.torch.features.build_pipeline("onsets_cnn")`
+    run on `device`; `nn_files` overrides are not supported on this path.
     """
 
-    def __init__(self, nn_files=None, **kwargs):
+    def __init__(self, nn_files=None, backend="numpy", device=None, **kwargs):
         # pylint: disable=unused-argument
-        from ..ml.nn import NeuralNetwork
-        from ..models import onsets_cnn
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        multi = ParallelProcessor([])
-        for frame_size in [2048, 1024, 4096]:
-            frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
-            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-            filt = FilteredSpectrogramProcessor(
-                filterbank=MelFilterbank, num_bands=80, fmin=27.5,
-                fmax=16000, norm_filters=True, unique_filters=False)
-            spec = LogarithmicSpectrogramProcessor(log=np.log, add=EPSILON)
-            multi.append(SequentialProcessor((frames, stft, filt, spec)))
-        stack = np.dstack
-        pad = _cnn_onset_processor_pad
-        pre_processor = SequentialProcessor((sig, multi, stack, pad))
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from ..ml.nn import NeuralNetwork
+            from ..models import onsets_cnn
 
-        model_files = nn_files or onsets_cnn()
-        nn = NeuralNetwork.load(model_files[0])
-        super().__init__((pre_processor, nn))
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            multi = ParallelProcessor([])
+            for frame_size in [2048, 1024, 4096]:
+                frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
+                stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+                filt = FilteredSpectrogramProcessor(
+                    filterbank=MelFilterbank, num_bands=80, fmin=27.5,
+                    fmax=16000, norm_filters=True, unique_filters=False)
+                spec = LogarithmicSpectrogramProcessor(log=np.log, add=EPSILON)
+                multi.append(SequentialProcessor((frames, stft, filt, spec)))
+            stack = np.dstack
+            pad = _cnn_onset_processor_pad
+            pre_processor = SequentialProcessor((sig, multi, stack, pad))
+
+            model_files = nn_files or onsets_cnn()
+            nn = NeuralNetwork.load(model_files[0])
+            super().__init__((pre_processor, nn))
+            return
+        if nn_files is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_files overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor("onsets_cnn", device=device)
+        super().__init__((proc,))
 
 
 # ---------------------------------------------------------------------------

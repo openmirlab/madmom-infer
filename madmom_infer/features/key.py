@@ -67,7 +67,9 @@ preserve byte-for-byte from upstream.
 Reads: madmom_infer/audio/{signal,stft,spectrogram}.py (the pre-processing
 cascade), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
 madmom_infer/ml/nn/activations.py (softmax), madmom_infer/models.py
-(key_cnn download), madmom_infer/processors.py (SequentialProcessor);
+(key_cnn download), madmom_infer/processors.py (SequentialProcessor),
+madmom_infer/backends.py (validate_backend, torch_pipeline_processor --
+optional `backend="torch"`, lazily imports madmom_infer.torch);
 read by: nothing yet (Wave 4a's own end-to-end target).
 """
 
@@ -125,6 +127,13 @@ class CNNKeyRecognitionProcessor(SequentialProcessor):
         madmom's own pretrained `KEY_CNN` ensemble (downloaded at runtime,
         sha256-verified, via `madmom_infer.models.key_cnn()` -- CC BY-NC-SA
         4.0, non-commercial use only, see `madmom_infer/models.py`).
+    backend : str, optional
+        `"numpy"` (default) or `"torch"` (needs the `torch` extra) -- see
+        `madmom_infer.backends`. `"torch"` swaps the whole pipeline for
+        `madmom_infer.torch.features.build_pipeline("key")` run on
+        `device`; `nn_files` overrides are not supported on that path.
+    device : optional
+        Torch device to run on; only meaningful with `backend="torch"`.
 
     References
     ----------
@@ -144,20 +153,39 @@ class CNNKeyRecognitionProcessor(SequentialProcessor):
     'E major'
     """
 
-    def __init__(self, nn_files=None, **kwargs):
-        from madmom_infer.models import key_cnn
+    def __init__(self, nn_files=None, backend="numpy", device=None, **kwargs):
+        from madmom_infer.backends import torch_pipeline_processor, validate_backend
 
-        # spectrogram computation
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        frames = FramedSignalProcessor(frame_size=8192, fps=5)
-        stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-        filt = FilteredSpectrogramProcessor(
-            num_bands=24, fmin=65, fmax=2100, unique_filters=True)
-        log = LogarithmicSpectrogramProcessor(mul=1, add=1)
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from madmom_infer.models import key_cnn
 
-        # neural network
-        nn_files = nn_files or key_cnn()
-        nn = NeuralNetworkEnsemble.load(nn_files)
+            # spectrogram computation
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            frames = FramedSignalProcessor(frame_size=8192, fps=5)
+            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+            filt = FilteredSpectrogramProcessor(
+                num_bands=24, fmin=65, fmax=2100, unique_filters=True)
+            log = LogarithmicSpectrogramProcessor(mul=1, add=1)
 
-        # create processing pipeline
-        super().__init__((sig, frames, stft, filt, log, nn, add_axis, softmax))
+            # neural network
+            nn_files = nn_files or key_cnn()
+            nn = NeuralNetworkEnsemble.load(nn_files)
+
+            # create processing pipeline
+            super().__init__(
+                (sig, frames, stft, filt, log, nn, add_axis, softmax))
+            return
+        if nn_files is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_files overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        # KeyPipeline already applies softmax and re-inserts add_axis's
+        # length-1 axis, so the torch path needs no extra stages.
+        proc = torch_pipeline_processor("key", device=device)
+        super().__init__((proc,))

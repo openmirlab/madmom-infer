@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `backend="torch"`/`device=` on every NN-backed processor
+  (`RNNDownBeatProcessor`, `RNNBarProcessor`, `RNNBeatProcessor`,
+  `RNNOnsetProcessor`, `CNNOnsetProcessor`, `CNNKeyRecognitionProcessor`,
+  `DeepChromaProcessor`, `CNNChordFeatureProcessor`,
+  `RNNPianoNoteProcessor`, `CNNPianoNoteProcessor`) and on `MadmomAnalyzer`
+  -- routes the NN forward pass through `madmom_infer.torch` (GPU-capable,
+  differentiable) instead of the numpy reference; decoders (DBN/HMM/CRF/
+  peak-picking), tempo histograms, MFCC, and HPSS always stay numpy.
+  `RNNBarProcessor(backend="torch")` keeps its numpy frontend (ffmpeg
+  resample + `scipy.signal.filtfilt`, not torch-portable) and only runs
+  its two GRU ensembles through torch. New `madmom_infer/backends.py`
+  (`validate_backend`, `torch_pipeline_processor`) is the single owner of
+  this dispatch; `import madmom_infer` still never imports torch. See the
+  README's "Torch backend (optional)" section and
+  `tests/test_torch_backend.py`.
+
 - `MadmomAnalyzer(..., tempo_from_downbeat_activations=True)` — an opt-in that lets
   the `tempo` task read column 0 of `RNNDownBeatProcessor`'s `(n, 2)` output instead
   of running a second, independent eight-net `RNNBeatProcessor` ensemble over the
@@ -19,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `MadmomAnalyzer`'s docstring and `docs/blueprints/decisions.md`.
 
 ### Changed
+
+- `tests/test_torch_pipelines.py`'s activation-parity check now asserts a
+  per-pipeline tolerance (measured on CPU, ~4x the observed max abs diff)
+  instead of one blanket `5e-3` figure; the CUDA-vs-CPU test keeps its own
+  looser, TF32-justified tolerance separately.
 
 - `MadmomAnalyzer._analyze` now memoizes the downbeat RNN's activations per call
   (`_downbeat_activations`), the way it already memoized beat activations and chroma,

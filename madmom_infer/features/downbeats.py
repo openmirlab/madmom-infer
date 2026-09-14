@@ -104,7 +104,10 @@ pre-processing cascade, incl. Wave 4f's MultiBandSpectrogram), madmom_infer/
 audio/chroma.py (CLPChromaProcessor, RNNBarProcessor's harmonic-feature
 branch, Wave 4d), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
 madmom_infer/models.py (DOWNBEATS_BLSTM/DOWNBEATS_BGRU/PATTERNS_BALLROOM
-download); read by: madmom_infer/features/tempo.py does NOT read this file
+download), madmom_infer/backends.py (validate_backend,
+torch_pipeline_processor -- optional `backend="torch"` on
+RNNDownBeatProcessor/RNNBarProcessor, lazily imports madmom_infer.torch);
+read by: madmom_infer/features/tempo.py does NOT read this file
 (only features/beats.py's DBNBeatTrackingProcessor, see that module).
 """
 
@@ -156,30 +159,51 @@ class RNNDownBeatProcessor(SequentialProcessor):
     5. `np.delete(..., obj=0, axis=1)` -- drop the "non-beat" column, leaving
        the `(num_frames, 2)` `[beat, downbeat]` activation array
        `DBNDownBeatTrackingProcessor` (below) expects.
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps steps 2-5
+    for `madmom_infer.torch.features.build_pipeline("downbeats")` (via
+    `madmom_infer.backends.torch_pipeline_processor`) run on `device` --
+    the torch `DownbeatsPipeline` already drops the "non-beat" column
+    itself, so no extra `np.delete` stage is needed on this path. `device`
+    is only meaningful together with `backend="torch"`.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, backend="numpy", device=None, **kwargs):
         from functools import partial
 
-        from madmom_infer.models import downbeats_blstm
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        multi = ParallelProcessor([])
-        frame_sizes = [1024, 2048, 4096]
-        num_bands = [3, 6, 12]
-        for frame_size, bands in zip(frame_sizes, num_bands):
-            frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
-            stft = ShortTimeFourierTransformProcessor()
-            filt = FilteredSpectrogramProcessor(
-                num_bands=bands, fmin=30, fmax=17000, norm_filters=True)
-            spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
-            diff = SpectrogramDifferenceProcessor(
-                diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
-            multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
-        pre_processor = SequentialProcessor((sig, multi, np.hstack))
-        nn = NeuralNetworkEnsemble.load(downbeats_blstm(), **kwargs)
-        act = partial(np.delete, obj=0, axis=1)
-        super().__init__((pre_processor, nn, act))
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from madmom_infer.models import downbeats_blstm
+
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            multi = ParallelProcessor([])
+            frame_sizes = [1024, 2048, 4096]
+            num_bands = [3, 6, 12]
+            for frame_size, bands in zip(frame_sizes, num_bands):
+                frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
+                stft = ShortTimeFourierTransformProcessor()
+                filt = FilteredSpectrogramProcessor(
+                    num_bands=bands, fmin=30, fmax=17000, norm_filters=True)
+                spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
+                diff = SpectrogramDifferenceProcessor(
+                    diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
+                multi.append(
+                    SequentialProcessor((frames, stft, filt, spec, diff)))
+            pre_processor = SequentialProcessor((sig, multi, np.hstack))
+            nn = NeuralNetworkEnsemble.load(downbeats_blstm(), **kwargs)
+            act = partial(np.delete, obj=0, axis=1)
+            super().__init__((pre_processor, nn, act))
+            return
+        if kwargs:
+            raise NotImplementedError(
+                "backend='torch' does not support NeuralNetworkEnsemble."
+                f"load overrides: {sorted(kwargs)}")
+        proc = torch_pipeline_processor("downbeats", device=device)
+        super().__init__((proc,))
 
 
 def threshold_activations(activations, threshold):
@@ -503,12 +527,29 @@ class RNNBarProcessor(Processor):
     forward pass this class exists to exercise is instead proven bit-exact
     via a golden intermediate-feature fixture, not a full audio-in run --
     see `tests/test_downbeats_rnn.py`.
+
+    `backend="torch"` (optional): the percussive/harmonic FRONTEND (framing/
+    STFT/filterbank cascade, and `CLPChroma`'s ffmpeg-subprocess `resample`
+    + `scipy.signal.filtfilt`) is not differentiable/torch-portable and
+    stays numpy UNCONDITIONALLY, regardless of `backend` -- only the two
+    `NeuralNetworkEnsemble`s (`self.perc_nn`/`self.harm_nn`) are swapped for
+    `madmom_infer.torch.ml.nn.to_torch`-converted modules run on `device`,
+    with a numpy-in/numpy-out wrapper around each so `process()` doesn't
+    need a separate code path per backend beyond dispatching the two NN
+    calls.
     """
 
-    def __init__(self, beat_subdivisions=(4, 2), fps=100, **kwargs):
+    def __init__(self, beat_subdivisions=(4, 2), fps=100, backend="numpy",
+                 device=None, **kwargs):
         # pylint: disable=unused-argument
         from madmom_infer.audio.chroma import CLPChromaProcessor
         from madmom_infer.models import downbeats_bgru
+
+        from ..backends import validate_backend
+
+        validate_backend(backend)
+        if backend == "numpy" and device is not None:
+            raise ValueError("device is only used with backend='torch'")
 
         sig = SignalProcessor(num_channels=1, sample_rate=44100)
         frames = FramedSignalProcessor(frame_size=2048, fps=fps)
@@ -528,8 +569,39 @@ class RNNBarProcessor(Processor):
         self.harm_beat_sync = SyncronizeFeaturesProcessor(
             beat_subdivisions[1], fps=fps, **kwargs)
         bgru = downbeats_bgru()
-        self.perc_nn = NeuralNetworkEnsemble.load(bgru[0], **kwargs)
-        self.harm_nn = NeuralNetworkEnsemble.load(bgru[1], **kwargs)
+        self.backend = backend
+        self._torch_device = device
+        if backend == "numpy":
+            self.perc_nn = NeuralNetworkEnsemble.load(bgru[0], **kwargs)
+            self.harm_nn = NeuralNetworkEnsemble.load(bgru[1], **kwargs)
+        else:
+            if kwargs:
+                raise NotImplementedError(
+                    "backend='torch' does not support NeuralNetworkEnsemble"
+                    f".load overrides: {sorted(kwargs)}")
+            from ..torch.ml.nn import to_torch
+
+            perc_module = to_torch(NeuralNetworkEnsemble.load(bgru[0]))
+            harm_module = to_torch(NeuralNetworkEnsemble.load(bgru[1]))
+            if device is not None:
+                perc_module = perc_module.to(device)
+                harm_module = harm_module.to(device)
+            self.perc_nn = perc_module
+            self.harm_nn = harm_module
+
+    def _run_nn(self, module, array):
+        """Run `array` through `module` (a numpy `NeuralNetworkEnsemble` or
+        a torch module, depending on `self.backend`) and return a numpy
+        array either way."""
+        if self.backend == "numpy":
+            return module(array)
+        import torch
+
+        tensor = torch.as_tensor(
+            np.asarray(array, dtype=np.float32), device=self._torch_device)
+        with torch.no_grad():
+            out = module(tensor)
+        return out.detach().to("cpu").numpy().astype(np.float32)
 
     def process(self, data, **kwargs):
         """Retrieve a downbeat activation function from a signal and beat
@@ -553,8 +625,8 @@ class RNNBarProcessor(Processor):
         harm = self.harm_feat(signal)
         perc_synced = self.perc_beat_sync((perc, beats))
         harm_synced = self.harm_beat_sync((harm, beats))
-        perc = self.perc_nn(perc_synced.reshape((len(perc_synced), -1)))
-        harm = self.harm_nn(harm_synced.reshape((len(harm_synced), -1)))
+        perc = self._run_nn(self.perc_nn, perc_synced.reshape((len(perc_synced), -1)))
+        harm = self._run_nn(self.harm_nn, harm_synced.reshape((len(harm_synced), -1)))
         act = np.mean([perc, harm], axis=0)
         act = np.append(act, np.ones(1) * np.nan)
         return np.vstack((beats, act)).T

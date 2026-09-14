@@ -3,6 +3,17 @@
 The existing ``audio`` and ``features`` modules remain the advanced,
 madmom-compatible surface. This module owns the small user-facing vocabulary:
 give it audio, choose a musical task, and receive the final semantic result.
+
+``backend="torch"``/``device=`` (optional, needs the ``torch`` extra) route
+the NN-backed tasks (onsets, beats, tempo, downbeats, key, chroma, chords,
+notes) through ``madmom_infer.backends``/``madmom_infer.torch`` instead of
+the numpy processors; the DBN/HMM/CRF/peak-picking decoders, tempo
+histograms, ``mfcc``, and ``hpss`` always stay numpy (sequential,
+discrete-state -- no autograd/batching benefit, see
+``madmom_infer/torch/__init__.py``'s header). ``import madmom_infer``
+still never imports torch -- these parameters only reach
+``madmom_infer.torch`` lazily, when a task actually built with
+``backend="torch"`` is used.
 """
 
 from dataclasses import dataclass
@@ -115,7 +126,10 @@ class MadmomAnalyzer:
     """
 
     def __init__(self, tasks=TASKS, beats_per_bar=(3, 4),
-                 tempo_from_downbeat_activations=False):
+                 tempo_from_downbeat_activations=False,
+                 backend="numpy", device=None):
+        from .backends import validate_backend
+
         self.tasks = tuple(tasks)
         unknown = set(self.tasks) - TASKS
         if unknown:
@@ -123,8 +137,13 @@ class MadmomAnalyzer:
         if tempo_from_downbeat_activations and not {"tempo", "downbeats"} <= set(self.tasks):
             raise ValueError(
                 "tempo_from_downbeat_activations needs both 'tempo' and 'downbeats' tasks")
+        validate_backend(backend)
+        if backend == "numpy" and device is not None:
+            raise ValueError("device is only used with backend='torch'")
         self.beats_per_bar = beats_per_bar
         self.tempo_from_downbeat_activations = tempo_from_downbeat_activations
+        self.backend = backend
+        self.device = device
         self._processors = {}
         self._call_lock = RLock()
         self._status = "new"
@@ -186,27 +205,31 @@ class MadmomAnalyzer:
         return self.tempo_from_downbeat_activations and "downbeats" in self.tasks
 
     def _build_processor(self, task):
+        backend, device = self.backend, self.device
         if task == "onsets":
             from .features.onsets import CNNOnsetProcessor, OnsetPeakPickingProcessor
-            return CNNOnsetProcessor(), OnsetPeakPickingProcessor(fps=100)
+            return (CNNOnsetProcessor(backend=backend, device=device),
+                    OnsetPeakPickingProcessor(fps=100))
         if task in ("beats", "tempo"):
             if task == "tempo" and self._tempo_rides_on_downbeats():
                 return None
             from .features.beats import RNNBeatProcessor
-            return RNNBeatProcessor()
+            return RNNBeatProcessor(backend=backend, device=device)
         if task == "downbeats":
             from .features.downbeats import RNNDownBeatProcessor, DBNDownBeatTrackingProcessor
-            return (RNNDownBeatProcessor(), DBNDownBeatTrackingProcessor(
-                beats_per_bar=self.beats_per_bar, fps=100))
+            return (RNNDownBeatProcessor(backend=backend, device=device),
+                    DBNDownBeatTrackingProcessor(
+                        beats_per_bar=self.beats_per_bar, fps=100))
         if task == "key":
             from .features.key import CNNKeyRecognitionProcessor
-            return CNNKeyRecognitionProcessor()
+            return CNNKeyRecognitionProcessor(backend=backend, device=device)
         if task in ("chords", "chroma"):
             from .audio.chroma import DeepChromaProcessor
-            return DeepChromaProcessor()
+            return DeepChromaProcessor(backend=backend, device=device)
         if task == "notes":
             from .features.notes import CNNPianoNoteProcessor, ADSRNoteTrackingProcessor
-            return CNNPianoNoteProcessor(), ADSRNoteTrackingProcessor()
+            return (CNNPianoNoteProcessor(backend=backend, device=device),
+                    ADSRNoteTrackingProcessor())
         return None
 
     def __call__(self, audio, *, sample_rate=None):
@@ -270,8 +293,10 @@ class MadmomAnalyzer:
         return AnalysisResult(values)
 
 
-def analyze(audio, *, tasks=TASKS, sample_rate=None, beats_per_bar=(3, 4)):
-    return MadmomAnalyzer(tasks=tasks, beats_per_bar=beats_per_bar)(
+def analyze(audio, *, tasks=TASKS, sample_rate=None, beats_per_bar=(3, 4),
+            backend="numpy", device=None):
+    return MadmomAnalyzer(tasks=tasks, beats_per_bar=beats_per_bar,
+                          backend=backend, device=device)(
         audio, sample_rate=sample_rate)
 
 
@@ -279,15 +304,24 @@ def _one(task, audio, sample_rate=None, **kwargs):
     return MadmomAnalyzer(tasks=(task,), **kwargs)(audio, sample_rate=sample_rate)[task]
 
 
-def detect_onsets(audio, *, sample_rate=None): return _one("onsets", audio, sample_rate)
-def detect_beats(audio, *, sample_rate=None): return _one("beats", audio, sample_rate)
-def detect_downbeats(audio, *, sample_rate=None, beats_per_bar=(3, 4)):
-    return _one("downbeats", audio, sample_rate, beats_per_bar=beats_per_bar)
-def estimate_tempo(audio, *, sample_rate=None): return _one("tempo", audio, sample_rate)
-def detect_key(audio, *, sample_rate=None): return _one("key", audio, sample_rate)
-def recognize_chords(audio, *, sample_rate=None): return _one("chords", audio, sample_rate)
-def transcribe_notes(audio, *, sample_rate=None): return _one("notes", audio, sample_rate)
-def chroma(audio, *, sample_rate=None): return _one("chroma", audio, sample_rate)
+def detect_onsets(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("onsets", audio, sample_rate, backend=backend, device=device)
+def detect_beats(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("beats", audio, sample_rate, backend=backend, device=device)
+def detect_downbeats(audio, *, sample_rate=None, beats_per_bar=(3, 4),
+                      backend="numpy", device=None):
+    return _one("downbeats", audio, sample_rate, beats_per_bar=beats_per_bar,
+                backend=backend, device=device)
+def estimate_tempo(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("tempo", audio, sample_rate, backend=backend, device=device)
+def detect_key(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("key", audio, sample_rate, backend=backend, device=device)
+def recognize_chords(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("chords", audio, sample_rate, backend=backend, device=device)
+def transcribe_notes(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("notes", audio, sample_rate, backend=backend, device=device)
+def chroma(audio, *, sample_rate=None, backend="numpy", device=None):
+    return _one("chroma", audio, sample_rate, backend=backend, device=device)
 
 
 def mfcc(audio, *, sample_rate=None, **options):

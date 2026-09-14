@@ -75,8 +75,11 @@ peak_picking), madmom_infer/features/notes_hmm.py (ADSRStateSpace,
 ADSRTransitionModel, ADSRObservationModel), madmom_infer/ml/hmm.py
 (HiddenMarkovModel), madmom_infer/ml/nn/__init__.py (NeuralNetwork,
 NeuralNetworkEnsemble), madmom_infer/models.py (notes_brnn/notes_cnn
-download), madmom_infer/utils.py (combine_events); read by: nothing yet
-(Wave 4e's own end-to-end target).
+download), madmom_infer/utils.py (combine_events), madmom_infer/backends.py
+(validate_backend, torch_pipeline_processor -- optional `backend="torch"`
+on RNNPianoNoteProcessor/CNNPianoNoteProcessor, lazily imports
+madmom_infer.torch); read by: nothing yet (Wave 4e's own end-to-end
+target).
 """
 
 import numpy as np
@@ -104,41 +107,62 @@ class RNNPianoNoteProcessor(SequentialProcessor):
            "Polyphonic Piano Note Transcription with Recurrent Neural
            Networks", Proceedings of the 37th International Conference on
            Acoustics, Speech and Signal Processing (ICASSP), 2012.
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps the whole
+    pipeline for `madmom_infer.torch.features.build_pipeline("notes_rnn")`
+    run on `device`; `nn_file` overrides are not supported on that path.
     """
 
-    def __init__(self, nn_file=None, **kwargs):
+    def __init__(self, nn_file=None, backend="numpy", device=None, **kwargs):
         # pylint: disable=unused-argument
-        from ..audio.signal import FramedSignalProcessor, SignalProcessor
-        from ..audio.spectrogram import (
-            FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
-            SpectrogramDifferenceProcessor,
-        )
-        from ..audio.stft import ShortTimeFourierTransformProcessor
-        from ..ml.nn import NeuralNetwork
-        from ..models import notes_brnn
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        # define pre-processing chain
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        # process the multi-resolution spec & diff in parallel
-        multi = ParallelProcessor([])
-        for frame_size in [1024, 2048, 4096]:
-            frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
-            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-            filt = FilteredSpectrogramProcessor(
-                num_bands=12, fmin=30, fmax=17000, norm_filters=True)
-            spec = LogarithmicSpectrogramProcessor(mul=5, add=1)
-            diff = SpectrogramDifferenceProcessor(
-                diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
-            # process each frame size with spec and diff sequentially
-            multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
-        # stack the features and processes everything sequentially
-        pre_processor = SequentialProcessor((sig, multi, np.hstack))
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from ..audio.signal import FramedSignalProcessor, SignalProcessor
+            from ..audio.spectrogram import (
+                FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
+                SpectrogramDifferenceProcessor,
+            )
+            from ..audio.stft import ShortTimeFourierTransformProcessor
+            from ..ml.nn import NeuralNetwork
+            from ..models import notes_brnn
 
-        # process the pre-processed signal with a NN
-        nn = NeuralNetwork.load(nn_file or notes_brnn()[0])
+            # define pre-processing chain
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            # process the multi-resolution spec & diff in parallel
+            multi = ParallelProcessor([])
+            for frame_size in [1024, 2048, 4096]:
+                frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
+                stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+                filt = FilteredSpectrogramProcessor(
+                    num_bands=12, fmin=30, fmax=17000, norm_filters=True)
+                spec = LogarithmicSpectrogramProcessor(mul=5, add=1)
+                diff = SpectrogramDifferenceProcessor(
+                    diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
+                # process each frame size with spec and diff sequentially
+                multi.append(
+                    SequentialProcessor((frames, stft, filt, spec, diff)))
+            # stack the features and processes everything sequentially
+            pre_processor = SequentialProcessor((sig, multi, np.hstack))
 
-        # instantiate a SequentialProcessor
-        super().__init__((pre_processor, nn))
+            # process the pre-processed signal with a NN
+            nn = NeuralNetwork.load(nn_file or notes_brnn()[0])
+
+            # instantiate a SequentialProcessor
+            super().__init__((pre_processor, nn))
+            return
+        if nn_file is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_file overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor("notes_rnn", device=device)
+        super().__init__((proc,))
 
 
 # ---------------------------------------------------------------------------
@@ -315,31 +339,52 @@ class CNNPianoNoteProcessor(SequentialProcessor):
            "Deep Polyphonic ADSR Piano Note Transcription", Proceedings of
            the 44th International Conference on Acoustics, Speech and
            Signal Processing (ICASSP), 2019.
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps the whole
+    pipeline for `madmom_infer.torch.features.build_pipeline("notes_cnn")`
+    run on `device`; `nn_files` overrides are not supported on that path.
     """
 
-    def __init__(self, nn_files=None, **kwargs):
+    def __init__(self, nn_files=None, backend="numpy", device=None, **kwargs):
         # pylint: disable=unused-argument
-        from ..audio.signal import FramedSignalProcessor, SignalProcessor
-        from ..audio.spectrogram import (
-            FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
-        )
-        from ..audio.stft import ShortTimeFourierTransformProcessor
-        from ..ml.nn import NeuralNetworkEnsemble
-        from ..models import notes_cnn
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        # define pre-processing chain
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        frames = FramedSignalProcessor(frame_size=4096, fps=50)
-        stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-        filt = FilteredSpectrogramProcessor(num_bands=24, fmin=30, fmax=10000)
-        spec = LogarithmicSpectrogramProcessor(add=1)
-        # pre-processes everything sequentially
-        pre_processor = SequentialProcessor(
-            (sig, frames, stft, filt, spec, _cnn_pad))
-        # process the pre-processed signal with a NN
-        nn = NeuralNetworkEnsemble.load(nn_files or notes_cnn())
-        # instantiate a SequentialProcessor
-        super().__init__((pre_processor, nn))
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from ..audio.signal import FramedSignalProcessor, SignalProcessor
+            from ..audio.spectrogram import (
+                FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
+            )
+            from ..audio.stft import ShortTimeFourierTransformProcessor
+            from ..ml.nn import NeuralNetworkEnsemble
+            from ..models import notes_cnn
+
+            # define pre-processing chain
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            frames = FramedSignalProcessor(frame_size=4096, fps=50)
+            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+            filt = FilteredSpectrogramProcessor(
+                num_bands=24, fmin=30, fmax=10000)
+            spec = LogarithmicSpectrogramProcessor(add=1)
+            # pre-processes everything sequentially
+            pre_processor = SequentialProcessor(
+                (sig, frames, stft, filt, spec, _cnn_pad))
+            # process the pre-processed signal with a NN
+            nn = NeuralNetworkEnsemble.load(nn_files or notes_cnn())
+            # instantiate a SequentialProcessor
+            super().__init__((pre_processor, nn))
+            return
+        if nn_files is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_files overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor("notes_cnn", device=device)
+        super().__init__((proc,))
 
 
 # ---------------------------------------------------------------------------

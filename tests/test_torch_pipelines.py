@@ -15,9 +15,22 @@ Groups of checks:
    int16, float32, stereo int16), `TorchPipelineProcessor` output vs. a
    FRESH numpy processor instance's output (fresh per case -- known
    instance-reuse caching artifact across differing wavs/dtypes, see
-   CLAUDE.md's wave 4d/4e findings). Max-abs-diff is measured and
-   asserted with roughly a 4x margin over the observed value, matching
-   this repo's tolerance-margin convention.
+   CLAUDE.md's wave 4d/4e findings). Max-abs-diff is measured per
+   PIPELINE (not one blanket number) and asserted against
+   `_PARITY_TOLERANCE` below, each entry set at roughly a 4x margin over
+   the value actually observed on CPU across all 3 fixture wavs (measured
+   2026-09-14: beats 4.7e-8, chords_feat 6.6e-7, chroma 6.0e-7, downbeats
+   1.4e-4, key 2.6e-8, notes_cnn 4.6e-6, notes_rnn 1.0e-6, onsets_cnn
+   1.5e-6, onsets_rnn 3.7e-7) -- matching this repo's tolerance-margin
+   convention. `downbeats` needs a visibly looser tolerance than its
+   siblings because its BLSTM ensemble is the deepest network here (8
+   networks x 3 frame-size branches); separately, `beats`' own BLSTM
+   ensemble is known to be numerically ill-conditioned on SOME inputs
+   (see `pipelines.py`'s `BeatsPipeline` docstring: a 5e-7 input
+   perturbation changes the numpy reference's own output by up to
+   1.6e-2) -- not exercised by these 3 fixture wavs, so `beats`' own
+   tolerance here stays tight; that finding is about input sensitivity,
+   not a backend-parity bug.
 2. **Gradient flow**: for downbeats/onsets_cnn/key/notes_cnn, the
    gradient of a scalar function of the pipeline's output w.r.t. the
    input waveform is finite and non-zero.
@@ -78,6 +91,29 @@ def _load_waveform(wav_path, dtype=np.float32):
     return waveform_from_signal(signal, dtype=dtype)
 
 
+# Per-pipeline max-abs-diff tolerances, ~4x the value actually measured on
+# CPU across the 3 fixture wavs (see the module header for the raw
+# measurements). Replaces a prior blanket 5e-3 that was far looser than any
+# pipeline actually needs.
+_PARITY_TOLERANCE = {
+    "beats": 2e-7,
+    "chords_feat": 3e-6,
+    "chroma": 3e-6,
+    "downbeats": 6e-4,
+    "key": 1.5e-7,
+    "notes_cnn": 2e-5,
+    "notes_rnn": 5e-6,
+    "onsets_cnn": 6e-6,
+    "onsets_rnn": 2e-6,
+}
+# CUDA-vs-CPU tolerance is kept separate and looser: torch's default TF32
+# matmul/cudnn on Ampere+ GPUs measurably drifts the CNN-heavy pipelines
+# (onsets_cnn, key, notes_cnn) up to ~1e-3 from the CPU/fp32 reference (see
+# `madmom_infer/torch/features/adapter.py`'s module header) -- decoded
+# results still matched in every case measured.
+_CUDA_TOLERANCE = 5e-3
+
+
 # ---------------------------------------------------------------------
 # 1. parity
 # ---------------------------------------------------------------------
@@ -97,11 +133,10 @@ def test_pipeline_matches_numpy_processor(name, wav_path):
     )
     diff = np.abs(numpy_out.astype(np.float64) - torch_out.astype(np.float64))
     max_diff = float(diff.max())
-    # ~4x margin over empirically observed drift (measured up to ~6e-4 for
-    # the float32 fixture on the deepest pipelines) -- matches this repo's
-    # tolerance-margin convention (see e.g. tests/test_key.py).
-    assert max_diff < 5e-3, (
-        f"{name}/{wav_path}: max abs diff {max_diff!r} exceeds tolerance"
+    tolerance = _PARITY_TOLERANCE[name]
+    assert max_diff < tolerance, (
+        f"{name}/{wav_path}: max abs diff {max_diff!r} exceeds "
+        f"tolerance {tolerance!r}"
     )
 
 
@@ -163,4 +198,4 @@ def test_cuda_matches_cpu(name):
         out_gpu = pipeline_gpu(waveform_gpu).cpu()
 
     max_diff = (out_cpu.double() - out_gpu.double()).abs().max().item()
-    assert max_diff < 5e-3, f"{name}: cuda/cpu max abs diff {max_diff!r}"
+    assert max_diff < _CUDA_TOLERANCE, f"{name}: cuda/cpu max abs diff {max_diff!r}"

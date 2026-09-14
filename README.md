@@ -76,9 +76,12 @@ algorithms it reimplements:
   real (compiled) madmom output via golden-fixture tests -- not "close enough,"
   proven exact or exact-to-a-documented-ULP-bound where BLAS non-associativity
   is the only source of drift
-- **Optional differentiable torch frontend**: a batched, autograd-differentiable,
-  device-agnostic reimplementation of the framing -> STFT -> filterbank ->
-  log-compression -> temporal-difference chain (`torch` extra)
+- **Optional torch backend**: a batched, autograd-differentiable,
+  device-agnostic reimplementation of the whole audio-in -> activations-out
+  chain (framing -> STFT -> filterbank -> log-compression -> RNN/CNN
+  ensemble) for every NN-backed task, plus `backend="torch"`/`device=` on
+  the numpy processors and `MadmomAnalyzer` themselves (`torch` extra) --
+  see [Torch backend](#torch-backend-optional)
 - **Restricted, class-allowlisted unpickling** for madmom's own `.pkl` model
   files -- never a bare `pickle.load` against a downloaded, lower-trust artifact
 - **Runtime-only weight downloads**, sha256-verified against a pinned known-good
@@ -162,13 +165,15 @@ Out of scope, forever:
 Every inference-relevant public class/function in upstream madmom's
 `features/`, `audio/`, and `ml/` packages is now ported (or documented as
 permanently excluded, see above) -- the numpy backend is feature-complete
-against a real madmom 0.17.dev0 install's own surface. The only remaining
-gap is a torch reimplementation of the RNN ensemble forward pass itself
-(blocked on a real design question -- madmom's LSTM layers use peephole
-connections `torch.nn.LSTM` does not implement, so this needs a custom
-cell, not a drop-in swap). Viterbi/DBN decoding is sequential and
-discrete-state, so it is not planned for a torch port -- no GPU benefit to
-speak of.
+against a real madmom 0.17.dev0 install's own surface, and remains the
+default and reference implementation. The optional torch backend (`torch`
+extra, see [Torch backend](#torch-backend-optional)) now covers the whole
+audio-in -> activations-out chain for every NN-backed task, including a
+custom GRU/LSTM (with peephole connections) forward pass -- `torch.nn.LSTM`
+has no peephole-connection equivalent, so this needed a hand-written cell,
+not a drop-in swap. Viterbi/DBN/CRF decoding stays numpy-only, permanently:
+it is sequential and discrete-state, with no GPU/autograd benefit to speak
+of.
 
 ---
 
@@ -177,7 +182,7 @@ speak of.
 ```bash
 pip install madmom-infer
 
-# with the optional differentiable torch frontend
+# with the optional torch backend
 pip install "madmom-infer[torch]"
 ```
 
@@ -511,7 +516,12 @@ percussive = np.asarray(spec) * percussive_mask
 `HPSS().process()` composes the same `slices()` and `masks()` operations and
 returns the harmonic and percussive spectrograms directly.
 
-### Torch frontend
+### Torch backend (optional)
+
+Install the extra first: `pip install "madmom-infer[torch]"` (or `uv sync
+--extra dev --extra torch` for development).
+
+#### Differentiable frontend
 
 ```python
 import torch
@@ -562,11 +572,8 @@ the `rnn_downbeat_frontend()` factory that mirrors `RNNDownBeatProcessor`'s
 producing the same 314-dimensional feature vector real madmom's RNN
 ensemble consumes.
 
-**What it explicitly does NOT cover** (see `madmom_infer/torch/__init__.py`):
-- The RNN ensemble forward pass -- madmom's LSTM layers use peephole
-  connections `torch.nn.LSTM` does not implement, so this needs a custom cell.
-- Viterbi/DBN decoding -- sequential, per-frame, discrete-state recursion, no
-  batching or GPU benefit to speak of.
+**What the frontend explicitly does NOT cover** (see
+`madmom_infer/torch/__init__.py`):
 - Audio loading/downmixing/resampling (`SignalProcessor`) -- the frontend
   takes an already-mono, already-resampled float waveform tensor directly.
 - Byte-identical numeric parity with the numpy backend at every precision:
@@ -576,6 +583,93 @@ ensemble consumes.
   float32, ~1e-10 at float64 against a float64-only numpy test harness --
   see that file's module docstring for why numpy's *shipped* classes cannot
   produce a genuine float64 baseline to begin with), not bit-for-bit.
+
+#### NN forward pass and end-to-end pipelines
+
+`madmom_infer.torch.ml.nn.to_torch` converts an already-loaded numpy
+`NeuralNetwork`/`NeuralNetworkEnsemble` (or a raw processor-graph, e.g.
+`CNNPianoNoteProcessor`'s multi-task pickle) into an equivalent
+differentiable, GPU-capable `torch.nn.Module` -- including a hand-written
+GRU/LSTM cell loop, since madmom's peephole-connected LSTM has no
+`torch.nn.LSTM` equivalent:
+
+```python
+import torch
+from madmom_infer.ml.nn import NeuralNetworkEnsemble
+from madmom_infer.models import beats_blstm
+from madmom_infer.torch.ml.nn import to_torch
+
+ensemble = NeuralNetworkEnsemble.load(beats_blstm())
+module = to_torch(ensemble, trainable=True)  # nn.Parameter, not frozen buffers
+```
+
+`madmom_infer.torch.features.build_pipeline(name, **kwargs)` composes the
+frontend and `to_torch` into one differentiable, audio-in ->
+activations-out `nn.Module` per NN-backed task (`"downbeats"`, `"beats"`,
+`"onsets_rnn"`, `"onsets_cnn"`, `"key"`, `"chroma"`, `"chords_feat"`,
+`"notes_rnn"`, `"notes_cnn"`); `TorchPipelineProcessor` wraps one of these
+back into a numpy-in/numpy-out `Processor` for drop-in use anywhere a
+numpy processor stage is expected.
+
+#### `backend="torch"` on the numpy processors and `MadmomAnalyzer`
+
+Every NN-backed processor (`RNNDownBeatProcessor`, `RNNBarProcessor`,
+`RNNBeatProcessor`, `RNNOnsetProcessor`, `CNNOnsetProcessor`,
+`CNNKeyRecognitionProcessor`, `DeepChromaProcessor`,
+`CNNChordFeatureProcessor`, `RNNPianoNoteProcessor`,
+`CNNPianoNoteProcessor`) and `MadmomAnalyzer` itself accept
+`backend="numpy"` (default, unchanged) or `backend="torch"` plus
+`device=` (e.g. `"cuda"`):
+
+```python
+from madmom_infer.features.beats import RNNBeatProcessor
+
+act = RNNBeatProcessor(backend="torch", device="cuda")("track.wav")
+```
+
+```python
+from madmom_infer.api import MadmomAnalyzer
+
+with MadmomAnalyzer(tasks=("beats", "downbeats", "key"),
+                    backend="torch", device="cuda") as analyzer:
+    result = analyzer("track.wav")
+```
+
+**What stays numpy regardless of `backend`**: the DBN/HMM/CRF decoders
+(`DBNBeatTrackingProcessor`, `DBNDownBeatTrackingProcessor`,
+`CRFChordRecognitionProcessor`, ...), peak-picking, tempo histograms, MFCC,
+and HPSS -- sequential/discrete-state DSP with no autograd/batching
+benefit. `RNNBarProcessor(backend="torch")` is a partial case: its
+frontend (beat-synchronous percussive/harmonic features, built on an
+ffmpeg-subprocess resample + `scipy.signal.filtfilt`) is not
+torch-portable and always stays numpy; only its two GRU
+`NeuralNetworkEnsemble`s run through torch.
+
+`import madmom_infer` never imports torch -- `backend="torch"` reaches
+`madmom_infer.torch` lazily, only when actually used, raising a clear
+`ImportError` with an install hint if the `torch` extra isn't installed.
+
+**Two measured numeric notes:**
+- On Ampere+ GPUs, torch's own default (`torch.backends.cudnn.allow_tf32`/
+  `torch.backends.cuda.matmul.allow_tf32` both `True`) makes the CNN-heavy
+  pipelines (`onsets_cnn`, `key`, `notes_cnn`) drift up to ~1e-3 from the
+  numpy reference on CUDA, dropping to ~1e-6 with both flags forced
+  `False`; decoded results matched either way in every case measured. This
+  project's library code never mutates those global flags itself -- set
+  them yourself if you need the tighter tolerance, or pass
+  `--allow-tf32`/omit it on `tools/compare_torch_backend.py`.
+- The beats BLSTM ensemble is numerically ill-conditioned on some inputs:
+  on a percussion-free keyboard loop, a 5e-7 perturbation of the INPUT
+  changes the numpy reference's own output by up to 1.6e-2. Torch-vs-numpy
+  activation diffs as large as ~1e-2 are expected on such audio and are
+  not a backend-parity bug; decoded beats still matched exactly in every
+  case tested.
+
+As with the numpy backend, madmom's own pretrained weights stay **CC
+BY-NC-SA 4.0** regardless of which backend loads them -- `to_torch`/
+`build_pipeline` download through the same sha256-verified,
+runtime-only `madmom_infer.models` registry, never bundled (see
+[What this project will NEVER bundle](#what-this-project-will-never-bundle)).
 
 ---
 
@@ -615,10 +709,14 @@ uv run pytest -v
 The default `pytest` run above is fully offline (network-marked tests
 deselected by `pyproject.toml`; this is what CI runs). To also exercise the
 network-dependent tests against real, freshly-downloaded madmom weights, run
-`uv run pytest -m network -v`. To exercise the optional torch frontend, install
-it first (`uv sync --extra dev --extra torch`), then run
-`uv run pytest tests/test_torch_frontend.py -v`. See CLAUDE.md for the full
-verification picture, including the reference-venv cross-BLAS proof.
+`uv run pytest -m network -v`. To exercise the optional torch backend,
+install it first (`uv sync --extra dev --extra torch`), then run
+`uv run pytest tests/test_torch_frontend.py -v` (differentiable frontend,
+offline) and `uv run pytest -m network tests/test_torch_nn.py
+tests/test_torch_pipelines.py tests/test_torch_backend.py -v` (NN forward
+pass, end-to-end pipelines, and `backend="torch"` on the numpy processors --
+needs downloaded weights). See CLAUDE.md for the full verification
+picture, including the reference-venv cross-BLAS proof.
 
 ---
 

@@ -191,6 +191,14 @@ class BeatsPipeline(nn.Module):
     bands each) -- same offline-compatibility shape as upstream (see that
     class's docstring).
 
+    **Measured numerical note**: the BLSTM ensemble is numerically
+    ill-conditioned on some inputs -- on a percussion-free keyboard loop, a
+    5e-7 perturbation of the INPUT changes the numpy reference's own output
+    by up to 1.6e-2. Torch-vs-numpy activation diffs as large as ~1e-2 are
+    therefore expected on such audio and are not a correctness bug in
+    either backend; decoded beats still matched exactly in every case
+    tested.
+
     `forward(waveform)`: `(N,)`/`(B, N)` -> `(T,)`/`(B, T)` beat activation.
     """
 

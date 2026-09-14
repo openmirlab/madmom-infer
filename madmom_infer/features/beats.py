@@ -76,8 +76,11 @@ tempo.py (TempoEstimationProcessor, lazily imported -- BeatTrackingProcessor's
 default tempo estimator), madmom_infer/ml/hmm.py (HiddenMarkovModel),
 madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble, average_predictions),
 madmom_infer/models.py (BEATS_LSTM/BEATS_BLSTM download), madmom_infer/
-processors.py (Processor, ParallelProcessor, SequentialProcessor); read by:
-madmom_infer/features/tempo.py (DBNTempoHistogramProcessor).
+processors.py (Processor, ParallelProcessor, SequentialProcessor),
+madmom_infer/backends.py (validate_backend, torch_pipeline_processor --
+optional `backend="torch"` on RNNBeatProcessor, lazily imports
+madmom_infer.torch); read by: madmom_infer/features/tempo.py
+(DBNTempoHistogramProcessor).
 """
 
 import sys
@@ -122,37 +125,66 @@ class RNNBeatProcessor(SequentialProcessor):
     entirely (not in upstream -- matches this project's own
     `CNNKeyRecognitionProcessor`/`RNNOnsetProcessor` convention, used by the
     cross-BLAS test to point at local `.pkl` copies).
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps the whole
+    pipeline for `madmom_infer.torch.features.build_pipeline("beats",
+    online=online)` (via `madmom_infer.backends.torch_pipeline_processor`)
+    run on `device` -- it only supports the default `post_processor`
+    (`average_predictions`, matching the torch pipeline's own hardcoded
+    ensemble-averaging) and `nn_files=None`; either non-default raises
+    `NotImplementedError` rather than silently ignoring it.
     """
 
     def __init__(self, post_processor=average_predictions, online=False,
-                 nn_files=None, **kwargs):
-        from madmom_infer.models import beats_blstm, beats_lstm
+                 nn_files=None, backend="numpy", device=None, **kwargs):
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        if online:
-            model_files = nn_files or beats_lstm()
-            frame_sizes = [2048]
-            num_bands = 12
-        else:
-            model_files = nn_files or beats_blstm()
-            frame_sizes = [1024, 2048, 4096]
-            num_bands = 6
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from madmom_infer.models import beats_blstm, beats_lstm
 
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        multi = ParallelProcessor([])
-        for frame_size in frame_sizes:
-            frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
-            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-            filt = FilteredSpectrogramProcessor(
-                num_bands=num_bands, fmin=30, fmax=17000, norm_filters=True)
-            spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
-            diff = SpectrogramDifferenceProcessor(
-                diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
-            multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
-        pre_processor = SequentialProcessor((sig, multi, np.hstack))
+            if online:
+                model_files = nn_files or beats_lstm()
+                frame_sizes = [2048]
+                num_bands = 12
+            else:
+                model_files = nn_files or beats_blstm()
+                frame_sizes = [1024, 2048, 4096]
+                num_bands = 6
 
-        nn = NeuralNetworkEnsemble.load(
-            model_files, ensemble_fn=post_processor, **kwargs)
-        super().__init__((pre_processor, nn))
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            multi = ParallelProcessor([])
+            for frame_size in frame_sizes:
+                frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
+                stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+                filt = FilteredSpectrogramProcessor(
+                    num_bands=num_bands, fmin=30, fmax=17000, norm_filters=True)
+                spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
+                diff = SpectrogramDifferenceProcessor(
+                    diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
+                multi.append(
+                    SequentialProcessor((frames, stft, filt, spec, diff)))
+            pre_processor = SequentialProcessor((sig, multi, np.hstack))
+
+            nn = NeuralNetworkEnsemble.load(
+                model_files, ensemble_fn=post_processor, **kwargs)
+            super().__init__((pre_processor, nn))
+            return
+        if nn_files is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_files overrides")
+        if post_processor is not average_predictions:
+            raise NotImplementedError(
+                "backend='torch' only supports the default post_processor "
+                "(average_predictions)")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor("beats", device=device, online=online)
+        super().__init__((proc,))
 
 
 class MultiModelSelectionProcessor(Processor):

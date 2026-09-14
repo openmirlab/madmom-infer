@@ -59,7 +59,10 @@ SemitoneBandpassSpectrogram), madmom_infer/audio/signal.py (SignalProcessor,
 FramedSignalProcessor), madmom_infer/audio/stft.py
 (ShortTimeFourierTransformProcessor), madmom_infer/ml/nn/__init__.py
 (NeuralNetworkEnsemble), madmom_infer/models.py (chroma_dnn download),
-madmom_infer/processors.py (Processor, SequentialProcessor); read by:
+madmom_infer/processors.py (Processor, SequentialProcessor),
+madmom_infer/backends.py (validate_backend, torch_pipeline_processor --
+optional `backend="torch"` on DeepChromaProcessor, lazily imports
+madmom_infer.torch); read by:
 madmom_infer/features/chords.py (DeepChromaChordRecognitionProcessor),
 madmom_infer/features/downbeats.py (RNNBarProcessor.harm_feat).
 """
@@ -251,6 +254,14 @@ class DeepChromaProcessor(SequentialProcessor):
         own pretrained `CHROMA_DNN` model (downloaded at runtime,
         sha256-verified, via `madmom_infer.models.chroma_dnn()` -- CC
         BY-NC-SA 4.0, non-commercial use only, see `madmom_infer/models.py`).
+    backend : str, optional
+        `"numpy"` (default) or `"torch"` (needs the `torch` extra) -- see
+        `madmom_infer.backends`. `"torch"` swaps the whole pipeline for
+        `madmom_infer.torch.features.build_pipeline("chroma", fmin=fmin,
+        fmax=fmax, unique_filters=unique_filters)` run on `device`;
+        `models` overrides are not supported on that path.
+    device : optional
+        Torch device to run on; only meaningful with `backend="torch"`.
 
     Notes
     -----
@@ -266,30 +277,50 @@ class DeepChromaProcessor(SequentialProcessor):
     """
 
     def __init__(self, fmin=65, fmax=2100, unique_filters=True, models=None,
-                 **kwargs):
-        from ..models import chroma_dnn
-        from ..ml.nn import NeuralNetworkEnsemble
-        from .signal import FramedSignalProcessor, SignalProcessor
-        from .spectrogram import (
-            FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
-        )
-        from .stft import ShortTimeFourierTransformProcessor
+                 backend="numpy", device=None, **kwargs):
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        # signal pre-processing
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        frames = FramedSignalProcessor(frame_size=8192, fps=10)
-        stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-        filt = FilteredSpectrogramProcessor(
-            num_bands=24, fmin=fmin, fmax=fmax, unique_filters=unique_filters)
-        log = LogarithmicSpectrogramProcessor(mul=1, add=1)
-        # split the spectrogram into overlapping frames
-        spec_signal = SignalProcessor(sample_rate=10)
-        spec_frames = FramedSignalProcessor(frame_size=15, hop_size=1, fps=10)
-        # predict chroma bins with a DNN
-        nn = NeuralNetworkEnsemble.load(models or chroma_dnn(), **kwargs)
-        # instantiate a SequentialProcessor
-        super().__init__((sig, frames, stft, filt, log, np.asarray,
-                          spec_signal, spec_frames, _dcp_flatten, nn))
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from ..models import chroma_dnn
+            from ..ml.nn import NeuralNetworkEnsemble
+            from .signal import FramedSignalProcessor, SignalProcessor
+            from .spectrogram import (
+                FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
+            )
+            from .stft import ShortTimeFourierTransformProcessor
+
+            # signal pre-processing
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            frames = FramedSignalProcessor(frame_size=8192, fps=10)
+            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+            filt = FilteredSpectrogramProcessor(
+                num_bands=24, fmin=fmin, fmax=fmax,
+                unique_filters=unique_filters)
+            log = LogarithmicSpectrogramProcessor(mul=1, add=1)
+            # split the spectrogram into overlapping frames
+            spec_signal = SignalProcessor(sample_rate=10)
+            spec_frames = FramedSignalProcessor(
+                frame_size=15, hop_size=1, fps=10)
+            # predict chroma bins with a DNN
+            nn = NeuralNetworkEnsemble.load(models or chroma_dnn(), **kwargs)
+            # instantiate a SequentialProcessor
+            super().__init__((sig, frames, stft, filt, log, np.asarray,
+                              spec_signal, spec_frames, _dcp_flatten, nn))
+            return
+        if models is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support models overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor(
+            "chroma", device=device, fmin=fmin, fmax=fmax,
+            unique_filters=unique_filters)
+        super().__init__((proc,))
 
 
 # Compressed Log Pitch (CLP) chroma stuff

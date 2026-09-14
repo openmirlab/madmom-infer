@@ -33,8 +33,11 @@ Reads: madmom_infer/audio/{signal,stft,spectrogram,chroma}.py (the
 pre-processing cascades), madmom_infer/ml/crf.py (ConditionalRandomField),
 madmom_infer/ml/nn/__init__.py (NeuralNetwork), madmom_infer/models.py
 (chords_dccrf/chords_cnn_feat/chords_cfcrf download), madmom_infer/utils.py
-(segment_axis), madmom_infer/processors.py (SequentialProcessor); read by:
-nothing yet (Wave 4d's own end-to-end target).
+(segment_axis), madmom_infer/processors.py (SequentialProcessor),
+madmom_infer/backends.py (validate_backend, torch_pipeline_processor --
+optional `backend="torch"` on CNNChordFeatureProcessor, lazily imports
+madmom_infer.torch); read by: nothing yet (Wave 4d's own end-to-end
+target).
 """
 
 from functools import partial
@@ -213,41 +216,61 @@ class CNNChordFeatureProcessor(SequentialProcessor):
     >>> features = proc('track.wav')  # doctest: +SKIP
     >>> features.shape  # doctest: +SKIP
     (41, 128)
+
+    `backend="torch"` (optional, needs the `torch` extra) swaps the whole
+    pipeline for `madmom_infer.torch.features.build_pipeline("chords_feat")`
+    run on `device`; `nn_file` overrides are not supported on that path.
     """
 
-    def __init__(self, nn_file=None, **kwargs):
+    def __init__(self, nn_file=None, backend="numpy", device=None, **kwargs):
         # pylint: disable=unused-argument
-        from ..audio.signal import FramedSignalProcessor, SignalProcessor
-        from ..audio.spectrogram import (
-            FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
-        )
-        from ..audio.stft import ShortTimeFourierTransformProcessor
-        from ..ml.nn import NeuralNetwork
-        from ..models import chords_cnn_feat
+        from ..backends import torch_pipeline_processor, validate_backend
 
-        # spectrogram computation
-        sig = SignalProcessor(num_channels=1, sample_rate=44100)
-        frames = FramedSignalProcessor(frame_size=8192, fps=10)
-        stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-        filt = FilteredSpectrogramProcessor(
-            num_bands=24, fmin=60, fmax=2600, unique_filters=True)
-        log = LogarithmicSpectrogramProcessor(mul=1, add=1)
+        validate_backend(backend)
+        if backend == "numpy":
+            if device is not None:
+                raise ValueError("device is only used with backend='torch'")
+            from ..audio.signal import FramedSignalProcessor, SignalProcessor
+            from ..audio.spectrogram import (
+                FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
+            )
+            from ..audio.stft import ShortTimeFourierTransformProcessor
+            from ..ml.nn import NeuralNetwork
+            from ..models import chords_cnn_feat
 
-        # padding, neural network and global average pooling
-        pad = _cnncfp_pad
-        # `nn_file` override (not in upstream, which hardcodes CHORDS_CNN_
-        # FEAT[0] -- added here purely for testability, matching the
-        # `nn_files=`/`models=` override convention `CNNKeyRecognitionProcessor`/
-        # `DeepChromaProcessor` already establish) lets tests point at a
-        # local `.pkl` copy without needing madmom_infer.models's runtime
-        # download.
-        nn = NeuralNetwork.load(nn_file or chords_cnn_feat()[0])
-        superframes = _cnncfp_superframes
-        avg = _cnncfp_avg
+            # spectrogram computation
+            sig = SignalProcessor(num_channels=1, sample_rate=44100)
+            frames = FramedSignalProcessor(frame_size=8192, fps=10)
+            stft = ShortTimeFourierTransformProcessor()  # caching FFT window
+            filt = FilteredSpectrogramProcessor(
+                num_bands=24, fmin=60, fmax=2600, unique_filters=True)
+            log = LogarithmicSpectrogramProcessor(mul=1, add=1)
 
-        # create processing pipeline
-        super().__init__((sig, frames, stft, filt, log, pad, nn,
-                          superframes, avg))
+            # padding, neural network and global average pooling
+            pad = _cnncfp_pad
+            # `nn_file` override (not in upstream, which hardcodes CHORDS_CNN_
+            # FEAT[0] -- added here purely for testability, matching the
+            # `nn_files=`/`models=` override convention `CNNKeyRecognitionProcessor`/
+            # `DeepChromaProcessor` already establish) lets tests point at a
+            # local `.pkl` copy without needing madmom_infer.models's runtime
+            # download.
+            nn = NeuralNetwork.load(nn_file or chords_cnn_feat()[0])
+            superframes = _cnncfp_superframes
+            avg = _cnncfp_avg
+
+            # create processing pipeline
+            super().__init__((sig, frames, stft, filt, log, pad, nn,
+                              superframes, avg))
+            return
+        if nn_file is not None:
+            raise NotImplementedError(
+                "backend='torch' does not support nn_file overrides")
+        if kwargs:
+            raise NotImplementedError(
+                f"backend='torch' does not support these overrides: "
+                f"{sorted(kwargs)}")
+        proc = torch_pipeline_processor("chords_feat", device=device)
+        super().__init__((proc,))
 
 
 class CRFChordRecognitionProcessor(SequentialProcessor):

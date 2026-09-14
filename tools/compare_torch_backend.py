@@ -17,6 +17,15 @@ Usage:
     uv run python tools/compare_torch_backend.py AUDIO.wav [AUDIO2.wav ...] \\
         --device cuda --dtype float32
 
+`--allow-tf32` (default off): on Ampere+ GPUs, torch's own default
+(`torch.backends.cudnn.allow_tf32=True`,
+`torch.backends.cuda.matmul.allow_tf32=True`) makes the CNN-heavy
+pipelines (onsets_cnn, key, notes_cnn) drift up to ~1e-3 from the numpy
+reference on CUDA -- passing this flag re-enables that default; leaving it
+off (this tool's default) forces both flags `False` for a tighter ~1e-6
+match. See `madmom_infer/torch/features/adapter.py`'s module header for
+the full measurement.
+
 Reads: madmom_infer.torch.features (build_pipeline, TorchPipelineProcessor),
 the 9 numpy feature-family modules (imported lazily), and their matching
 decoders (DBNDownBeatTrackingProcessor,
@@ -191,10 +200,17 @@ def main():
     parser.add_argument("audio", nargs="+", help="path(s) to audio file(s)")
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
     parser.add_argument("--dtype", default="float32", choices=["float32", "float64"])
+    parser.add_argument(
+        "--allow-tf32", action="store_true",
+        help="allow TF32 matmul/cudnn on CUDA (default: off, forced False "
+             "for tighter numpy parity -- see this tool's module header)")
     args = parser.parse_args()
 
     if args.device == "cuda" and not torch.cuda.is_available():
         raise SystemExit("--device cuda requested but no CUDA device is available")
+
+    torch.backends.cudnn.allow_tf32 = args.allow_tf32
+    torch.backends.cuda.matmul.allow_tf32 = args.allow_tf32
 
     for audio_path in args.audio:
         run(audio_path, args.device, args.dtype)
