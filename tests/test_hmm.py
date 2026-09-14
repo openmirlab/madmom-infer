@@ -15,6 +15,7 @@ import os
 import numpy as np
 import pytest
 
+import madmom_infer.ml.hmm as hmm_module
 from madmom_infer.ml.hmm import (DiscreteObservationModel, HiddenMarkovModel,
                                  TransitionModel)
 
@@ -70,6 +71,42 @@ def test_toy_hmm_viterbi_exact_path(toy_hmm_fixture):
     np.testing.assert_array_equal(path, d["viterbi_path"])
     assert path.dtype == np.uint32
     assert log_prob == pytest.approx(float(d["viterbi_log_prob"]), abs=1e-10)
+
+
+def test_viterbi_maps_observation_densities_one_frame_at_a_time(monkeypatch):
+    """Guard against rebuilding the removed frames-by-states allocation."""
+    tm = TransitionModel.from_dense(
+        [0, 1, 0, 1], [0, 0, 1, 1], [0.7, 0.3, 0.6, 0.4]
+    )
+    raw_densities = np.zeros((4, 2), dtype=float)
+
+    class _ObservationModel:
+        pointers = np.array([0, 1], dtype=np.uint32)
+
+        def log_densities(self, observations):
+            return raw_densities
+
+    class _RejectWholeSequenceRemap(np.ndarray):
+        def __getitem__(self, key):
+            if isinstance(key, tuple) and isinstance(key[0], slice):
+                raise AssertionError("observation densities expanded across all frames")
+            return super().__getitem__(key)
+
+    original_asarray = np.asarray
+
+    def _guard_density_array(value, *args, **kwargs):
+        converted = original_asarray(value, *args, **kwargs)
+        if value is raw_densities:
+            return converted.view(_RejectWholeSequenceRemap)
+        return converted
+
+    monkeypatch.setattr(hmm_module.np, "asarray", _guard_density_array)
+    path, log_prob = HiddenMarkovModel(tm, _ObservationModel()).viterbi(
+        np.arange(4)
+    )
+
+    assert path.shape == (4,)
+    assert np.isfinite(log_prob)
 
 
 def test_toy_hmm_forward_matches(toy_hmm_fixture):

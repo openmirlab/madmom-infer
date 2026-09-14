@@ -41,6 +41,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `HiddenMarkovModel.viterbi()` now maps compact observation densities to HMM
+  states one frame at a time, matching CPJKU/madmom's Cython implementation,
+  instead of materializing a second `(frames, states)` matrix. A deterministic
+  270-second downbeat-decoder A/B remained bit-identical while peak RSS fell
+  from 4.59 GiB to 1.60 GiB and wall time from 28.61 s to 12.34 s. Whole-song
+  offline decoding semantics are unchanged; this is not independent chunking
+  or a new streaming mode. A separate 270-second audio-in A/B using repeated
+  CPJKU/madmom sample audio kept beats, downbeats, and tempo bit-identical while
+  full-pipeline peak RSS fell from 5.05 GiB to 2.48 GiB and wall time from
+  59.01 s to 50.52 s, so memory safety remains the primary improvement.
+
 - `tests/test_torch_pipelines.py`'s activation-parity check now asserts a
   per-pipeline tolerance (measured on CPU, ~4x the observed max abs diff)
   instead of one blanket `5e-3` figure; the CUDA-vs-CPU test keeps its own

@@ -18,6 +18,9 @@ which keeps the first-encountered predecessor on a tie. `np.argmax`/first-occurr
 semantics line up with this naturally, so no special-casing is needed once the
 segment reduction is done correctly. `forward()` mirrors this with `np.add.reduceat`
 in the linear (non-log) domain, per-frame renormalized, matching hmm.pyx:591-659.
+Observation densities stay in their compact `(frames, observation_classes)` form
+and are mapped to states one frame at a time, matching upstream hmm.pyx; expanding
+them to `(frames, states)` is both slower and prohibitively memory-heavy on songs.
 
 Both `np.fmax.reduceat`/`np.add.reduceat` have a documented gotcha: consecutive
 identical indices (a zero-length CSR segment, i.e. a state with no incoming
@@ -410,8 +413,6 @@ class HiddenMarkovModel(object):
         num_observations = len(observations)
         om_pointers = np.asarray(om.pointers, dtype=np.uint32)
         om_densities = np.asarray(om.log_densities(observations), dtype=float)
-        # density_matrix[frame, state] = om_densities[frame, om_pointers[state]]
-        density_matrix = om_densities[:, om_pointers]
 
         # back-tracking pointers, one row per frame
         bt_pointers = np.zeros((num_observations, num_states), dtype=np.uint32)
@@ -462,7 +463,10 @@ class HiddenMarkovModel(object):
                 safe = (~empty_segment) & (seg_argmin < num_transitions)
                 bt_pointers[frame, safe] = tm_states[seg_argmin[safe]]
 
-            current_viterbi = seg_max + density_matrix[frame]
+            # Map only this frame's compact observation densities to states,
+            # exactly as upstream's Cython loop does. Materializing all frames
+            # as (num_observations, num_states) can consume several GiB.
+            current_viterbi = seg_max + om_densities[frame, om_pointers]
             # a NaN density (or an all-NaN candidate segment) must decode to
             # -inf, exactly like pyx's reset value survives when nothing ever
             # wins the `>` comparison -- not propagate as NaN

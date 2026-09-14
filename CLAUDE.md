@@ -1297,7 +1297,17 @@ all-in-one-infer package's pure-Python NATTEN replacement:
   expected. Viterbi/DBN decoding is NOT ported (inherently sequential,
   discrete-state -- no torch benefit expected there, ever). Don't oversell
   torch-backend speedups for sequential algorithms in docs or commit
-  messages.
+  messages. `HiddenMarkovModel.viterbi()` must keep observation densities in
+  their compact `(frames, observation_classes)` representation and map them
+  to states inside the frame loop, matching upstream `hmm.pyx`; never restore
+  the removed `(frames, states)` density matrix. The 2026-09-14 270-second
+  probe measured bit-identical output, peak RSS 4.59 -> 1.60 GiB, and decoder
+  wall time 28.61 -> 12.34 seconds. A 270-second full audio-in A/B using
+  repeated CPJKU/madmom sample audio kept beats, downbeats, and tempo
+  bit-identical while peak RSS fell 5.05 -> 2.48 GiB; whole-pipeline wall time
+  improved 59.01 -> 50.52 seconds, so describe this primarily as a memory fix
+  rather than a general pipeline speedup. See
+  `docs/blueprints/thoughts/2026-09-14-viterbi-memory-probe.md`.
 - Never bundle madmom's own pretrained weights (CC BY-NC-SA 4.0) -- see
   README.md's "What this project will NEVER bundle" section. This is a
   permanent policy, not a phase-gate detail to relax later. Phase 2
