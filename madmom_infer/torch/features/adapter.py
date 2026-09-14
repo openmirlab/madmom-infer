@@ -34,7 +34,8 @@ case measured. Set the flags yourself before running on CUDA if you need
 the tighter tolerance (`tools/compare_torch_backend.py --allow-tf32`
 controls this for that tool specifically, default off).
 
-Reads: torch, numpy, madmom_infer.processors (Processor),
+Reads: torch, numpy, madmom_infer.backends (validate_torch_device),
+madmom_infer.processors (Processor),
 madmom_infer.audio.signal (SignalProcessor, Signal); read by:
 madmom_infer/torch/features/__init__.py, madmom_infer/backends.py,
 tests/test_torch_pipelines.py, tests/test_torch_backend.py,
@@ -47,6 +48,7 @@ import numpy as np
 import torch
 
 from madmom_infer.audio.signal import Signal, SignalProcessor
+from madmom_infer.backends import validate_torch_device
 from madmom_infer.processors import Processor
 
 
@@ -86,6 +88,7 @@ class TorchPipelineProcessor(Processor):
     """
 
     def __init__(self, module, device=None, dtype=torch.float32):
+        validate_torch_device(device)
         self.module = module.eval()
         self.device = torch.device(device) if device is not None else _module_device(module)
         self.dtype = dtype

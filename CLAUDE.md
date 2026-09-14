@@ -59,9 +59,11 @@ to refer to a specific chunk of already-shipped work:
   peephole-LSTM/GRU cells (`madmom_infer/torch/ml/nn/`, `to_torch`),
   waveform-to-activation pipelines (`madmom_infer/torch/features/`), and
   `backend="torch", device=` on the ten NN processors + `MadmomAnalyzer`
-  via `madmom_infer/backends.py`; decoders stay numpy. Acceptance =
-  decoded results identical to the numpy backend on real music (CPU and
-  CUDA), checked with `tools/compare_torch_backend.py`; speed via
+  via `madmom_infer/backends.py`; decoders stay numpy. Explicit device
+  support is CPU/CUDA only; Apple MPS (`"mps"`/`"mps:*"`) is out of scope
+  and rejected before torch device placement. Acceptance = decoded results
+  identical to the numpy backend on real music (CPU and CUDA), checked with
+  `tools/compare_torch_backend.py`; speed via
   `tools/bench_torch_backend.py`. See `docs/blueprints/decisions.md`
   "Torch backend exists for differentiability, not only speed".
 - **Phase 4 — complete-port campaign** (started 2026-07-12, **DONE

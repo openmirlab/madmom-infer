@@ -3,9 +3,9 @@ processors (`madmom_infer/backends.py` + each processor's own
 `backend=`/`device=` kwargs) and `MadmomAnalyzer`.
 
 `pytest.importorskip("torch")` at module scope, same convention as
-`tests/test_torch_pipelines.py`. Every test that constructs a
-`backend="torch"` processor needs real downloaded weights, so this whole
-file is marked `pytest.mark.network` at collection time.
+`tests/test_torch_pipelines.py`. Every test that constructs a real
+`backend="torch"` processor needs downloaded weights, so those parity
+checks are marked `pytest.mark.network`.
 
 Groups of checks:
 
@@ -22,14 +22,13 @@ Groups of checks:
    allclose for chroma) on one fixture wav, across every NN-backed task.
 3. **CUDA variant** of (1)/(2), skipped if no CUDA device is available.
 4. **Validation**: an unknown `backend` raises `ValueError`; passing
-   `device=` together with `backend="numpy"` raises `ValueError`, both at
-   the processor level and at `MadmomAnalyzer` level.
+   `device=` together with `backend="numpy"` raises `ValueError`; and MPS
+   is rejected before model construction by the shared pipeline, direct
+   adapter, and `RNNBarProcessor` paths.
 
 The torch-free guard (a numpy-backend processor never imports torch) lives
-in a separate, non-`network`-marked file,
-`tests/test_backends_torch_free.py`, so it runs in the default `uv run
-pytest` suite (this whole file needs real downloaded weights and torch
-installed, hence `pytest.mark.network` + `importorskip`).
+in a separate file, `tests/test_backends_torch_free.py`, so it can assert
+import purity without this file's module-level `importorskip("torch")`.
 
 Reads: madmom_infer.backends (validate_backend), the 10 NN-backed
 processor modules (imported lazily), madmom_infer.api (MadmomAnalyzer).
@@ -39,8 +38,6 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
-
-pytestmark = pytest.mark.network
 
 FIXTURE_WAVS = [
     "tests/fixtures/wavs/mono_44100.wav",
@@ -77,6 +74,7 @@ def _cls(name):
 # ---------------------------------------------------------------------
 @pytest.mark.parametrize("name", sorted(_PROCESSORS))
 @pytest.mark.parametrize("wav_path", FIXTURE_WAVS)
+@pytest.mark.network
 def test_processor_torch_backend_matches_numpy(name, wav_path):
     cls = _cls(name)
     _, _, kwargs, tolerance = _PROCESSORS[name]
@@ -93,6 +91,7 @@ def test_processor_torch_backend_matches_numpy(name, wav_path):
     )
 
 
+@pytest.mark.network
 def test_rnn_bar_processor_torch_backend_matches_numpy():
     """`RNNBarProcessor` keeps its numpy frontend regardless of backend
     (see its docstring) -- only the two GRU ensembles run through torch.
@@ -120,6 +119,7 @@ def test_rnn_bar_processor_torch_backend_matches_numpy():
 # ---------------------------------------------------------------------
 # 2. MadmomAnalyzer(backend="torch") end-to-end
 # ---------------------------------------------------------------------
+@pytest.mark.network
 def test_analyzer_torch_backend_matches_numpy():
     from madmom_infer.api import MadmomAnalyzer
 
@@ -146,6 +146,7 @@ def test_analyzer_torch_backend_matches_numpy():
 # ---------------------------------------------------------------------
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
 @pytest.mark.parametrize("name", sorted(_PROCESSORS))
+@pytest.mark.network
 def test_processor_torch_backend_cuda_matches_numpy(name):
     cls = _cls(name)
     _, _, kwargs, _tol = _PROCESSORS[name]
@@ -164,6 +165,7 @@ def test_processor_torch_backend_cuda_matches_numpy(name):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
+@pytest.mark.network
 def test_analyzer_torch_backend_cuda_smoke():
     from madmom_infer.api import MadmomAnalyzer
 
@@ -200,6 +202,42 @@ def test_analyzer_device_with_numpy_backend_raises():
 
     with pytest.raises(ValueError):
         MadmomAnalyzer(tasks=("beats",), backend="numpy", device="cpu")
+
+
+@pytest.mark.parametrize("device", ["mps", "mps:0"])
+def test_torch_pipeline_processor_rejects_mps_before_build(device, monkeypatch):
+    from madmom_infer.backends import torch_pipeline_processor
+    import madmom_infer.torch.features as torch_features
+
+    def fail_build_pipeline(*_args, **_kwargs):
+        raise AssertionError("build_pipeline should not run for MPS devices")
+
+    monkeypatch.setattr(torch_features, "build_pipeline", fail_build_pipeline)
+
+    with pytest.raises(ValueError, match="MPS|mps"):
+        torch_pipeline_processor("beats", device=device)
+
+
+@pytest.mark.parametrize("device", ["mps", "mps:0"])
+def test_torch_pipeline_processor_adapter_rejects_mps(device):
+    from madmom_infer.torch.features import TorchPipelineProcessor
+
+    with pytest.raises(ValueError, match="MPS|mps"):
+        TorchPipelineProcessor(torch.nn.Identity(), device=device)
+
+
+@pytest.mark.parametrize("device", ["mps", "mps:0"])
+def test_rnn_bar_processor_rejects_mps_before_model_loading(device, monkeypatch):
+    from madmom_infer.features.downbeats import RNNBarProcessor
+    import madmom_infer.models as models
+
+    def fail_model_lookup():
+        raise AssertionError("model lookup should not run for MPS devices")
+
+    monkeypatch.setattr(models, "downbeats_bgru", fail_model_lookup)
+
+    with pytest.raises(ValueError, match="MPS|mps"):
+        RNNBarProcessor(backend="torch", device=device)
 
 
 def test_model_file_override_with_torch_backend_raises():
