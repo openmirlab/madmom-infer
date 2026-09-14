@@ -293,6 +293,9 @@ class DBNDownBeatTrackingProcessor(Processor):
         Number of in-process threads used to decode independent bar-length
         hypotheses. The default of 1 preserves sequential decoding and its
         lower transient memory use.
+    fast_viterbi : bool, optional
+        Request the soft-optional Numba CPU decoder. It preserves the exact
+        path and probability; missing or failed Numba falls back to NumPy.
 
     References
     ----------
@@ -339,7 +342,8 @@ class DBNDownBeatTrackingProcessor(Processor):
     def __init__(self, beats_per_bar, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
                  num_tempi=NUM_TEMPI, transition_lambda=TRANSITION_LAMBDA,
                  observation_lambda=OBSERVATION_LAMBDA, threshold=THRESHOLD,
-                 correct=CORRECT, fps=None, num_threads=1, **kwargs):
+                 correct=CORRECT, fps=None, num_threads=1,
+                 fast_viterbi=False, **kwargs):
         # pylint: disable=unused-argument
         # expand arguments to arrays
         beats_per_bar = np.array(beats_per_bar, ndmin=1)
@@ -365,6 +369,7 @@ class DBNDownBeatTrackingProcessor(Processor):
         self.num_threads = int(num_threads)
         if self.num_threads < 1:
             raise ValueError('`num_threads` must be at least 1.')
+        self.fast_viterbi = bool(fast_viterbi)
         # convert timing information to construct a beat state space
         min_interval = 60. * fps / max_bpm
         max_interval = 60. * fps / min_bpm
@@ -407,6 +412,12 @@ class DBNDownBeatTrackingProcessor(Processor):
         # return no beats if no activations given / remain after thresholding
         if not activations.any():
             return np.empty((0, 2))
+
+        def decode(hmm):
+            if self.fast_viterbi:
+                return hmm.viterbi(activations, True)
+            return hmm.viterbi(activations)
+
         # Meter hypotheses are independent until winner selection. Keep the
         # upstream-compatible sequential default; callers with RAM headroom
         # can opt into thread-level parallel decoding without copying models
@@ -414,11 +425,10 @@ class DBNDownBeatTrackingProcessor(Processor):
         if self.num_threads > 1 and len(self.hmms) > 1:
             workers = min(self.num_threads, len(self.hmms))
             with ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = [executor.submit(hmm.viterbi, activations)
-                           for hmm in self.hmms]
+                futures = [executor.submit(decode, hmm) for hmm in self.hmms]
                 results = [future.result() for future in futures]
         else:
-            results = [hmm.viterbi(activations) for hmm in self.hmms]
+            results = [decode(hmm) for hmm in self.hmms]
         # choose the best HMM (highest log probability)
         best = int(np.argmax([r[1] for r in results]))
         # the best path through the state space

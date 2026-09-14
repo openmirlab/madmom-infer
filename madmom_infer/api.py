@@ -8,8 +8,8 @@ give it audio, choose a musical task, and receive the final semantic result.
 the NN-backed tasks (onsets, beats, tempo, downbeats, key, chroma, chords,
 notes) through ``madmom_infer.backends``/``madmom_infer.torch`` instead of
 the numpy processors; the DBN/HMM/CRF/peak-picking decoders, tempo
-histograms, ``mfcc``, and ``hpss`` always stay numpy (sequential,
-discrete-state -- no autograd/batching benefit, see
+histograms, ``mfcc``, and ``hpss`` stay CPU-side (sequential, discrete-state
+-- no autograd/batching benefit, see
 ``madmom_infer/torch/__init__.py``'s header). ``import madmom_infer``
 still never imports torch -- these parameters only reach
 ``madmom_infer.torch`` lazily, when a task actually built with
@@ -19,6 +19,8 @@ parallel. It defaults to one because lower latency costs additional transient
 host memory.
 ``fast_recurrent`` optionally selects fused CUDA float32 no-grad LSTM gate
 updates for downbeat inference; unsupported calls fall back to eager Torch.
+``fast_viterbi`` optionally compiles the exact CPU HMM recurrence through the
+soft-optional ``numba`` extra; missing or failed Numba falls back to NumPy.
 """
 
 from dataclasses import dataclass
@@ -138,12 +140,16 @@ class MadmomAnalyzer:
     downbeat BLSTM. It preserves eager Torch for grad-enabled and unsupported
     calls, but its fused arithmetic is tolerance-equivalent rather than
     bit-identical over long sequences.
+
+    ``fast_viterbi`` is an opt-in, exact CPU decoder accelerator. With the
+    ``numba`` extra installed it compiles the sparse recurrence on first use;
+    missing or failed Numba transparently retains the NumPy decoder.
     """
 
     def __init__(self, tasks=TASKS, beats_per_bar=(3, 4),
                  tempo_from_downbeat_activations=False,
                  backend="numpy", device=None, downbeat_decoder_threads=1,
-                 fast_recurrent=False):
+                 fast_recurrent=False, fast_viterbi=False):
         from .backends import validate_backend
 
         self.tasks = tuple(tasks)
@@ -160,11 +166,14 @@ class MadmomAnalyzer:
             raise ValueError("fast_recurrent is only used with backend='torch'")
         if fast_recurrent and "downbeats" not in self.tasks:
             raise ValueError("fast_recurrent needs the 'downbeats' task")
+        if fast_viterbi and "downbeats" not in self.tasks:
+            raise ValueError("fast_viterbi needs the 'downbeats' task")
         self.beats_per_bar = beats_per_bar
         self.tempo_from_downbeat_activations = tempo_from_downbeat_activations
         self.backend = backend
         self.device = device
         self.fast_recurrent = bool(fast_recurrent)
+        self.fast_viterbi = bool(fast_viterbi)
         self.downbeat_decoder_threads = int(downbeat_decoder_threads)
         if self.downbeat_decoder_threads < 1:
             raise ValueError("downbeat_decoder_threads must be at least 1")
@@ -246,7 +255,8 @@ class MadmomAnalyzer:
                         fast_recurrent=self.fast_recurrent),
                     DBNDownBeatTrackingProcessor(
                         beats_per_bar=self.beats_per_bar, fps=100,
-                        num_threads=self.downbeat_decoder_threads))
+                        num_threads=self.downbeat_decoder_threads,
+                        fast_viterbi=self.fast_viterbi))
         if task == "key":
             from .features.key import CNNKeyRecognitionProcessor
             return CNNKeyRecognitionProcessor(backend=backend, device=device)
@@ -322,11 +332,12 @@ class MadmomAnalyzer:
 
 def analyze(audio, *, tasks=TASKS, sample_rate=None, beats_per_bar=(3, 4),
             backend="numpy", device=None, downbeat_decoder_threads=1,
-            fast_recurrent=False):
+            fast_recurrent=False, fast_viterbi=False):
     return MadmomAnalyzer(tasks=tasks, beats_per_bar=beats_per_bar,
                           backend=backend, device=device,
                           downbeat_decoder_threads=downbeat_decoder_threads,
-                          fast_recurrent=fast_recurrent)(
+                          fast_recurrent=fast_recurrent,
+                          fast_viterbi=fast_viterbi)(
         audio, sample_rate=sample_rate)
 
 
@@ -340,11 +351,13 @@ def detect_beats(audio, *, sample_rate=None, backend="numpy", device=None):
     return _one("beats", audio, sample_rate, backend=backend, device=device)
 def detect_downbeats(audio, *, sample_rate=None, beats_per_bar=(3, 4),
                      backend="numpy", device=None,
-                     downbeat_decoder_threads=1, fast_recurrent=False):
+                     downbeat_decoder_threads=1, fast_recurrent=False,
+                     fast_viterbi=False):
     return _one("downbeats", audio, sample_rate, beats_per_bar=beats_per_bar,
                 backend=backend, device=device,
                 downbeat_decoder_threads=downbeat_decoder_threads,
-                fast_recurrent=fast_recurrent)
+                fast_recurrent=fast_recurrent,
+                fast_viterbi=fast_viterbi)
 def estimate_tempo(audio, *, sample_rate=None, backend="numpy", device=None):
     return _one("tempo", audio, sample_rate, backend=backend, device=device)
 def detect_key(audio, *, sample_rate=None, backend="numpy", device=None):

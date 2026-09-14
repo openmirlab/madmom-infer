@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Opt-in `fast_viterbi=True` on the exact CPU HMM decoder,
+  `DBNDownBeatTrackingProcessor`, `MadmomAnalyzer`, `analyze()`, and
+  `detect_downbeats()`. With the soft-optional `numba` extra installed, the
+  frame/state/predecessor recurrence is compiled at first use while retaining
+  strict comparison, tie-break, NaN, and compact-backpointer semantics;
+  missing or failed Numba falls back to NumPy. On the fixed 270-second input,
+  three-run full NumPy pipeline median time with three decoder threads fell
+  from 37.11 to 30.92 seconds, peak RSS rose from 2.79 to 2.89 GiB, and an
+  empty-cache first run completed in 31.51 seconds. Downbeats, onsets, and
+  tempo output hashes were identical; direct three-meter decode fell from
+  12.92 to 4.15 seconds with bit-identical paths and log probabilities. With
+  the fused CUDA frontend and three decoder threads fixed, an interleaved
+  three-run A/B fell from 10.27 to 4.28 seconds; task hashes and the 1864 MiB
+  incremental VRAM reading stayed unchanged.
+
 - Opt-in `fast_recurrent=True` on the Torch downbeat pipeline,
   `RNNDownBeatProcessor`, `MadmomAnalyzer`, `analyze()`, and
   `detect_downbeats()`. Eligible CUDA float32 no-grad stacked peephole LSTMs

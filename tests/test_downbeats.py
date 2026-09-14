@@ -51,6 +51,21 @@ def test_parallel_meter_decode_matches_sequential():
     )
 
 
+def test_fast_viterbi_decode_matches_numpy():
+    import pytest
+
+    pytest.importorskip("numba")
+    d = np.load(os.path.join(FIXTURES_DIR, "dbn_downbeat_decode.npz"))
+    baseline = DBNDownBeatTrackingProcessor(
+        beats_per_bar=[3, 4], fps=100
+    )
+    fast = DBNDownBeatTrackingProcessor(
+        beats_per_bar=[3, 4], fps=100, fast_viterbi=True
+    )
+
+    np.testing.assert_array_equal(fast(d["activations"]), baseline(d["activations"]))
+
+
 def test_downbeat_decoder_rejects_non_positive_thread_count():
     with np.testing.assert_raises_regex(ValueError, "at least 1"):
         DBNDownBeatTrackingProcessor(

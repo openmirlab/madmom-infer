@@ -109,6 +109,11 @@ def test_analyzer_rejects_fast_recurrent_without_torch_downbeats():
         )
 
 
+def test_analyzer_rejects_fast_viterbi_without_downbeats():
+    with pytest.raises(ValueError, match="needs the 'downbeats' task"):
+        MadmomAnalyzer(tasks=("beats",), fast_viterbi=True)
+
+
 def test_analyzer_passes_downbeat_decoder_threads_to_processor(monkeypatch):
     from madmom_infer.features import downbeats
 
@@ -127,11 +132,13 @@ def test_analyzer_passes_downbeat_decoder_threads_to_processor(monkeypatch):
         tasks=("downbeats",),
         beats_per_bar=(3, 4, 6),
         downbeat_decoder_threads=3,
+        fast_viterbi=True,
     )
 
     assert analyzer._build_processor("downbeats") == ("frontend", "decoder")
     assert captured["beats_per_bar"] == (3, 4, 6)
     assert captured["num_threads"] == 3
+    assert captured["fast_viterbi"] is True
 
 
 def test_analyzer_passes_fast_recurrent_to_torch_downbeats(monkeypatch):

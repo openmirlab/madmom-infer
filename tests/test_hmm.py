@@ -73,6 +73,36 @@ def test_toy_hmm_viterbi_exact_path(toy_hmm_fixture):
     assert log_prob == pytest.approx(float(d["viterbi_log_prob"]), abs=1e-10)
 
 
+def test_fast_viterbi_matches_numpy_exactly(toy_hmm_fixture):
+    pytest.importorskip("numba")
+    d = toy_hmm_fixture
+    tm = TransitionModel(d["tm_states"], d["tm_pointers"], d["tm_probabilities"])
+    om = DiscreteObservationModel(d["om_probs"])
+    model = HiddenMarkovModel(tm, om)
+
+    expected_path, expected_probability = model.viterbi(d["observations"])
+    path, probability = model.viterbi(d["observations"], fast=True)
+
+    np.testing.assert_array_equal(path, expected_path)
+    assert probability == expected_probability
+
+
+def test_fast_viterbi_falls_back_when_numba_is_unavailable(
+    monkeypatch, toy_hmm_fixture
+):
+    d = toy_hmm_fixture
+    tm = TransitionModel(d["tm_states"], d["tm_pointers"], d["tm_probabilities"])
+    om = DiscreteObservationModel(d["om_probs"])
+    model = HiddenMarkovModel(tm, om)
+    expected = model.viterbi(d["observations"])
+    monkeypatch.setattr(hmm_module, "_load_numba_viterbi", lambda: None)
+
+    path, probability = model.viterbi(d["observations"], fast=True)
+
+    np.testing.assert_array_equal(path, expected[0])
+    assert probability == expected[1]
+
+
 @pytest.mark.parametrize(
     "num_states, expected_dtype",
     [(65536, np.uint16), (65537, np.uint32)],

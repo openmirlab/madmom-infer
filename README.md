@@ -272,6 +272,32 @@ two, and 12.75 s with three. Two threads kept peak host RSS effectively flat;
 three added about 653 MiB. Incremental VRAM stayed at 2333 MiB in all modes.
 The full result was identical across thread counts.
 
+The same CPU decoder can use an exact, runtime-compiled recurrence when the
+optional Numba extra is installed:
+
+```bash
+pip install "madmom-infer[numba]"
+```
+
+```python
+result = mm.MadmomAnalyzer(
+    tasks=("downbeats", "onsets", "tempo"),
+    beats_per_bar=(3, 4, 6),
+    tempo_from_downbeat_activations=True,
+    downbeat_decoder_threads=3,
+    fast_viterbi=True,
+)("track.wav")
+```
+
+`fast_viterbi=True` preserves the exact Viterbi path and log probability. It
+works with either NumPy or Torch neural frontends because decoding remains on
+the CPU; installations without Numba, Python 3.9, and compiler failures fall
+back to the existing NumPy implementation. Compilation is cached after first
+use. On the fixed 270-second input, three-run full NumPy pipeline median time
+fell from 37.11 to 30.92 seconds with three decoder threads. Peak RSS rose from
+2.79 to 2.89 GiB, and an empty Numba cache completed in 31.51 seconds. The
+downbeats, onsets, and tempo output hashes were identical.
+
 CUDA inference can additionally opt into fused recurrent gate updates:
 
 ```python
@@ -281,6 +307,7 @@ result = mm.MadmomAnalyzer(
     backend="torch",
     device="cuda",
     fast_recurrent=True,
+    fast_viterbi=True,
     downbeat_decoder_threads=2,
 )("track.wav")
 ```
@@ -299,6 +326,13 @@ The same three-run benchmark fell from 18.76 to 15.25 seconds with one decoder
 thread, or from 12.75 to 9.22 seconds with three. Incremental VRAM fell from
 2333 to 2279 MiB; an empty Triton cache completed in 9.95 seconds, including
 first-call compilation.
+
+Installing both `madmom-infer[torch,numba]` and enabling `fast_viterbi=True`
+removes the remaining CPU decoder wait without changing its result. In a
+three-run interleaved A/B with the fused CUDA frontend and three decoder
+threads fixed, median time fell from 10.27 to 4.28 seconds. All three task
+hashes stayed identical and incremental VRAM was unchanged at 1864 MiB in
+every run.
 
 ```python
 from madmom_infer.features.downbeats import (

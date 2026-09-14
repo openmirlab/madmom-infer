@@ -25,6 +25,11 @@ them to `(frames, states)` is both slower and prohibitively memory-heavy on song
 Backtracking stores state indices as `uint16` when the state space fits and
 falls back to `uint32` above 65,536 states; the public path remains `uint32`.
 
+`viterbi(..., fast=True)` soft-loads `_numba_hmm` and compiles the same strict
+predecessor scan into native CPU code. It is opt-in because Numba is an extra,
+but it is an exact implementation rather than an approximate decoder; import or
+compile failure automatically retains the NumPy path.
+
 Both `np.fmax.reduceat`/`np.add.reduceat` have a documented gotcha: consecutive
 identical indices (a zero-length CSR segment, i.e. a state with no incoming
 transitions) don't reduce to the reduction's identity element -- they silently copy
@@ -46,6 +51,25 @@ read by: madmom_infer/features/beats_hmm.py, madmom_infer/features/downbeats.py
 import warnings
 
 import numpy as np
+
+
+_NUMBA_VITERBI = None
+_NUMBA_VITERBI_UNAVAILABLE = False
+
+
+def _load_numba_viterbi():
+    """Return the soft-optional compiled decoder, or None after a failure."""
+    global _NUMBA_VITERBI, _NUMBA_VITERBI_UNAVAILABLE
+    if _NUMBA_VITERBI_UNAVAILABLE:
+        return None
+    if _NUMBA_VITERBI is None:
+        try:
+            from ._numba_hmm import viterbi
+        except (ImportError, RuntimeError):
+            _NUMBA_VITERBI_UNAVAILABLE = True
+            return None
+        _NUMBA_VITERBI = viterbi
+    return _NUMBA_VITERBI
 
 
 def _segment_reduce(ufunc, values, pointers, identity):
@@ -389,7 +413,7 @@ class HiddenMarkovModel(object):
         """
         self._prev = initial_distribution or self.initial_distribution.copy()
 
-    def viterbi(self, observations):
+    def viterbi(self, observations, fast=False):
         """
         Determine the best path with the Viterbi algorithm.
 
@@ -397,6 +421,9 @@ class HiddenMarkovModel(object):
         ----------
         observations : numpy array
             Observations to decode the optimal path for.
+        fast : bool, optional
+            Request the exact soft-optional Numba recurrence. Missing or failed
+            Numba falls back to the NumPy implementation.
 
         Returns
         -------
@@ -416,6 +443,37 @@ class HiddenMarkovModel(object):
         num_observations = len(observations)
         om_pointers = np.asarray(om.pointers, dtype=np.uint32)
         om_densities = np.asarray(om.log_densities(observations), dtype=float)
+
+        if fast:
+            compiled_viterbi = _load_numba_viterbi()
+            if compiled_viterbi is not None:
+                try:
+                    path, log_probability = compiled_viterbi(
+                        tm_states,
+                        tm_pointers,
+                        tm_log_probabilities,
+                        om_pointers,
+                        om_densities,
+                        np.asarray(self.initial_distribution, dtype=float),
+                    )
+                except Exception as exc:
+                    # Compiler/cache failures are best-effort fallbacks, but
+                    # do not hide bad inputs or resource failures such as a
+                    # MemoryError behind a second, NumPy allocation attempt.
+                    from numba.core.errors import NumbaError
+                    if not isinstance(exc, (NumbaError, OSError, RuntimeError)):
+                        raise
+                    global _NUMBA_VITERBI_UNAVAILABLE
+                    _NUMBA_VITERBI_UNAVAILABLE = True
+                else:
+                    log_probability = float(log_probability)
+                    if np.isinf(log_probability):
+                        warnings.warn(
+                            '-inf log probability during Viterbi decoding '
+                            'cannot find a valid path', RuntimeWarning
+                        )
+                        return np.empty(0, dtype=np.uint32), log_probability
+                    return path, log_probability
 
         # Backtracking only stores state indices. Beat/downbeat HMMs stay well
         # below 65,536 states, so use two bytes per pointer there; generic
