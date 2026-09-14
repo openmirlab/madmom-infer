@@ -41,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Torch spectrogram framing now pads each waveform once and exposes
+  integer-hop frames through an overlapping `Tensor.unfold` view instead of
+  caching dense `(frames, frame_size)` index and validity tensors for every
+  input length. Fractional-hop framing retains the general gather path, but
+  its map is call-local. On the same 270-second beat-grid input, three direct
+  host-side CUDA runs kept the complete result identical while median
+  incremental VRAM fell from 7356 MiB to 2334 MiB and median inference time
+  fell from 30.45 s to 28.96 s; peak host RSS was unchanged.
+
 - `HiddenMarkovModel.viterbi()` now maps compact observation densities to HMM
   states one frame at a time, matching CPJKU/madmom's Cython implementation,
   instead of materializing a second `(frames, states)` matrix. A deterministic

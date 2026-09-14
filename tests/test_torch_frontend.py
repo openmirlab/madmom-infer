@@ -252,6 +252,32 @@ def test_frame_signal_matches_framed_signal_getitem(length, origin):
     np.testing.assert_array_equal(frames.numpy(), expected)
 
 
+def test_integer_hop_framing_does_not_build_dense_index_map(monkeypatch):
+    def reject_dense_map(*args, **kwargs):
+        raise AssertionError("integer-hop framing must use pad + unfold")
+
+    monkeypatch.setattr(
+        "madmom_infer.torch.audio.frontend._frame_index_map", reject_dense_map
+    )
+    frames = frame_signal(
+        torch.arange(40, dtype=torch.float32), frame_size=8, hop_size=4
+    )
+    assert frames.shape == (10, 8)
+
+
+def test_fractional_hop_framing_keeps_general_fallback():
+    signal = np.arange(40, dtype=np.float64)
+    expected_framed = FramedSignal(signal, frame_size=8, hop_size=3.5)
+    expected = np.stack(
+        [expected_framed[i] for i in range(expected_framed.num_frames)]
+    )
+
+    actual = frame_signal(
+        torch.from_numpy(signal), frame_size=8, hop_size=3.5
+    )
+    np.testing.assert_array_equal(actual.numpy(), expected)
+
+
 # ---------------------------------------------------------------------------
 # parity #1: torch float32 vs the real shipped numpy processor chain
 # ---------------------------------------------------------------------------

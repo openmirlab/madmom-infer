@@ -1297,7 +1297,11 @@ all-in-one-infer package's pure-Python NATTEN replacement:
   expected. Viterbi/DBN decoding is NOT ported (inherently sequential,
   discrete-state -- no torch benefit expected there, ever). Don't oversell
   torch-backend speedups for sequential algorithms in docs or commit
-  messages. `HiddenMarkovModel.viterbi()` must keep observation densities in
+  messages. Torch integer-hop framing must remain a padded `Tensor.unfold`
+  view; do not restore the removed per-input-length dense index/mask cache,
+  which cost 5 GiB of incremental VRAM on a 270-second beat-grid run.
+  Fractional-hop framing may use a call-local gather map.
+  `HiddenMarkovModel.viterbi()` must keep observation densities in
   their compact `(frames, observation_classes)` representation and map them
   to states inside the frame loop, matching upstream `hmm.pyx`; never restore
   the removed `(frames, states)` density matrix. The 2026-09-14 270-second

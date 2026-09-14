@@ -25,10 +25,10 @@ calling the existing numpy code and converting the result to a tensor:
 
 Only the per-frame START OFFSET formula (`ref_sample = floor(index *
 hop_size)`, `start = ref_sample - frame_size // 2 - origin`) is
-re-expressed here, because it has to run as a vectorized index computation
-for the torch gather below -- `madmom_infer.audio.signal.signal_frame`'s
-python-loop version cannot be called per-frame without an O(num_frames)
-Python loop. This is the one place this module re-derives (not reuses) a
+re-expressed here. Canonical integer-hop pipelines pad the waveform once
+and expose frames as an `unfold` view; non-integer hops use a call-local
+gather map. Neither path retains length-sized index tensors after the
+forward call. This is the one place this module re-derives (not reuses) a
 numpy-side formula; `tests/test_torch_frontend.py`'s
 `test_frame_signal_matches_framed_signal_getitem` cross-checks every frame
 this produces against `FramedSignal.__getitem__` directly, frame by frame,
@@ -156,6 +156,36 @@ def _frame_index_map(num_samples, num_frames, frame_size, hop_size, origin):
     return idx_clipped, valid
 
 
+def _frame_signal_from_plan(
+    signal, frame_size, hop_size, origin, num_frames,
+):
+    """Materialize frames without retaining a length-sized index map.
+
+    Integer-hop pipelines use a padded waveform plus an overlapping
+    ``unfold`` view. Fractional hops retain the general gather algorithm,
+    but its index and mask tensors are local to this call.
+    """
+    integer_hop = int(hop_size)
+    if float(hop_size) == integer_hop:
+        first_start = -(frame_size // 2) - int(origin)
+        last_stop = first_start + (num_frames - 1) * integer_hop + frame_size
+        left_pad = max(0, -first_start)
+        right_pad = max(0, last_stop - signal.shape[-1])
+        padded = torch.nn.functional.pad(signal, (left_pad, right_pad))
+        offset = first_start + left_pad
+        span = (num_frames - 1) * integer_hop + frame_size
+        return padded[..., offset:offset + span].unfold(
+            -1, frame_size, integer_hop
+        )
+
+    idx, valid = _frame_index_map(
+        signal.shape[-1], num_frames, frame_size, hop_size, origin
+    )
+    idx_t = torch.as_tensor(idx, dtype=torch.long, device=signal.device)
+    valid_t = torch.as_tensor(valid, dtype=signal.dtype, device=signal.device)
+    return signal[..., idx_t] * valid_t
+
+
 def frame_signal(signal, frame_size, hop_size, origin=0, end="normal"):
     """Split `signal` (`..., num_samples`) into overlapping frames, matching
     `madmom_infer.audio.signal.FramedSignal`'s hop/origin semantics exactly
@@ -166,11 +196,9 @@ def frame_signal(signal, frame_size, hop_size, origin=0, end="normal"):
     frame_size, hop_size, origin, num_frames = _framing_plan(
         num_samples, frame_size, hop_size, origin, end
     )
-    idx, valid = _frame_index_map(num_samples, num_frames, frame_size, hop_size, origin)
-    idx_t = torch.as_tensor(idx, dtype=torch.long, device=signal.device)
-    valid_t = torch.as_tensor(valid, dtype=signal.dtype, device=signal.device)
-    frames = signal[..., idx_t] * valid_t
-    return frames
+    return _frame_signal_from_plan(
+        signal, frame_size, hop_size, origin, num_frames
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -333,22 +361,6 @@ class SpectrogramFrontend(nn.Module):
             )
         self.diff_frames = int(diff_frames)
 
-        self._index_cache = {}
-
-    def _frame_indices(self, num_samples, device):
-        key = (num_samples, device)
-        cached = self._index_cache.get(key)
-        if cached is not None:
-            return cached
-        frame_size, hop_size, origin, num_frames = _framing_plan(
-            num_samples, self.frame_size, self.hop_size, self.origin, self.end
-        )
-        idx, valid = _frame_index_map(num_samples, num_frames, frame_size, hop_size, origin)
-        idx_t = torch.as_tensor(idx, dtype=torch.long, device=device)
-        valid_t = torch.as_tensor(valid, dtype=self.window.dtype, device=device)
-        self._index_cache[key] = (idx_t, valid_t, num_frames)
-        return idx_t, valid_t, num_frames
-
     def forward(self, waveform):
         if waveform.dim() != 2:
             raise ValueError(
@@ -360,8 +372,13 @@ class SpectrogramFrontend(nn.Module):
                 "waveform dtype %s does not match this frontend's dtype %s"
                 % (waveform.dtype, self.window.dtype)
             )
-        idx_t, valid_t, _ = self._frame_indices(waveform.shape[-1], waveform.device)
-        frames = waveform[:, idx_t] * valid_t
+        frame_size, hop_size, origin, num_frames = _framing_plan(
+            waveform.shape[-1], self.frame_size, self.hop_size,
+            self.origin, self.end,
+        )
+        frames = _frame_signal_from_plan(
+            waveform, frame_size, hop_size, origin, num_frames
+        )
 
         spectrum = stft(
             frames, self.window, fft_size=self.fft_size,

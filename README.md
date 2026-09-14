@@ -565,7 +565,9 @@ for _ in range(50):
 ```
 
 **What it covers** (`madmom_infer/torch/audio/frontend.py`): framing (exact
-`FramedSignal` hop/origin semantics), complex STFT (window, FFT size,
+`FramedSignal` hop/origin semantics, with integer-hop frames represented as
+a padded `Tensor.unfold` view rather than retained dense gather maps), complex
+STFT (window, FFT size,
 optional circular shift), filterbank application, log compression, and the
 temporal difference stage, individually as functional building blocks
 (`frame_signal`, `stft`, `apply_filterbank`, `log_compress`,
