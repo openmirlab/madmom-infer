@@ -49,8 +49,16 @@ to refer to a specific chunk of already-shipped work:
   bundle, always download at runtime", see `madmom_infer/models.py`
 - **Phase 3a** (complete): optional, differentiable torch spectrogram
   frontend (`madmom_infer/torch/`)
-- **Phase 3b** (not started): torch NN forward pass, blocked on madmom's
-  LSTM peephole connections having no `torch.nn.LSTM` equivalent
+- **Phase 3b** (complete, 2026-09-14, branch `feat/torch-backend`, not
+  yet merged): opt-in torch backend for every NN-backed processor. Custom
+  peephole-LSTM/GRU cells (`madmom_infer/torch/ml/nn/`, `to_torch`),
+  waveform-to-activation pipelines (`madmom_infer/torch/features/`), and
+  `backend="torch", device=` on the ten NN processors + `MadmomAnalyzer`
+  via `madmom_infer/backends.py`; decoders stay numpy. Acceptance =
+  decoded results identical to the numpy backend on real music (CPU and
+  CUDA), checked with `tools/compare_torch_backend.py`; speed via
+  `tools/bench_torch_backend.py`. See `docs/blueprints/decisions.md`
+  "Torch backend exists for differentiability, not only speed".
 - **Phase 4 — complete-port campaign** (started 2026-07-12, **DONE
   2026-07-13**, branch `feat/complete-port`, not yet merged -- see the "4g
   closure verdict" section below for the closing statement): port every
@@ -1269,12 +1277,20 @@ all-in-one-infer package's pure-Python NATTEN replacement:
   processor chain, float64 vs a bespoke float64-throughout numpy test
   harness -- since numpy's own classes hardcode a complex64/float32
   ceiling and cannot produce a genuine float64 baseline), plus
-  `gradcheck`, batching, and CPU/CUDA device tests. The RNN ensemble
-  forward pass is NOT covered (Phase 3b, not started -- madmom's LSTM
-  peephole connections have no `torch.nn.LSTM` equivalent, needs a custom
-  cell), nor is Viterbi/DBN decoding (inherently sequential, discrete-state
-  -- no torch benefit expected there, ever). Don't oversell torch-backend
-  speedups for sequential algorithms in docs or commit messages.
+  `gradcheck`, batching, and CPU/CUDA device tests. Phase 3b extends this
+  to the NN forward pass (custom peephole-LSTM/GRU cells, since
+  `torch.nn.LSTM`/`GRU` don't match madmom's formulas) and end-to-end
+  pipelines; torch-vs-numpy parity is asserted as activation tolerances
+  plus identical decoded results (`tests/test_torch_{nn,pipelines,
+  backend}.py`, network-marked). Two measured caveats: TF32 (on by default
+  for cuDNN on Ampere+) adds ~1e-3 CNN drift on CUDA -- disable it for
+  parity checks, never flip it inside library code; and the beats BLSTM is
+  ill-conditioned on some percussion-free audio (a 5e-7 input perturbation
+  moves the numpy output by ~1e-2), so larger activation diffs there are
+  expected. Viterbi/DBN decoding is NOT ported (inherently sequential,
+  discrete-state -- no torch benefit expected there, ever). Don't oversell
+  torch-backend speedups for sequential algorithms in docs or commit
+  messages.
 - Never bundle madmom's own pretrained weights (CC BY-NC-SA 4.0) -- see
   README.md's "What this project will NEVER bundle" section. This is a
   permanent policy, not a phase-gate detail to relax later. Phase 2

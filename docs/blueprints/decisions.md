@@ -69,3 +69,36 @@ is octave-tolerant. (c) Dropping the `tempo` task from the caller instead — sa
 saving, but it discards the tempo candidates and the octave-suspect warning
 altogether, and an approximate diagnostic beats an absent one.
 
+## Torch backend exists for differentiability, not only speed
+
+**The call**: add torch as a second, opt-in backend beside numpy rather than
+porting the package to torch. Its primary purpose is to make madmom's
+activation functions differentiable, so a madmom model can act as a frozen
+perceptual loss or a fine-tunable sub-network inside another model's
+training; GPU speed is a secondary benefit. Differentiability ends at the
+activations: beat/downbeat times, key labels, chord segments, and notes come
+from Viterbi/DBN/CRF/peak-picking decoders, which stay numpy.
+
+**How it shows up**: `backend="numpy"` stays the default everywhere, and
+`backend="torch", device=...` is dispatched through one owner,
+`madmom_infer/backends.py`. `madmom_infer.torch.build_pipeline` exposes
+waveform-to-activation `nn.Module`s, and `to_torch(..., trainable=True)`
+turns weights into parameters. The release gate is the same as numpy's own
+spirit: on the same audio file, decoded results must be identical to the
+numpy backend, with activation differences within measured float32
+tolerances. Recurrent ensembles run as stacked, gate-fused modules because a
+naive per-timestep loop made CUDA ten times slower than numpy.
+`RNNBarProcessor` keeps its numpy CLP-chroma frontend (ffmpeg resampling and
+`filtfilt` are not portable) and only runs its GRU ensembles in torch.
+
+**What was rejected**: (a) replacing numpy with torch. Numpy is the
+validated reference against real madmom, and torch must not become a core
+dependency. (b) Justifying the port on speed alone, since CPU parallelism
+could deliver that without a new backend, and a per-step RNN cell was
+initially slower on GPU. (c) Porting the decoders to torch, which are
+sequential and discrete-state, with no gradient or batching payoff.
+(d) Silently ignoring numpy-only options such as model-file overrides on
+the torch path; they raise `NotImplementedError`. Licensing stays unchanged:
+madmom weights are CC BY-NC-SA 4.0, and fine-tuning them for training other
+models inherits that non-commercial, share-alike constraint.
+
