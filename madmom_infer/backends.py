@@ -29,11 +29,21 @@ def validate_backend(backend):
             f"unknown backend {backend!r}, expected one of {BACKENDS}")
 
 
+def validate_torch_device(device):
+    """Raise `ValueError` for torch devices outside this backend's scope."""
+    if isinstance(device, str) and (
+            device == "mps" or device.startswith("mps:")):
+        raise ValueError(
+            "device='mps' is not supported by madmom_infer's torch backend; "
+            "use device=None, 'cpu', or a CUDA device")
+
+
 def torch_pipeline_processor(name, device=None, **pipeline_kwargs):
     """Build a `madmom_infer.torch.features` pipeline by `name`
     (`build_pipeline`'s registry), move it to `device` (if given), and wrap
     it in a `TorchPipelineProcessor` so it can be dropped in wherever a
     numpy processor stage is expected."""
+    validate_torch_device(device)
     from madmom_infer.torch.features import TorchPipelineProcessor, build_pipeline
 
     module = build_pipeline(name, **pipeline_kwargs)

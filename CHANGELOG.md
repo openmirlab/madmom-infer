@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README's "Torch backend (optional)" section and
   `tests/test_torch_backend.py`.
 
+- The torch backend's explicit device surface is CPU/CUDA only
+  (`None`, `"cpu"`, `"cuda"`, or `"cuda:*"`); Apple MPS (`"mps"`/
+  `"mps:*"`) is out of scope and raises `ValueError` before torch device
+  placement.
+
 - `MadmomAnalyzer(..., tempo_from_downbeat_activations=True)` — an opt-in that lets
   the `tempo` task read column 0 of `RNNDownBeatProcessor`'s `(n, 2)` output instead
   of running a second, independent eight-net `RNNBeatProcessor` ensemble over the

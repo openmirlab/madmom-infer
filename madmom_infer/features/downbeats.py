@@ -545,11 +545,13 @@ class RNNBarProcessor(Processor):
         from madmom_infer.audio.chroma import CLPChromaProcessor
         from madmom_infer.models import downbeats_bgru
 
-        from ..backends import validate_backend
+        from ..backends import validate_backend, validate_torch_device
 
         validate_backend(backend)
         if backend == "numpy" and device is not None:
             raise ValueError("device is only used with backend='torch'")
+        if backend == "torch":
+            validate_torch_device(device)
 
         sig = SignalProcessor(num_channels=1, sample_rate=44100)
         frames = FramedSignalProcessor(frame_size=2048, fps=fps)

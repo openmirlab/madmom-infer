@@ -619,7 +619,9 @@ Every NN-backed processor (`RNNDownBeatProcessor`, `RNNBarProcessor`,
 `CNNChordFeatureProcessor`, `RNNPianoNoteProcessor`,
 `CNNPianoNoteProcessor`) and `MadmomAnalyzer` itself accept
 `backend="numpy"` (default, unchanged) or `backend="torch"` plus
-`device=` (e.g. `"cuda"`):
+`device=`. The explicit device surface is CPU/CUDA (`None`, `"cpu"`,
+`"cuda"`, or `"cuda:*"`); Apple MPS (`"mps"`/`"mps:*"`) is out of scope
+and is rejected before torch device placement:
 
 ```python
 from madmom_infer.features.beats import RNNBeatProcessor
