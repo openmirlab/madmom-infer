@@ -32,58 +32,50 @@ deliberately doesn't make:
 equivalent to `ensemble_to_torch`, provided both because either reads
 naturally depending on what the caller already has in hand.
 
+**Performance path (2026-09-14): ensemble/gate-stacked layers.** A
+network (or, especially, an ensemble of E structurally-identical
+networks -- `downbeats_blstm`/`beats_blstm`/`beats_lstm`/`onsets_brnn`/
+`onsets_rnn`/`notes_brnn`, all pure `FeedForwardLayer`/`RecurrentLayer`/
+`LSTMLayer`/`GRULayer`/`BidirectionalLayer` stacks, no CNN layers) is, by
+default, converted to `.stacked.py`'s fused/ensemble-stacked modules
+instead of `.layers.py`'s straightforward per-network loop -- see
+`.stack_convert.py`'s `_try_stack_networks`/`_stack_layer_position` (the
+eligibility check + module builder this file calls into) and
+`stacked.py`'s own module header for why (measured torch-vs-numpy slowdown on the
+recurrent path, `tools/bench_torch_backend.py`). Eligibility is decided
+purely by walking each network's `.layers` list and checking every layer
+against `_layer_signature` (returns `None` for any layer type that isn't
+one of the 5 stackable ones -- covers every CNN layer, so
+`onsets_cnn`/`chords_cnn_feat`/`key_cnn`/`notes_cnn` transparently keep
+using `.layers.py`'s `EnsembleModule`/`NeuralNetworkModule` path
+unchanged, which the implementation report found were already fast).
+`_try_stack_networks` returns `None` (triggering that same fallback) if
+any ensemble member's architecture doesn't match, so this is purely an
+optimization -- never a behavior change a caller needs to opt into.
+
 Reads: torch, madmom_infer.ml.nn (NeuralNetwork, NeuralNetworkEnsemble,
 average_predictions), madmom_infer.ml.nn.layers (the numpy layer classes,
 as isinstance targets only -- never imported for their behavior),
-madmom_infer.ml.nn.activations (identity-mapped to torch equivalents),
 madmom_infer.processors (SequentialProcessor, ParallelProcessor),
-madmom_infer.torch.ml.nn.layers (the torch modules being constructed);
-read by: madmom_infer/torch/__init__.py (re-exports `to_torch`).
+madmom_infer.torch.ml.nn.layers (the torch modules being constructed for
+the non-stackable/fallback path), madmom_infer.torch.ml.nn.stack_convert
+(`_convert_activation`/`_tensor`/`_expected_unbatched_ndim` shared
+helpers, plus `_try_stack_networks` -- the ensemble/gate-fused
+performance path's entry point, see the "Performance path" section
+above); read by: madmom_infer/torch/__init__.py (re-exports `to_torch`).
 """
 
 from __future__ import annotations
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 from madmom_infer.ml.nn import NeuralNetwork, NeuralNetworkEnsemble
-from madmom_infer.ml.nn import activations as _np_activations
 from madmom_infer.ml.nn import layers as _np_layers
 from madmom_infer.processors import ParallelProcessor, SequentialProcessor
 
 from . import layers as _torch_layers
-
-# -- activation function mapping (by numpy function IDENTITY) -----------
-
-_ACTIVATION_MAP = {
-    _np_activations.linear: (lambda x: x),
-    _np_activations.tanh: torch.tanh,
-    _np_activations.sigmoid: torch.sigmoid,
-    _np_activations.relu: (lambda x: F.relu(x)),
-    _np_activations.elu: (lambda x: F.elu(x, alpha=1.0)),
-    _np_activations.softmax: (lambda x: F.softmax(x, dim=-1)),
-}
-
-
-def _convert_activation(activation_fn):
-    """Map a numpy `activation_fn` (a function from
-    `madmom_infer.ml.nn.activations`, or `None`) to its torch equivalent."""
-    if activation_fn is None:
-        return None
-    try:
-        return _ACTIVATION_MAP[activation_fn]
-    except KeyError as exc:
-        raise TypeError(
-            f"to_torch: unknown activation function {activation_fn!r} -- "
-            "not one of madmom_infer.ml.nn.activations's "
-            "linear/tanh/sigmoid/relu/elu/softmax."
-        ) from exc
-
-
-def _tensor(array, dtype=torch.float32):
-    return torch.as_tensor(np.asarray(array, dtype=np.float32), dtype=dtype)
-
+from .stack_convert import _convert_activation, _expected_unbatched_ndim, _tensor, _try_stack_networks
 
 # -- per-layer-class conversion ------------------------------------------
 
@@ -308,34 +300,9 @@ def _convert_graph_node(node, trainable):
     )
 
 
-def _first_conv_channels(node):
-    """Walk a `NeuralNetwork`'s `.layers` list, or a
-    `SequentialProcessor`/`ParallelProcessor` graph, in call order and
-    return the first `ConvolutionalLayer` encountered's input-channel
-    count (`weights.shape[0]`), or `None` if the (sub)graph has no
-    convolutional layer at all. Used to decide whether this network's
-    top-level unbatched input is `(T, F)` (channel count 1, the channel
-    axis is optional/implicit) or `(T, F, C)` (channel count > 1, the
-    caller MUST supply the channel axis explicitly) -- see
-    `NeuralNetworkModule`/`ProcessorGraphModule`'s docstrings.
-    """
-    if isinstance(node, _np_layers.ConvolutionalLayer):
-        return node.weights.shape[0]
-    if isinstance(node, (SequentialProcessor, ParallelProcessor)):
-        for child in node.processors:
-            found = _first_conv_channels(child)
-            if found is not None:
-                return found
-        return None
-    return None
-
-
-def _expected_unbatched_ndim(layers):
-    for layer in layers:
-        channels = _first_conv_channels(layer)
-        if channels is not None:
-            return 3 if channels > 1 else 2
-    return 2
+# `_expected_unbatched_ndim` (used below by `_convert_single`/`to_torch`)
+# lives in `stack_convert.py` now -- imported at the top of this module,
+# alongside `_convert_activation`/`_tensor`/`_try_stack_networks`.
 
 
 # -- public API ------------------------------------------------------------
@@ -349,6 +316,9 @@ def _convert_single(obj, trainable):
     `average_predictions`), so an ensemble's members are not guaranteed
     to all be bare `NeuralNetwork` instances."""
     if isinstance(obj, NeuralNetwork):
+        stacked = _try_stack_networks([obj], trainable)
+        if stacked is not None:
+            return stacked
         layer_modules = [_convert_layer(layer, trainable) for layer in obj.layers]
         ndim = _expected_unbatched_ndim(obj.layers)
         return NeuralNetworkModule(layer_modules, expected_unbatched_ndim=ndim)
@@ -369,7 +339,17 @@ def ensemble_to_torch(networks, trainable=False):
     for a length->=1 list of equal-shaped predictions -- no special-casing
     for 0-dimensional per-network outputs, since every target model
     family in this project always predicts at least one real
-    time/feature axis)."""
+    time/feature axis).
+
+    Tries the ensemble/gate-stacked performance path first (see this
+    module's header) when every member is a plain `NeuralNetwork` --
+    falls back to the original per-network `EnsembleModule` loop
+    otherwise (mixed-type members, e.g. `notes_cnn`'s raw processor
+    graphs, or a non-stackable/mismatched architecture)."""
+    if all(isinstance(net, NeuralNetwork) for net in networks):
+        stacked = _try_stack_networks(networks, trainable)
+        if stacked is not None:
+            return stacked
     modules = [_convert_single(nn, trainable) for nn in networks]
     return _torch_layers.EnsembleModule(modules)
 
@@ -486,6 +466,9 @@ def to_torch(obj, trainable=False):
         return ensemble_to_torch(list(networks_processor.processors),
                                   trainable=trainable)
     if isinstance(obj, NeuralNetwork):
+        stacked = _try_stack_networks([obj], trainable)
+        if stacked is not None:
+            return stacked
         layer_modules = [_convert_layer(layer, trainable) for layer in obj.layers]
         ndim = _expected_unbatched_ndim(obj.layers)
         return NeuralNetworkModule(layer_modules, expected_unbatched_ndim=ndim)

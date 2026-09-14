@@ -40,8 +40,20 @@ registers the same tensors as `nn.Parameter` instead of buffers.
 No in-place tensor ops, no `.item()`/`.numpy()` calls anywhere in a
 `forward()` -- every module here is meant to sit inside an autograd graph.
 
+**Performance note (2026-09-14):** the recurrent layers here
+(`RecurrentLayer`/`LSTMLayer`/`GRULayer`/`BidirectionalLayer`) each drive
+their own per-timestep Python loop and are used as-is only as the
+fallback path for a CNN-containing network/ensemble (which doesn't
+benefit from stacking). For a whole ensemble of structurally-identical
+recurrent-only networks, `convert.py` builds `.stacked.py`'s
+ensemble-and-gate-fused modules instead by default -- see that module's
+header for the measured problem and fix. `EnsembleModule` below (a plain
+per-network loop + average) is the fallback `convert.py` uses when
+stacking isn't applicable.
+
 Reads: torch, torch.nn.functional; read by:
-madmom_infer/torch/ml/nn/convert.py (the only place that constructs these).
+madmom_infer/torch/ml/nn/convert.py (the only place that constructs
+these), madmom_infer/torch/ml/nn/stacked.py (imports `_register`/`_to`).
 """
 
 from __future__ import annotations

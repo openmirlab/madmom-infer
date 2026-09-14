@@ -64,7 +64,10 @@ from madmom_infer.ml.nn.layers import (  # noqa: E402
 )
 from madmom_infer.ml.nn.activations import linear, relu, sigmoid, tanh  # noqa: E402
 from madmom_infer.torch.ml.nn import to_torch  # noqa: E402
-from madmom_infer.torch.ml.nn.convert import _convert_layer  # noqa: E402
+from madmom_infer.torch.ml.nn.convert import (  # noqa: E402
+    _convert_layer,
+    _try_stack_networks,
+)
 import madmom_infer.models as models  # noqa: E402
 
 
@@ -589,6 +592,210 @@ def test_gradient_flows_through_real_network():
 
 
 # ---------------------------------------------------------------------
+# 5. ensemble/gate-stacked performance path (madmom_infer.torch.ml.nn.stacked)
+# ---------------------------------------------------------------------
+#
+# `to_torch`/`ensemble_to_torch` now build the fused/stacked modules from
+# `stacked.py` by default whenever every layer is stackable (see
+# `convert.py`'s module header) -- `test_recurrent_family_parity` and
+# `test_downbeats_blstm_ensemble_parity` above already exercise this path
+# against REAL model weights (they call `to_torch` directly). These tests
+# instead pin the stacked path against an UNSTACKED reference built from
+# `layers.py`'s plain per-layer/per-network modules on the SAME random
+# weights, so a regression in the fusing math itself (not just real-model
+# numerics) is caught directly.
+
+
+def _make_gate_np(rng, in_dim, h, peephole, activation_fn=sigmoid):
+    w = rng.standard_normal((in_dim, h))
+    b = rng.standard_normal((h,))
+    rw = rng.standard_normal((h, h))
+    peep = rng.standard_normal((h,)) if peephole else None
+    return Gate(w, b, rw, peephole_weights=peep, activation_fn=activation_fn)
+
+
+def _make_lstm_layer_np(rng, in_dim, h):
+    ig = _make_gate_np(rng, in_dim, h, peephole=True)
+    fg = _make_gate_np(rng, in_dim, h, peephole=True)
+    og = _make_gate_np(rng, in_dim, h, peephole=True)
+    cell = Cell(rng.standard_normal((in_dim, h)), rng.standard_normal((h,)),
+                rng.standard_normal((h, h)), activation_fn=tanh)
+    return LSTMLayer(ig, fg, cell, og, activation_fn=tanh,
+                      init=rng.standard_normal((h,)),
+                      cell_init=rng.standard_normal((h,)))
+
+
+def _make_gru_layer_np(rng, in_dim, h):
+    reset_gate = _make_gate_np(rng, in_dim, h, peephole=False)
+    update_gate = _make_gate_np(rng, in_dim, h, peephole=False)
+    cell = GRUCell(rng.standard_normal((in_dim, h)), rng.standard_normal((h,)),
+                    rng.standard_normal((h, h)), activation_fn=tanh)
+    return GRULayer(reset_gate, update_gate, cell, init=rng.standard_normal((h,)))
+
+
+def _make_bidir_lstm_network(rng, in_dim, h, out_dim, n_layers=2):
+    layers = []
+    cur_in = in_dim
+    for _ in range(n_layers):
+        layers.append(BidirectionalLayer(
+            _make_lstm_layer_np(rng, cur_in, h),
+            _make_lstm_layer_np(rng, cur_in, h),
+        ))
+        cur_in = 2 * h
+    w = rng.standard_normal((cur_in, out_dim))
+    b = rng.standard_normal((out_dim,))
+    layers.append(FeedForwardLayer(w, b, activation_fn=sigmoid))
+    return NeuralNetwork(layers)
+
+
+def _make_bidir_gru_network(rng, in_dim, h, out_dim):
+    layers = [BidirectionalLayer(
+        _make_gru_layer_np(rng, in_dim, h), _make_gru_layer_np(rng, in_dim, h)
+    )]
+    w = rng.standard_normal((2 * h, out_dim))
+    b = rng.standard_normal((out_dim,))
+    layers.append(FeedForwardLayer(w, b, activation_fn=linear))
+    return NeuralNetwork(layers)
+
+
+def _unstacked_ensemble_reference(networks, dtype_np, dtype_torch):
+    """Build the OLD per-network `EnsembleModule` (bypassing the stacked
+    path entirely, via `_convert_single`/`NeuralNetworkModule` per
+    member) so a stacked module can be compared against it directly on
+    identical weights."""
+    from madmom_infer.torch.ml.nn.layers import EnsembleModule
+
+    modules = []
+    for net in networks:
+        layer_modules = [_convert_layer(layer, trainable=False) for layer in net.layers]
+        modules.append(_torch_layers_module(layer_modules))
+    return EnsembleModule(modules)
+
+
+def _torch_layers_module(layer_modules):
+    from madmom_infer.torch.ml.nn.convert import NeuralNetworkModule
+    return NeuralNetworkModule(layer_modules, expected_unbatched_ndim=2)
+
+
+@pytest.mark.parametrize("dtype_np,dtype_torch,atol", [
+    (np.float64, torch.float64, 1e-10),
+    (np.float32, torch.float32, 1e-5),
+])
+def test_stacked_lstm_ensemble_matches_unstacked_reference(dtype_np, dtype_torch, atol):
+    rng = _rng(50)
+    in_dim, h, out_dim, timesteps = 5, 4, 3, 9
+    networks = [_make_bidir_lstm_network(rng, in_dim, h, out_dim, n_layers=2)
+                for _ in range(4)]
+    stacked = _try_stack_networks(networks, trainable=False)
+    assert stacked is not None
+    reference = _unstacked_ensemble_reference(networks, dtype_np, dtype_torch)
+    x_np = rng.standard_normal((timesteps, in_dim)).astype(dtype_np)
+    x = torch.tensor(x_np, dtype=dtype_torch)
+    with torch.no_grad():
+        out_stacked = stacked(x).numpy()
+        out_reference = reference(x).numpy()
+    _assert_close(out_reference, out_stacked, atol, name="stacked-vs-unstacked LSTM ensemble")
+
+
+@pytest.mark.parametrize("dtype_np,dtype_torch,atol", [
+    (np.float64, torch.float64, 1e-10),
+    (np.float32, torch.float32, 1e-5),
+])
+def test_stacked_gru_ensemble_matches_unstacked_reference(dtype_np, dtype_torch, atol):
+    rng = _rng(51)
+    in_dim, h, out_dim, timesteps = 5, 4, 3, 9
+    networks = [_make_bidir_gru_network(rng, in_dim, h, out_dim) for _ in range(3)]
+    stacked = _try_stack_networks(networks, trainable=False)
+    assert stacked is not None
+    reference = _unstacked_ensemble_reference(networks, dtype_np, dtype_torch)
+    x_np = rng.standard_normal((timesteps, in_dim)).astype(dtype_np)
+    x = torch.tensor(x_np, dtype=dtype_torch)
+    with torch.no_grad():
+        out_stacked = stacked(x).numpy()
+        out_reference = reference(x).numpy()
+    _assert_close(out_reference, out_stacked, atol, name="stacked-vs-unstacked GRU ensemble")
+
+
+def test_stacked_single_network_matches_unstacked_reference():
+    # E == 1 (no real ensemble): a single network should still be
+    # eligible for the fused-gate path and still agree with `to_torch`'s
+    # pre-stacking behavior (NeuralNetworkModule).
+    rng = _rng(52)
+    in_dim, h, out_dim = 4, 3, 2
+    net = _make_bidir_lstm_network(rng, in_dim, h, out_dim, n_layers=1)
+    stacked = _try_stack_networks([net], trainable=False)
+    assert stacked is not None
+    layer_modules = [_convert_layer(layer, trainable=False) for layer in net.layers]
+    reference = _torch_layers_module(layer_modules)
+    x = torch.tensor(rng.standard_normal((7, in_dim)), dtype=torch.float64)
+    with torch.no_grad():
+        out_stacked = stacked(x).numpy()
+        out_reference = reference(x).numpy()
+    _assert_close(out_reference, out_stacked, atol=1e-10, name="stacked-vs-unstacked E=1")
+
+
+def test_stacking_falls_back_for_convolutional_layers():
+    rng = _rng(53)
+    w = rng.standard_normal((1, 2, 3, 3))
+    b = rng.standard_normal((2,))
+    net = NeuralNetwork([ConvolutionalLayer(w, b, pad="valid", activation_fn=relu)])
+    assert _try_stack_networks([net], trainable=False) is None
+
+
+def test_stacking_falls_back_for_mismatched_ensemble_architecture():
+    rng = _rng(54)
+    net_a = _make_bidir_lstm_network(rng, 4, 3, 2, n_layers=1)
+    net_b = _make_bidir_lstm_network(rng, 4, 5, 2, n_layers=1)  # different hidden size
+    assert _try_stack_networks([net_a, net_b], trainable=False) is None
+
+
+def test_gradcheck_stacked_lstm_ensemble():
+    rng = _rng(55)
+    networks = [_make_bidir_lstm_network(rng, 3, 2, 2, n_layers=1) for _ in range(2)]
+    stacked = _try_stack_networks(networks, trainable=False)
+    assert stacked is not None
+    stacked = stacked.double()
+    x = torch.tensor(rng.standard_normal((4, 3)), dtype=torch.float64, requires_grad=True)
+    assert torch.autograd.gradcheck(lambda inp: stacked(inp), (x,), eps=1e-6, atol=1e-4)
+
+
+def test_gradcheck_stacked_gru_ensemble():
+    rng = _rng(56)
+    networks = [_make_bidir_gru_network(rng, 3, 2, 2) for _ in range(2)]
+    stacked = _try_stack_networks(networks, trainable=False)
+    assert stacked is not None
+    stacked = stacked.double()
+    x = torch.tensor(rng.standard_normal((4, 3)), dtype=torch.float64, requires_grad=True)
+    assert torch.autograd.gradcheck(lambda inp: stacked(inp), (x,), eps=1e-6, atol=1e-4)
+
+
+def test_stacked_ensemble_trainable_gradients_reach_all_members():
+    """`trainable=True` on a stacked ensemble registers ONE `nn.Parameter`
+    per layer position, shaped `(E, ...)` -- covering all E members at
+    once, unlike `layers.EnsembleModule` (one Parameter set per member).
+    Gradients still flow correctly per member: this test checks every
+    member's OWN slice along the ensemble axis gets a distinct, finite,
+    non-zero gradient after a backward pass on ensemble-member-dependent
+    (different-per-member weights) input."""
+    rng = _rng(57)
+    networks = [_make_bidir_lstm_network(rng, 3, 2, 2, n_layers=1) for _ in range(3)]
+    stacked = _try_stack_networks(networks, trainable=True)
+    assert stacked is not None
+    x = torch.tensor(rng.standard_normal((5, 3)), dtype=torch.float32)
+    out = stacked(x)
+    out.sum().backward()
+    params = list(stacked.parameters())
+    assert len(params) > 0
+    for p in params:
+        assert p.grad is not None
+        assert torch.all(torch.isfinite(p.grad))
+        if p.dim() >= 1 and p.shape[0] == len(networks):
+            # per-member gradient slice, recoverable via p.grad[i]
+            per_member_norm = p.grad.reshape(len(networks), -1).norm(dim=1)
+            assert torch.all(per_member_norm > 0)
+
+
+# ---------------------------------------------------------------------
 # CUDA
 # ---------------------------------------------------------------------
 
@@ -605,3 +812,16 @@ def test_cuda_matches_cpu():
         out_cpu = tm_cpu(torch.tensor(x_np)).numpy()
         out_cuda = tm_cuda(torch.tensor(x_np, device="cuda")).cpu().numpy()
     _assert_close(out_cpu, out_cuda, atol=1e-4, name="cuda-vs-cpu")
+
+
+@pytest.mark.network
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
+def test_cuda_matches_cpu_stacked_ensemble():
+    ens = NeuralNetworkEnsemble.load(models.downbeats_blstm())
+    tm_cpu = to_torch(ens)
+    tm_cuda = to_torch(ens).to("cuda")
+    x_np = _rng(45).standard_normal((30, 314)).astype(np.float32)
+    with torch.no_grad():
+        out_cpu = tm_cpu(torch.tensor(x_np)).numpy()
+        out_cuda = tm_cuda(torch.tensor(x_np, device="cuda")).cpu().numpy()
+    _assert_close(out_cpu, out_cuda, atol=1e-4, name="cuda-vs-cpu (stacked ensemble)")
