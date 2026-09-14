@@ -101,7 +101,13 @@ from madmom_infer.audio.spectrogram import ADD, DIFF_RATIO, MUL, POSITIVE_DIFFS
 from madmom_infer.audio.spectrogram import _diff_frames as _np_diff_frames
 from madmom_infer.audio.stft import fft_frequencies
 
+# Same value as madmom_infer.features.onsets.EPSILON (np.spacing(1)) --
+# restated here, not imported, to keep this audio-layer module from
+# depending on the features layer for one float constant.
+EPSILON = np.spacing(1)
+
 __all__ = [
+    "EPSILON",
     "SpectrogramFrontend",
     "apply_filterbank",
     "frame_signal",
@@ -221,9 +227,13 @@ def apply_filterbank(spectrogram, filterbank):
     return torch.matmul(spectrogram, filterbank)
 
 
-def log_compress(spectrogram, mul=MUL, add=ADD):
-    """`log10(mul * spectrogram + add)`, matching `LogarithmicSpectrogram`."""
-    return torch.log10(mul * spectrogram + add)
+def log_compress(spectrogram, mul=MUL, add=ADD, natural_log=False):
+    """`log10(mul * spectrogram + add)` (or, if `natural_log=True`, the
+    natural-log variant `CNNOnsetProcessor` uses via
+    `LogarithmicSpectrogramProcessor(log=np.log, add=EPSILON)`), matching
+    `LogarithmicSpectrogram`."""
+    x = mul * spectrogram + add
+    return torch.log(x) if natural_log else torch.log10(x)
 
 
 def temporal_difference(spectrogram, diff_frames, positive=POSITIVE_DIFFS):
@@ -271,7 +281,9 @@ class SpectrogramFrontend(nn.Module):
         fft_size=None, circular_shift=False, include_nyquist=False,
         num_bands=NUM_BANDS, fmin=FMIN, fmax=FMAX, fref=A4,
         norm_filters=NORM_FILTERS, unique_filters=UNIQUE_FILTERS,
-        log_mul=MUL, log_add=ADD, diff_ratio=DIFF_RATIO, diff_frames=None,
+        filterbank_cls=LogarithmicFilterbank,
+        log_mul=MUL, log_add=ADD, natural_log=False,
+        diff_ratio=DIFF_RATIO, diff_frames=None,
         positive_diffs=POSITIVE_DIFFS, include_diff=True,
         dtype=torch.float32,
     ):
@@ -287,6 +299,7 @@ class SpectrogramFrontend(nn.Module):
         self.include_nyquist = include_nyquist
         self.log_mul = log_mul
         self.log_add = log_add
+        self.natural_log = natural_log
         self.positive_diffs = positive_diffs
         self.include_diff = include_diff
 
@@ -294,12 +307,16 @@ class SpectrogramFrontend(nn.Module):
         window_np = np.hanning(self.frame_size)
         self.register_buffer("window", torch.as_tensor(window_np, dtype=dtype))
 
-        # filterbank matrix + bin frequencies: reused from numpy
+        # filterbank matrix + bin frequencies: reused from numpy.
+        # `filterbank_cls` defaults to `LogarithmicFilterbank` (used by
+        # every RNN-family processor); `MelFilterbank` (CNNOnsetProcessor)
+        # has a compatible-enough signature (`**kwargs` swallows the extra
+        # `fref` this always passes) that no branching is needed here.
         num_fft_bins = self.fft_size >> 1
         if include_nyquist:
             num_fft_bins += 1
         bin_frequencies = fft_frequencies(num_fft_bins, sample_rate)
-        filterbank = LogarithmicFilterbank(
+        filterbank = filterbank_cls(
             bin_frequencies, num_bands=num_bands, fmin=fmin, fmax=fmax, fref=fref,
             norm_filters=norm_filters, unique_filters=unique_filters,
         )
@@ -352,7 +369,9 @@ class SpectrogramFrontend(nn.Module):
         )
         magnitude = spectrum.abs()
         filtered = apply_filterbank(magnitude, self.filterbank)
-        logspec = log_compress(filtered, mul=self.log_mul, add=self.log_add)
+        logspec = log_compress(
+            filtered, mul=self.log_mul, add=self.log_add, natural_log=self.natural_log
+        )
 
         if not self.include_diff:
             return logspec

@@ -67,6 +67,7 @@ from madmom_infer.torch.audio.frontend import (
     stft,
     temporal_difference,
 )
+from madmom_infer.torch.features import TorchPipelineProcessor, build_pipeline
 from madmom_infer.torch.ml.nn import to_torch
 
 __all__ = [
@@ -78,4 +79,6 @@ __all__ = [
     "stft",
     "temporal_difference",
     "to_torch",
+    "build_pipeline",
+    "TorchPipelineProcessor",
 ]
