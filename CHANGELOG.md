@@ -41,6 +41,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `HiddenMarkovModel.viterbi()` now copies backpointers directly for
+  single-predecessor states (about 98.4% of the measured beat/downbeat HMMs)
+  and searches only the small multi-predecessor tail, instead of rebuilding
+  transition-sized repeat/match/float-cast scratch arrays every frame. Three
+  direct 270-second runs kept the full result identical: NumPy median
+  inference time fell from 44.58 s to 35.43 s, and Torch CUDA from 28.10 s to
+  18.82 s; peak RSS and VRAM were unchanged.
+
 - `HiddenMarkovModel.viterbi()` now stores backtracking state indices as
   `uint16` when the HMM has at most 65,536 states, while preserving the public
   `uint32` path and falling back to `uint32` for larger generic HMMs. On the

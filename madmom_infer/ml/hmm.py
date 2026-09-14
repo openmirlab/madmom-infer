@@ -10,14 +10,15 @@ BarTransitionModel construction.
 `viterbi()` keeps the frame loop in Python (a genuine sequential recursion) but
 vectorizes the per-frame state/transition double loop with numpy: for each frame,
 `candidate = previous_viterbi[tm.states] + tm.log_probabilities` computes every
-transition's score at once, then a two-pass `np.fmax.reduceat`/`np.minimum.reduceat`
-trick recovers, per destination state (a CSR row = "segment"), both the row's max
-score and the *first* transition index attaining it -- replicating madmom's
-`if transition_prob > current_viterbi[state]:` (hmm.pyx:552, strict `>`) tie-break,
-which keeps the first-encountered predecessor on a tie. `np.argmax`/first-occurrence
-semantics line up with this naturally, so no special-casing is needed once the
-segment reduction is done correctly. `forward()` mirrors this with `np.add.reduceat`
-in the linear (non-log) domain, per-frame renormalized, matching hmm.pyx:591-659.
+transition's score at once and `np.fmax.reduceat` recovers each destination state's
+maximum. Backtracking is specialized by incoming degree: the overwhelmingly common
+single-predecessor states copy their sole source directly, while only the small
+multi-predecessor tail builds a padded score table and uses equality + `np.argmax`.
+That preserves madmom's `if transition_prob > current_viterbi[state]:`
+(hmm.pyx:552, strict `>`) first-predecessor tie-break without constructing
+transition-sized repeat/match/float-cast scratch arrays every frame. `forward()`
+uses `np.add.reduceat` in the linear (non-log) domain, per-frame renormalized,
+matching hmm.pyx:591-659.
 Observation densities stay in their compact `(frames, observation_classes)` form
 and are mapped to states one frame at a time, matching upstream hmm.pyx; expanding
 them to `(frames, states)` is both slower and prohibitively memory-heavy on songs.
@@ -427,10 +428,18 @@ class HiddenMarkovModel(object):
 
         seg_start = tm_pointers[:-1]
         seg_end = tm_pointers[1:]
-        empty_segment = seg_start == seg_end
         segment_lengths = seg_end - seg_start
         num_transitions = tm.num_transitions
-        idx_full = np.arange(num_transitions)
+        single_states = np.flatnonzero(segment_lengths == 1)
+        single_sources = tm_states[seg_start[single_states]]
+        multi_states = np.flatnonzero(segment_lengths > 1)
+        if len(multi_states):
+            multi_width = int(segment_lengths[multi_states].max())
+            multi_offsets = np.arange(multi_width)
+            multi_valid = multi_offsets < segment_lengths[multi_states, None]
+            multi_positions = seg_start[multi_states, None] + multi_offsets
+            # Invalid padded cells gather transition 0, then get masked out.
+            multi_positions[~multi_valid] = 0
 
         for frame in range(num_observations):
             # score of every transition (destination-state density added later,
@@ -448,25 +457,23 @@ class HiddenMarkovModel(object):
             seg_max = _segment_reduce(np.fmax, candidate, tm_pointers, -np.inf)
 
             if num_transitions > 0:
-                # recover, per row, the index of the *first* transition
-                # attaining the row max (madmom's hmm.pyx:552 uses strict `>`,
-                # so ties keep the earliest-encountered predecessor -- this
-                # matches np.argmax's own first-occurrence tie-break)
-                seg_max_per_transition = np.repeat(seg_max, segment_lengths)
-                # NaN != NaN, so a NaN candidate (poisoned predecessor) never
-                # matches here either -- it can't become the backtrack target
-                match = candidate == seg_max_per_transition
-                candidate_pos = np.where(match, idx_full, num_transitions)
-                seg_argmin = _segment_reduce(np.minimum,
-                                             candidate_pos.astype(float),
-                                             tm_pointers, float(num_transitions))
-                seg_argmin = seg_argmin.astype(np.int64)
-                # a segment is only safely indexable if it's non-empty AND a
-                # match was actually found (a segment where every candidate is
-                # NaN -- e.g. NaN density -- has no match, and seg_argmin
-                # stays at the num_transitions sentinel)
-                safe = (~empty_segment) & (seg_argmin < num_transitions)
-                bt_pointers[frame, safe] = tm_states[seg_argmin[safe]]
+                # Almost every beat/downbeat state has exactly one incoming
+                # transition, so its backpointer needs no search at all.
+                bt_pointers[frame, single_states] = single_sources
+                if len(multi_states):
+                    # Search only the small multi-predecessor tail. Equality +
+                    # argmax preserves the first-transition tie break. NaN
+                    # never matches, just as in the prior general reduction.
+                    multi_match = (
+                        candidate[multi_positions]
+                        == seg_max[multi_states, None]
+                    ) & multi_valid
+                    found = multi_match.any(axis=1)
+                    first = multi_match.argmax(axis=1)
+                    rows = np.flatnonzero(found)
+                    bt_pointers[frame, multi_states[rows]] = tm_states[
+                        multi_positions[rows, first[rows]]
+                    ]
 
             # Map only this frame's compact observation densities to states,
             # exactly as upstream's Cython loop does. Materializing all frames

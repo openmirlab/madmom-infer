@@ -147,6 +147,22 @@ def test_viterbi_maps_observation_densities_one_frame_at_a_time(monkeypatch):
     assert np.isfinite(log_prob)
 
 
+def test_viterbi_does_not_repeat_segment_maxima_per_transition(monkeypatch):
+    tm = TransitionModel.from_dense(
+        [0, 1, 0, 1], [0, 0, 1, 1], [0.7, 0.3, 0.6, 0.4]
+    )
+    om = DiscreteObservationModel(np.array([[0.2, 0.8], [0.7, 0.3]]))
+
+    def reject_repeat(*args, **kwargs):
+        raise AssertionError("Viterbi rebuilt transition-sized repeat scratch")
+
+    monkeypatch.setattr(hmm_module.np, "repeat", reject_repeat)
+    path, log_prob = HiddenMarkovModel(tm, om).viterbi([0, 1, 0])
+
+    assert path.shape == (3,)
+    assert np.isfinite(log_prob)
+
+
 def test_toy_hmm_forward_matches(toy_hmm_fixture):
     d = toy_hmm_fixture
     tm = TransitionModel(d["tm_states"], d["tm_pointers"], d["tm_probabilities"])
