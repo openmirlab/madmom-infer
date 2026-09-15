@@ -7,8 +7,9 @@ name: Publish to PyPI
 # first -- no publishing straight off `python -m build` with no test step in
 # between.
 #
-# The test suite is pure Python (numpy/scipy only, no torch) and fast. Two
-# categories of test are NOT run here, by design:
+# The default runtime stays Numpy/SciPy-only and the release matrix also installs the
+# optional Numba exact-decoder extra (where supported) so its parity tests cannot silently skip.
+# Two categories of test are NOT run here, by design:
 #   - Tests marked `network` (pyproject.toml's `addopts = "-m 'not network'"`)
 #     download real madmom pretrained weights (CC BY-NC-SA 4.0, non-commercial)
 #     from CPJKU/madmom_models at collection/fixture time -- deselected here
@@ -47,7 +48,9 @@ jobs:
       - name: Install uv
         run: pip install uv
       - name: Install dependencies
-        run: uv sync
+        # Exercise the exact compiled decoder on every supported Python where
+        # Numba is available; the extra is intentionally empty on Python 3.9.
+        run: uv sync --extra numba
       - name: Run tests (network-marked tests deselected by pyproject.toml addopts)
         run: uv run pytest -v
 

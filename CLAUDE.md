@@ -74,8 +74,8 @@ to refer to a specific chunk of already-shipped work:
   bundle, always download at runtime", see `madmom_infer/models.py`
 - **Phase 3a** (complete): optional, differentiable torch spectrogram
   frontend (`madmom_infer/torch/`)
-- **Phase 3b** (complete, 2026-09-14, branch `feat/torch-backend`, not
-  yet merged): opt-in torch backend for every NN-backed processor. Custom
+- **Phase 3b** (complete, 2026-09-14): opt-in torch backend for every
+  NN-backed processor. Custom
   peephole-LSTM/GRU cells (`madmom_infer/torch/ml/nn/`, `to_torch`),
   waveform-to-activation pipelines (`madmom_infer/torch/features/`), and
   `backend="torch", device=` on the ten NN processors + `MadmomAnalyzer`
@@ -87,8 +87,8 @@ to refer to a specific chunk of already-shipped work:
   `tools/bench_torch_backend.py`. See `docs/blueprints/decisions.md`
   "Torch backend exists for differentiability, not only speed".
 - **Phase 4 — complete-port campaign** (started 2026-07-12, **DONE
-  2026-07-13**, branch `feat/complete-port`, not yet merged -- see the "4g
-  closure verdict" section below for the closing statement): port every
+  2026-07-13** -- see the "4g closure verdict" section below for the closing
+  statement): port every
   remaining inference-relevant madmom
   capability. Target surface = what the reference madmom install exposes
   (0.17.dev0, built from `../madmom-upstream`). Waves, each gated on
@@ -1404,3 +1404,46 @@ opt-in boundary itself still holds -- both a torch-less venv (`import
 madmom_infer` works, `import madmom_infer.torch` raises a clear guarded
 `ImportError`) and the full non-network suite pass in both a torch-less and
 a torch-installed environment with identical non-torch test counts.
+
+## Exact fast-Viterbi verification
+
+`fast_viterbi=True` is an opt-in CPU decoder accelerator. It is available on
+`HiddenMarkovModel.viterbi(..., fast=True)`,
+`DBNDownBeatTrackingProcessor(fast_viterbi=True)`, and the public downbeat
+analyzer helpers. The decoder remains the NumPy reference: the optional
+`numba` extra is imported lazily only when the option is requested, and the
+compiled recurrence keeps the strict `>` comparison and first-predecessor tie
+break, NaN handling, compact observation lookup, and `uint16`/`uint32`
+backpointer boundary. It is exact -- compare both the returned path and the
+scalar log probability, not a tolerance-only activation result.
+
+Install the extra for Python 3.10+ with `uv sync --extra dev --extra numba`
+(or `pip install "madmom-infer[dev,numba]"`). The `numba` dependency is
+guarded out on Python 3.9, so that interpreter, an unavailable Numba import,
+and any first-use import or compilation failure must continue through the
+existing NumPy implementation without changing output. The Numba kernel uses
+`njit(cache=True)`, so a warm process/cache avoids repeating compilation;
+benchmark cold and warm first-use separately when reporting timings.
+
+Run the focused exactness and fallback checks in a Numba-enabled environment:
+
+```bash
+uv run pytest tests/test_hmm.py tests/test_downbeats.py tests/test_api.py -v
+```
+
+The focused tests cover toy-HMM path/log-probability identity, downbeat decode
+identity, API wiring, and a monkeypatched unavailable-Numba fallback. Also
+run the normal suite in the core environment to keep the lazy-import boundary
+intact; `tests/test_backends_torch_free.py` asserts that importing the core
+package and HMM module does not import either `torch` or `numba`.
+
+For the release benchmark, use the fixed 270-second input and three decoder
+threads, report three-run medians, peak RSS, and whether the Numba cache was
+empty. The recorded full NumPy pipeline moved from 37.11 to 30.92 seconds
+(peak RSS 2.79 to 2.89 GiB; cold-cache first run 31.51 seconds), while direct
+three-meter decoding moved from 12.92 to 4.15 seconds. Downbeat, onset, and
+tempo hashes, direct paths, and log probabilities were identical. With the
+fused CUDA frontend and three decoder threads, the interleaved median moved
+from 10.27 to 4.28 seconds and task hashes plus 1864 MiB incremental VRAM
+stayed unchanged. Treat these as fixed-input evidence, not a universal speed
+guarantee.
