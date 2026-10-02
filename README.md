@@ -808,6 +808,12 @@ uv run python -c "import madmom_infer; print(madmom_infer.__version__)"
 uv run pytest -v
 ```
 
+Pull requests and pushes to `main` run `.github/workflows/tests.yml` across
+Python 3.9–3.13 with CPU Torch installed. It runs the offline suite (including
+device-policy tests), builds a wheel from the sdist, and checks the installed
+wheel's public API and checkpoint data outside the checkout. This workflow
+only tests and builds; release publishing remains in `publish.yml`.
+
 The default `pytest` run above is fully offline (network-marked tests
 deselected by `pyproject.toml`; this is what CI runs). To also exercise the
 network-dependent tests against real, freshly-downloaded madmom weights, run

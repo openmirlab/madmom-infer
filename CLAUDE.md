@@ -1422,6 +1422,15 @@ a torch-installed environment with identical non-torch test counts.
 
 ## Device-dispatch verification
 
+`.github/workflows/tests.yml` provides PR and `main`-push CI on every claimed
+Python version, 3.9–3.13. It installs a compatible CPU Torch wheel from the
+official CPU index first, then `.[dev,torch]` without `--upgrade`, runs the
+full offline suite (including the focused device cases), builds from sdist,
+and smoke-tests the wheel in an isolated target outside the checkout. Core
+imports and packaged checkpoint metadata are checked there too. This workflow
+has read-only permissions and never publishes; `publish.yml` is the separate
+release/manual publishing workflow and must not be dispatched just to test a PR.
+
 Run portable device policy/import tests and the environment-guarded original
 CPU regression (no downloads; cached checkpoints required for the regression):
 
