@@ -1,0 +1,1021 @@
+{
+  "kind": "Current-port CPU device-dispatch baseline; NOT an upstream golden fixture",
+  "captured_at_utc": "2026-10-02T14:16:56.515229+00:00",
+  "command": "CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 /home/worzpro/Desktop/dev/openmirlab/madmom-infer/.venv/bin/python /tmp/openmirlab-remediation/madmom-device-baseline/capture.py",
+  "cwd": "/home/worzpro/Desktop/dev/openmirlab/madmom-infer",
+  "source_before": {
+    "head": "269e948ab2475031d8c9bfb10eb1ec1ac5a6961f",
+    "status": "",
+    "production_python_sha256": {
+      "madmom_infer/__about__.py": "44712ccd4994763c269610278f02a6c9ef634487afcbaab651744e8977e61652",
+      "madmom_infer/__init__.py": "77c14b8aed216b997677d2f2b0397ccaa0fcfd9ba5acfa7dd86b164bfc83ea53",
+      "madmom_infer/api.py": "f745429d5b7f00cd09ec6740c675f970a2467ab08dc0a2d61d9a29a9e2c505c4",
+      "madmom_infer/audio/__init__.py": "f1f74e020c7f381a8f2660f7e7d4cd755383022a7bd4489e7fe6f7d5039ddac0",
+      "madmom_infer/audio/cepstrogram.py": "789fffa88fa762235a3481dcc0646e33c3f46a3e06bf1d7d6861029cb6b52400",
+      "madmom_infer/audio/chroma.py": "49dc4873778df908794d4b63bfbd7fc3757f1bd9cd7b5de319390168e1d56cdd",
+      "madmom_infer/audio/comb_filters.py": "36753c8177d6745f4951f957202fc3ed2e4d6396b29adb354c59931c24d1bbea",
+      "madmom_infer/audio/filters.py": "115be1ed554b62142e7af2eaa5ffa3d428cf095028f7f0ac60718892b259ffe0",
+      "madmom_infer/audio/hpss.py": "13069ee98a8160ad710de5e27fdc3e68e899fb6be71b9b68fdcf66c981cbb4f2",
+      "madmom_infer/audio/signal.py": "f91399ab765a301d2fa8b0a4856192efe28259c6e8422a4b4953aa885d24de83",
+      "madmom_infer/audio/spectrogram.py": "68d4a0339748f02d922c848f49385f7662f33814b73ed5ef922ec4e0909dac45",
+      "madmom_infer/audio/stft.py": "0b4934073820de63ed5fd098be0fddea337c635785a88d83d271344764f9828c",
+      "madmom_infer/backends.py": "846b51fd17480d9ba29106955b1b593984fc45561fffaf1f9c22f4ee466fdc5e",
+      "madmom_infer/features/__init__.py": "f749913dc1fcf2a41ea4755a1fcfdc0868494464cd287120b535ecaae98756cd",
+      "madmom_infer/features/beats.py": "f61aa5128a761d5ce10edb264d42b2afc73610c612d4202c68ea8d4109630183",
+      "madmom_infer/features/beats_crf.py": "4cf3c3c04a2a8683224f4aef8733f4cabf1f1489a12b153dc41fe50439a1ed42",
+      "madmom_infer/features/beats_hmm.py": "86dc1a5fdc0565c6e90f6d6df858208a6fe86003f22740fdb93437c89751c954",
+      "madmom_infer/features/chords.py": "3dd7792570922658772cd530f33bb73fce236261695a42ddbc7bb2b1aaec9a62",
+      "madmom_infer/features/downbeats.py": "19dc37d617a9dc762162327dc2fdb09ab0a6e40c6ea3223eae8bafbc6f67adbc",
+      "madmom_infer/features/key.py": "95c549b2df484405e5ddfb925dff2dddcc73748f15a09e1eca01375a936e5335",
+      "madmom_infer/features/notes.py": "9d4525a27b5af5f0985c4a33146f033a99c9e2edb6d16b4ad9cc36103b7611b1",
+      "madmom_infer/features/notes_hmm.py": "06d36dd707b9f592de512510b120d60238c608d3ac0a976bbacbf0e0d5f6449c",
+      "madmom_infer/features/onsets.py": "38b02d9983d21c1b942e56a1b8c0e6f8399dba0b7a8cc171a4c26fe165bf3b3b",
+      "madmom_infer/features/tempo.py": "98e404dc8dfbfb29c1725ac4ec73b2677a6fa662db7ed592fb4fad3be83a037d",
+      "madmom_infer/ml/__init__.py": "a4581b555aac9f6a15d158919e42017c4cc88f09fe9444cca085b77aa397ae9c",
+      "madmom_infer/ml/_numba_hmm.py": "581c1217a8c14ae9f5864f348e4efdba2003e666c2947e92e31dfc6866540a5a",
+      "madmom_infer/ml/crf.py": "88b2ccdc8fc4f46bac3eee94d4ab918f086954c8c8085960ba5ac1080b955763",
+      "madmom_infer/ml/gmm.py": "c096a907547a134f8edb1162f9c094532e0af2add4c99ecb5fea4f977b1ca16b",
+      "madmom_infer/ml/hmm.py": "1ecd83f16b54d35dc401eee353a745f8281c43e98b1f0d9c032476aa38dd12b9",
+      "madmom_infer/ml/nn/__init__.py": "49851718ba66308925e86e440597dc53b0aae0e4568ad895b477497538c208b8",
+      "madmom_infer/ml/nn/activations.py": "6c11afdaebca52b282640bffad9d575f1d4eec6f4b1e9229b73af1f6f702115f",
+      "madmom_infer/ml/nn/layers.py": "06a2160218b76241cd16e9c1fee7bef858f27f668133c9b428b272f14db450be",
+      "madmom_infer/ml/nn/unpickle.py": "77d2541137200fc481a16ac4d75469f7608b101f96e7afeddc61c1f82b1fd2e9",
+      "madmom_infer/models.py": "76a46a8bc1a1e3e26ac9d78a708d6462216dc8533145e1b2853b8d9bc9425866",
+      "madmom_infer/processors.py": "07e66841bd10547012e5df773b6c1b1a159159a0236d2697e63bb1819e50dc20",
+      "madmom_infer/torch/__init__.py": "8e7ef49b57949a9dd495c6db08662fa7952d2fb99c06a0285013e1f6e39f135d",
+      "madmom_infer/torch/audio/__init__.py": "2690ffe1afbc6c36659685c9d8dcf3df98fba033908a968fe4d23e13567e9eb6",
+      "madmom_infer/torch/audio/frontend.py": "5c9bbbb519e4e170f20118e1f3518c34be3d38de31e995f47b2419c037838af4",
+      "madmom_infer/torch/features/__init__.py": "088096b554ff3734c5f22496749fda19a8138b1ee37c51c48d965f7838b3673d",
+      "madmom_infer/torch/features/adapter.py": "ddaa98cfa80ffc47d82ddb2612d2ab111cdba4f65ca0a1d9759188dca80a158e",
+      "madmom_infer/torch/features/common.py": "c7bc8fae2293d8c6e7d9028f690ef607946276f6fc4f858250401f95f744c56a",
+      "madmom_infer/torch/features/pipelines.py": "55f30251e77e83ff623679ca51c5be2f911b14ac53a3e8b071725e44ea343f2b",
+      "madmom_infer/torch/ml/__init__.py": "3c9c51f10cb778b9778e30d3666a50fc95568df2f38a1356670219afac91be3f",
+      "madmom_infer/torch/ml/nn/__init__.py": "69e22862f89299a23a427707fdafa1e6e1d12eee9b025ce008d91d10acca1295",
+      "madmom_infer/torch/ml/nn/convert.py": "ebe5a6cef18d8515837c7234b868a836e47d7696ab838b91a62e6bd26f9b3334",
+      "madmom_infer/torch/ml/nn/layers.py": "b564ba0afa7a4d37f8327c5929bdb533cde94a3b33f4c184438a2c5e8f983c9b",
+      "madmom_infer/torch/ml/nn/stack_convert.py": "3d6687a1fc6eee84353ac8c786efb5f462c96aa9c0fc484c61811679d475ca69",
+      "madmom_infer/torch/ml/nn/stacked.py": "c4b51197ea3f7d510a084efd7753e3d0c36b8ea3d6aad0044716279aa605a753",
+      "madmom_infer/torch/ml/nn/triton_lstm.py": "d1e01576795a0275e5e621f1a05f14b7860f44fa87d6fcf3c4fbcde7cfc67d15",
+      "madmom_infer/utils.py": "2a051f3979ffad03ead20b3b5f0dac6bd9b540ff18044664b317168eb8468fce"
+    },
+    "checkpoint_config_sha256": "d868295d4213cc56b20297560111cb87872c1f3ce5b4ef60a47c1e0b9baced8a"
+  },
+  "source_after": {
+    "head": "269e948ab2475031d8c9bfb10eb1ec1ac5a6961f",
+    "status": "",
+    "production_python_sha256": {
+      "madmom_infer/__about__.py": "44712ccd4994763c269610278f02a6c9ef634487afcbaab651744e8977e61652",
+      "madmom_infer/__init__.py": "77c14b8aed216b997677d2f2b0397ccaa0fcfd9ba5acfa7dd86b164bfc83ea53",
+      "madmom_infer/api.py": "f745429d5b7f00cd09ec6740c675f970a2467ab08dc0a2d61d9a29a9e2c505c4",
+      "madmom_infer/audio/__init__.py": "f1f74e020c7f381a8f2660f7e7d4cd755383022a7bd4489e7fe6f7d5039ddac0",
+      "madmom_infer/audio/cepstrogram.py": "789fffa88fa762235a3481dcc0646e33c3f46a3e06bf1d7d6861029cb6b52400",
+      "madmom_infer/audio/chroma.py": "49dc4873778df908794d4b63bfbd7fc3757f1bd9cd7b5de319390168e1d56cdd",
+      "madmom_infer/audio/comb_filters.py": "36753c8177d6745f4951f957202fc3ed2e4d6396b29adb354c59931c24d1bbea",
+      "madmom_infer/audio/filters.py": "115be1ed554b62142e7af2eaa5ffa3d428cf095028f7f0ac60718892b259ffe0",
+      "madmom_infer/audio/hpss.py": "13069ee98a8160ad710de5e27fdc3e68e899fb6be71b9b68fdcf66c981cbb4f2",
+      "madmom_infer/audio/signal.py": "f91399ab765a301d2fa8b0a4856192efe28259c6e8422a4b4953aa885d24de83",
+      "madmom_infer/audio/spectrogram.py": "68d4a0339748f02d922c848f49385f7662f33814b73ed5ef922ec4e0909dac45",
+      "madmom_infer/audio/stft.py": "0b4934073820de63ed5fd098be0fddea337c635785a88d83d271344764f9828c",
+      "madmom_infer/backends.py": "846b51fd17480d9ba29106955b1b593984fc45561fffaf1f9c22f4ee466fdc5e",
+      "madmom_infer/features/__init__.py": "f749913dc1fcf2a41ea4755a1fcfdc0868494464cd287120b535ecaae98756cd",
+      "madmom_infer/features/beats.py": "f61aa5128a761d5ce10edb264d42b2afc73610c612d4202c68ea8d4109630183",
+      "madmom_infer/features/beats_crf.py": "4cf3c3c04a2a8683224f4aef8733f4cabf1f1489a12b153dc41fe50439a1ed42",
+      "madmom_infer/features/beats_hmm.py": "86dc1a5fdc0565c6e90f6d6df858208a6fe86003f22740fdb93437c89751c954",
+      "madmom_infer/features/chords.py": "3dd7792570922658772cd530f33bb73fce236261695a42ddbc7bb2b1aaec9a62",
+      "madmom_infer/features/downbeats.py": "19dc37d617a9dc762162327dc2fdb09ab0a6e40c6ea3223eae8bafbc6f67adbc",
+      "madmom_infer/features/key.py": "95c549b2df484405e5ddfb925dff2dddcc73748f15a09e1eca01375a936e5335",
+      "madmom_infer/features/notes.py": "9d4525a27b5af5f0985c4a33146f033a99c9e2edb6d16b4ad9cc36103b7611b1",
+      "madmom_infer/features/notes_hmm.py": "06d36dd707b9f592de512510b120d60238c608d3ac0a976bbacbf0e0d5f6449c",
+      "madmom_infer/features/onsets.py": "38b02d9983d21c1b942e56a1b8c0e6f8399dba0b7a8cc171a4c26fe165bf3b3b",
+      "madmom_infer/features/tempo.py": "98e404dc8dfbfb29c1725ac4ec73b2677a6fa662db7ed592fb4fad3be83a037d",
+      "madmom_infer/ml/__init__.py": "a4581b555aac9f6a15d158919e42017c4cc88f09fe9444cca085b77aa397ae9c",
+      "madmom_infer/ml/_numba_hmm.py": "581c1217a8c14ae9f5864f348e4efdba2003e666c2947e92e31dfc6866540a5a",
+      "madmom_infer/ml/crf.py": "88b2ccdc8fc4f46bac3eee94d4ab918f086954c8c8085960ba5ac1080b955763",
+      "madmom_infer/ml/gmm.py": "c096a907547a134f8edb1162f9c094532e0af2add4c99ecb5fea4f977b1ca16b",
+      "madmom_infer/ml/hmm.py": "1ecd83f16b54d35dc401eee353a745f8281c43e98b1f0d9c032476aa38dd12b9",
+      "madmom_infer/ml/nn/__init__.py": "49851718ba66308925e86e440597dc53b0aae0e4568ad895b477497538c208b8",
+      "madmom_infer/ml/nn/activations.py": "6c11afdaebca52b282640bffad9d575f1d4eec6f4b1e9229b73af1f6f702115f",
+      "madmom_infer/ml/nn/layers.py": "06a2160218b76241cd16e9c1fee7bef858f27f668133c9b428b272f14db450be",
+      "madmom_infer/ml/nn/unpickle.py": "77d2541137200fc481a16ac4d75469f7608b101f96e7afeddc61c1f82b1fd2e9",
+      "madmom_infer/models.py": "76a46a8bc1a1e3e26ac9d78a708d6462216dc8533145e1b2853b8d9bc9425866",
+      "madmom_infer/processors.py": "07e66841bd10547012e5df773b6c1b1a159159a0236d2697e63bb1819e50dc20",
+      "madmom_infer/torch/__init__.py": "8e7ef49b57949a9dd495c6db08662fa7952d2fb99c06a0285013e1f6e39f135d",
+      "madmom_infer/torch/audio/__init__.py": "2690ffe1afbc6c36659685c9d8dcf3df98fba033908a968fe4d23e13567e9eb6",
+      "madmom_infer/torch/audio/frontend.py": "5c9bbbb519e4e170f20118e1f3518c34be3d38de31e995f47b2419c037838af4",
+      "madmom_infer/torch/features/__init__.py": "088096b554ff3734c5f22496749fda19a8138b1ee37c51c48d965f7838b3673d",
+      "madmom_infer/torch/features/adapter.py": "ddaa98cfa80ffc47d82ddb2612d2ab111cdba4f65ca0a1d9759188dca80a158e",
+      "madmom_infer/torch/features/common.py": "c7bc8fae2293d8c6e7d9028f690ef607946276f6fc4f858250401f95f744c56a",
+      "madmom_infer/torch/features/pipelines.py": "55f30251e77e83ff623679ca51c5be2f911b14ac53a3e8b071725e44ea343f2b",
+      "madmom_infer/torch/ml/__init__.py": "3c9c51f10cb778b9778e30d3666a50fc95568df2f38a1356670219afac91be3f",
+      "madmom_infer/torch/ml/nn/__init__.py": "69e22862f89299a23a427707fdafa1e6e1d12eee9b025ce008d91d10acca1295",
+      "madmom_infer/torch/ml/nn/convert.py": "ebe5a6cef18d8515837c7234b868a836e47d7696ab838b91a62e6bd26f9b3334",
+      "madmom_infer/torch/ml/nn/layers.py": "b564ba0afa7a4d37f8327c5929bdb533cde94a3b33f4c184438a2c5e8f983c9b",
+      "madmom_infer/torch/ml/nn/stack_convert.py": "3d6687a1fc6eee84353ac8c786efb5f462c96aa9c0fc484c61811679d475ca69",
+      "madmom_infer/torch/ml/nn/stacked.py": "c4b51197ea3f7d510a084efd7753e3d0c36b8ea3d6aad0044716279aa605a753",
+      "madmom_infer/torch/ml/nn/triton_lstm.py": "d1e01576795a0275e5e621f1a05f14b7860f44fa87d6fcf3c4fbcde7cfc67d15",
+      "madmom_infer/utils.py": "2a051f3979ffad03ead20b3b5f0dac6bd9b540ff18044664b317168eb8468fce"
+    },
+    "checkpoint_config_sha256": "d868295d4213cc56b20297560111cb87872c1f3ce5b4ef60a47c1e0b9baced8a"
+  },
+  "script_sha256": "e2eeffbe4995d717b7c1d59f0e4f06fb803dfeb3cdd201ded4ca34032985e930",
+  "input_wav": "/home/worzpro/Desktop/dev/openmirlab/references/madmom-upstream/tests/data/audio/sample.wav",
+  "input_wav_sha256": "d06b3c39384c4a0cf59f0bd326eda2443edf668fbb90647e37c801e59602866c",
+  "input_normalization": "scipy.io.wavfile int16 -> float32 / 32768; silence zeros_like(music)",
+  "sample_rate": 44100,
+  "inputs": {
+    "music": {
+      "shape": [
+        123481
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "277979f870831975975ba6e7e15719342c10bc36556b22c2521d13407ed1cb03",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.0901585746913895,
+      "peak": 0.628753662109375,
+      "min": -0.628753662109375,
+      "max": 0.548614501953125,
+      "std": 0.09000406908330141
+    },
+    "silence": {
+      "shape": [
+        123481
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "6a1372cfb38bfa897d7dd7b62664ec057999efa6626836cdeda51020fb8a67ec",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.0,
+      "peak": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "std": 0.0
+    },
+    "beats": {
+      "shape": [
+        6
+      ],
+      "dtype": "float64",
+      "sha256_raw_c_order": "a2cf25b5fba6a3a232f1327afe12857d2f0b48af9f32b42845068f5c80757353",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 1.7260262647673315,
+      "peak": 2.75,
+      "min": 0.25,
+      "max": 2.75,
+      "std": 0.8539125638299665
+    }
+  },
+  "checkpoints": [
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_1.pkl",
+      "sha256": "b02c4b8aa963069449422fd5cc55bd4077105fe268b0d83036b7d68b5520f38d",
+      "expected_sha256": "b02c4b8aa963069449422fd5cc55bd4077105fe268b0d83036b7d68b5520f38d",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_2.pkl",
+      "sha256": "6fa9d138ed84bed14ab5ef6f81f3a7e1a125ff8c571a255f6ce91ccf93390eee",
+      "expected_sha256": "6fa9d138ed84bed14ab5ef6f81f3a7e1a125ff8c571a255f6ce91ccf93390eee",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_3.pkl",
+      "sha256": "adf6a3e3bf345a9172e8252a511dae28622afe26ee653354c0d4c9e37de8f89a",
+      "expected_sha256": "adf6a3e3bf345a9172e8252a511dae28622afe26ee653354c0d4c9e37de8f89a",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_4.pkl",
+      "sha256": "a4f9a09b1588ca74b0157251364650d3fe81e383019b5986941415e08b37fcde",
+      "expected_sha256": "a4f9a09b1588ca74b0157251364650d3fe81e383019b5986941415e08b37fcde",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_5.pkl",
+      "sha256": "e40aea9b8221babaf14a9211a48dccc3ebcecdf8bcd6d62d60f0949445de9bb6",
+      "expected_sha256": "e40aea9b8221babaf14a9211a48dccc3ebcecdf8bcd6d62d60f0949445de9bb6",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_6.pkl",
+      "sha256": "89b6854c5d6b2381687731aedc9bce6c84894021d1c2eeb60d161cefe997d68c",
+      "expected_sha256": "89b6854c5d6b2381687731aedc9bce6c84894021d1c2eeb60d161cefe997d68c",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_7.pkl",
+      "sha256": "371a319a66d32bee6ab8d4a15f6ae9e4ee22ff97b4276736bab93d9a994c06c1",
+      "expected_sha256": "371a319a66d32bee6ab8d4a15f6ae9e4ee22ff97b4276736bab93d9a994c06c1",
+      "size_bytes": 409619
+    },
+    {
+      "model": "downbeats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_blstm_8.pkl",
+      "sha256": "a0d20e1922872a3e5b74df451d8b5701de6ca88d9f5739f313fb2991d7a84c77",
+      "expected_sha256": "a0d20e1922872a3e5b74df451d8b5701de6ca88d9f5739f313fb2991d7a84c77",
+      "size_bytes": 409619
+    },
+    {
+      "model": "key_cnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/key/2018/key_cnn.pkl",
+      "sha256": "c58ba553be1048877662a663a2670c0051b3c2c66d109b6042ba722ed0bfc7a6",
+      "expected_sha256": "c58ba553be1048877662a663a2670c0051b3c2c66d109b6042ba722ed0bfc7a6",
+      "size_bytes": 2670279
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_1.pkl",
+      "sha256": "5374f4a5fd12c9419de6195d77f20de7553b8b858d1408942b35bf04dc674901",
+      "expected_sha256": "5374f4a5fd12c9419de6195d77f20de7553b8b858d1408942b35bf04dc674901",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_2.pkl",
+      "sha256": "2169734fc38a2366c49b98e2950f0743bcf7c659097db7798fbb0bc570bdfb22",
+      "expected_sha256": "2169734fc38a2366c49b98e2950f0743bcf7c659097db7798fbb0bc570bdfb22",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_3.pkl",
+      "sha256": "bfb88d92ca0f7dcb11749edba9ff1c954536e0d84ba0660f6e201af9cc43050d",
+      "expected_sha256": "bfb88d92ca0f7dcb11749edba9ff1c954536e0d84ba0660f6e201af9cc43050d",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_4.pkl",
+      "sha256": "77af66643507873a0a1a6835c8dfccdb35ea0baace5e44ce0653211827a9db97",
+      "expected_sha256": "77af66643507873a0a1a6835c8dfccdb35ea0baace5e44ce0653211827a9db97",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_5.pkl",
+      "sha256": "2c5b97872b568dab9e9aa67899c379026df5793f129595c070d4e58f0caa512d",
+      "expected_sha256": "2c5b97872b568dab9e9aa67899c379026df5793f129595c070d4e58f0caa512d",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_6.pkl",
+      "sha256": "3395a9be0e4c2b1fb37b58616a3ed499c6fd994bdd29e644144e8a06664180d5",
+      "expected_sha256": "3395a9be0e4c2b1fb37b58616a3ed499c6fd994bdd29e644144e8a06664180d5",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_7.pkl",
+      "sha256": "d36d4f14b91aad277e6d5f8dad542297ada35f075a95cbb62f8fde34766c8e26",
+      "expected_sha256": "d36d4f14b91aad277e6d5f8dad542297ada35f075a95cbb62f8fde34766c8e26",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_rnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_rnn_8.pkl",
+      "sha256": "fafc8535a5654b2225739eff6803897f36f5945a411cbeaf36a2228ed00deaea",
+      "expected_sha256": "fafc8535a5654b2225739eff6803897f36f5945a411cbeaf36a2228ed00deaea",
+      "size_bytes": 37373
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_1.pkl",
+      "sha256": "cd3552b4476f6cafb73c3937e07d954056b4ebd972114b67641ae5726c3233fd",
+      "expected_sha256": "cd3552b4476f6cafb73c3937e07d954056b4ebd972114b67641ae5726c3233fd",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_2.pkl",
+      "sha256": "041d72ce5fb5d466aeb65b1555f3cbb83db6ed659f30299c15cb5024f22cee21",
+      "expected_sha256": "041d72ce5fb5d466aeb65b1555f3cbb83db6ed659f30299c15cb5024f22cee21",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_3.pkl",
+      "sha256": "0b2d2f805f5f9eca7a08174bfb3fdef7ed4cd04a75845dea925061262c634819",
+      "expected_sha256": "0b2d2f805f5f9eca7a08174bfb3fdef7ed4cd04a75845dea925061262c634819",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_4.pkl",
+      "sha256": "5394e8a6ef0d6b316a7dea0150ebf8d32b0a91267ba2cbb3108b9b8aabf11d17",
+      "expected_sha256": "5394e8a6ef0d6b316a7dea0150ebf8d32b0a91267ba2cbb3108b9b8aabf11d17",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_5.pkl",
+      "sha256": "cbe6967220a327e8691a45ab40adf6a98089c77b4969a6e9c961d308e3e29eb5",
+      "expected_sha256": "cbe6967220a327e8691a45ab40adf6a98089c77b4969a6e9c961d308e3e29eb5",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_6.pkl",
+      "sha256": "686cde0a80a83b3efb0986f8a4c8c170353727ebd03920fac525959e4d7f3f2f",
+      "expected_sha256": "686cde0a80a83b3efb0986f8a4c8c170353727ebd03920fac525959e4d7f3f2f",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_7.pkl",
+      "sha256": "14788a5834c73b09bebed233cb870cfd0af41915e6ee2639fbca1e43bdeae410",
+      "expected_sha256": "14788a5834c73b09bebed233cb870cfd0af41915e6ee2639fbca1e43bdeae410",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_brnn_8.pkl",
+      "sha256": "0b24555e609460b5a134645fb439e7088fb518007a165e6b9d469b7cf7d65de4",
+      "expected_sha256": "0b24555e609460b5a134645fb439e7088fb518007a165e6b9d469b7cf7d65de4",
+      "size_bytes": 90405
+    },
+    {
+      "model": "onsets_cnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/onsets/2013/onsets_cnn.pkl",
+      "sha256": "ac7aad3f99c45ecea846406c867dec83fbdab114399b00bcb12eaaeffd5a990e",
+      "expected_sha256": "ac7aad3f99c45ecea846406c867dec83fbdab114399b00bcb12eaaeffd5a990e",
+      "size_bytes": 1163976
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_1.pkl",
+      "sha256": "baab78a188d220d6972fdb91040f375ae711d96489bdb471ff7268124cc47725",
+      "expected_sha256": "baab78a188d220d6972fdb91040f375ae711d96489bdb471ff7268124cc47725",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_2.pkl",
+      "sha256": "af222e0cb79f49b680a87952e13dd755b71f5b81128b3318d4e99bdd458dba26",
+      "expected_sha256": "af222e0cb79f49b680a87952e13dd755b71f5b81128b3318d4e99bdd458dba26",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_3.pkl",
+      "sha256": "fc54ea5248fca54385312e17974cac07ca4a1a97432dc1dd1c02c364b4cd717a",
+      "expected_sha256": "fc54ea5248fca54385312e17974cac07ca4a1a97432dc1dd1c02c364b4cd717a",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_4.pkl",
+      "sha256": "7a355cf7167607f3543e73b8b2ba06ffa481d1cd7443376d4e3378ef6d28f1ae",
+      "expected_sha256": "7a355cf7167607f3543e73b8b2ba06ffa481d1cd7443376d4e3378ef6d28f1ae",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_5.pkl",
+      "sha256": "849d563129e1b77df72c9b5e0d13a02f5a3eeffe3189b91a3edb73f864dc19c9",
+      "expected_sha256": "849d563129e1b77df72c9b5e0d13a02f5a3eeffe3189b91a3edb73f864dc19c9",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_6.pkl",
+      "sha256": "cae69664e3058ad3fed74dcd53414284096913cae8c9b2726375a555701202c8",
+      "expected_sha256": "cae69664e3058ad3fed74dcd53414284096913cae8c9b2726375a555701202c8",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_7.pkl",
+      "sha256": "bbc47b60c3c7e3f2026e234847aa91b41d3faf8cc61f81b8f523c4567a7b6c46",
+      "expected_sha256": "bbc47b60c3c7e3f2026e234847aa91b41d3faf8cc61f81b8f523c4567a7b6c46",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_lstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2016/beats_lstm_8.pkl",
+      "sha256": "78459e9ef8af334ffa88eb8a36ababf04e51d7abdad2daaabd56dd99ccad2f3e",
+      "expected_sha256": "78459e9ef8af334ffa88eb8a36ababf04e51d7abdad2daaabd56dd99ccad2f3e",
+      "size_bytes": 122772
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_1.pkl",
+      "sha256": "bd6545fe694264491ee95e03508d318d164b7f2abac1f48edd0121389506bf5f",
+      "expected_sha256": "bd6545fe694264491ee95e03508d318d164b7f2abac1f48edd0121389506bf5f",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_2.pkl",
+      "sha256": "89ab1defb1b34712bdd0c9f84a756178e809612720733ed7b3a5cc47420689d7",
+      "expected_sha256": "89ab1defb1b34712bdd0c9f84a756178e809612720733ed7b3a5cc47420689d7",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_3.pkl",
+      "sha256": "4a3f63f1fe361a354cb5f646349522b87482f29baadacf2d20441d5c52c5282a",
+      "expected_sha256": "4a3f63f1fe361a354cb5f646349522b87482f29baadacf2d20441d5c52c5282a",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_4.pkl",
+      "sha256": "4a4469fc00dc4c90b028866a9d268fd19429c6a3f298c70838571e90db248f18",
+      "expected_sha256": "4a4469fc00dc4c90b028866a9d268fd19429c6a3f298c70838571e90db248f18",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_5.pkl",
+      "sha256": "017fd2e6808f43b9cddb61ac115c8d899f6fcdd3801338c6f76b1b30c3c3dbfd",
+      "expected_sha256": "017fd2e6808f43b9cddb61ac115c8d899f6fcdd3801338c6f76b1b30c3c3dbfd",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_6.pkl",
+      "sha256": "055e8c8715ce4e71e9855e348ff1816fb7630a4d10117d8e4c11684770d64240",
+      "expected_sha256": "055e8c8715ce4e71e9855e348ff1816fb7630a4d10117d8e4c11684770d64240",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_7.pkl",
+      "sha256": "35ba5622e6c8f6c24b7efee1dbb31a78468b3106a7e4a8e3bfa2761f326b51dc",
+      "expected_sha256": "35ba5622e6c8f6c24b7efee1dbb31a78468b3106a7e4a8e3bfa2761f326b51dc",
+      "size_bytes": 370771
+    },
+    {
+      "model": "beats_blstm",
+      "path": "/home/worzpro/.cache/madmom_infer/models/beats/2015/beats_blstm_8.pkl",
+      "sha256": "fc25b6890baaeecd2304e18078ee1ce6a0014a69fdba95590a4ebee6cd847f64",
+      "expected_sha256": "fc25b6890baaeecd2304e18078ee1ce6a0014a69fdba95590a4ebee6cd847f64",
+      "size_bytes": 370771
+    },
+    {
+      "model": "downbeats_bgru_rhythmic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_rhythmic_0.pkl",
+      "sha256": "50e7bcb8b6d5be58c35463caca79b624552469b23f94f353a97e319b38a3ee33",
+      "expected_sha256": "50e7bcb8b6d5be58c35463caca79b624552469b23f94f353a97e319b38a3ee33",
+      "size_bytes": 481061
+    },
+    {
+      "model": "downbeats_bgru_rhythmic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_rhythmic_1.pkl",
+      "sha256": "78f82313bec5f129bd9eed03a13718d6e81b5b6587c4bbdd7e5b4c4616e18436",
+      "expected_sha256": "78f82313bec5f129bd9eed03a13718d6e81b5b6587c4bbdd7e5b4c4616e18436",
+      "size_bytes": 481288
+    },
+    {
+      "model": "downbeats_bgru_rhythmic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_rhythmic_2.pkl",
+      "sha256": "d959a9478dd08ba3543c45df1ff89a80e8319d4c353f4e591ea93d52d317ff09",
+      "expected_sha256": "d959a9478dd08ba3543c45df1ff89a80e8319d4c353f4e591ea93d52d317ff09",
+      "size_bytes": 482099
+    },
+    {
+      "model": "downbeats_bgru_rhythmic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_rhythmic_3.pkl",
+      "sha256": "81089b0d9cfed8b21ffdb6584cac5f055ed97372612d6a0d4eb503494842763f",
+      "expected_sha256": "81089b0d9cfed8b21ffdb6584cac5f055ed97372612d6a0d4eb503494842763f",
+      "size_bytes": 480690
+    },
+    {
+      "model": "downbeats_bgru_rhythmic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_rhythmic_4.pkl",
+      "sha256": "c3ea8025bbfc3f7660aea1c92b901c7f35b71c64d5c57a8485fd9011409f6a39",
+      "expected_sha256": "c3ea8025bbfc3f7660aea1c92b901c7f35b71c64d5c57a8485fd9011409f6a39",
+      "size_bytes": 480301
+    },
+    {
+      "model": "downbeats_bgru_rhythmic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_rhythmic_5.pkl",
+      "sha256": "452708ef3c3a38523c259eaacc94dca84fb444e7a2553ee4a93fce20ef9397bb",
+      "expected_sha256": "452708ef3c3a38523c259eaacc94dca84fb444e7a2553ee4a93fce20ef9397bb",
+      "size_bytes": 480707
+    },
+    {
+      "model": "downbeats_bgru_harmonic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_harmonic_0.pkl",
+      "sha256": "8d677435269025d71f1beb85c11e9c130eacb1fdbeca45d054969299fd18eea9",
+      "expected_sha256": "8d677435269025d71f1beb85c11e9c130eacb1fdbeca45d054969299fd18eea9",
+      "size_bytes": 216414
+    },
+    {
+      "model": "downbeats_bgru_harmonic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_harmonic_1.pkl",
+      "sha256": "f8797e7d8ce9d064714f3b9b4ccdc03413e5c91b25d6a275024efea72d8aef01",
+      "expected_sha256": "f8797e7d8ce9d064714f3b9b4ccdc03413e5c91b25d6a275024efea72d8aef01",
+      "size_bytes": 216779
+    },
+    {
+      "model": "downbeats_bgru_harmonic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_harmonic_2.pkl",
+      "sha256": "a29d2acbffe75485e6476c63df461f90640bb9de6fd534b61a6bd8f938db46ee",
+      "expected_sha256": "a29d2acbffe75485e6476c63df461f90640bb9de6fd534b61a6bd8f938db46ee",
+      "size_bytes": 216540
+    },
+    {
+      "model": "downbeats_bgru_harmonic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_harmonic_3.pkl",
+      "sha256": "649ccc0a015020b74c5b437789926082bbbea7f9fe1950125b5e5d094b3d6d8f",
+      "expected_sha256": "649ccc0a015020b74c5b437789926082bbbea7f9fe1950125b5e5d094b3d6d8f",
+      "size_bytes": 216693
+    },
+    {
+      "model": "downbeats_bgru_harmonic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_harmonic_4.pkl",
+      "sha256": "28ec3216a4368071eae0c2311bab138fca0b0dbca6791441b7ba290f34c29217",
+      "expected_sha256": "28ec3216a4368071eae0c2311bab138fca0b0dbca6791441b7ba290f34c29217",
+      "size_bytes": 216494
+    },
+    {
+      "model": "downbeats_bgru_harmonic",
+      "path": "/home/worzpro/.cache/madmom_infer/models/downbeats/2016/downbeats_bgru_harmonic_5.pkl",
+      "sha256": "82f71f78943399af650fccee59a9118ba64784e22fac4446ae820c5ec96d6933",
+      "expected_sha256": "82f71f78943399af650fccee59a9118ba64784e22fac4446ae820c5ec96d6933",
+      "size_bytes": 216835
+    },
+    {
+      "model": "chroma_dnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/chroma/2016/chroma_dnn.pkl",
+      "sha256": "d91aff59113ec6b85de9c9b1aafb065ed0c756072284cebc61564237e901ca94",
+      "expected_sha256": "d91aff59113ec6b85de9c9b1aafb065ed0c756072284cebc61564237e901ca94",
+      "size_bytes": 2153203
+    },
+    {
+      "model": "chords_dccrf",
+      "path": "/home/worzpro/.cache/madmom_infer/models/chords/2016/chords_dccrf.pkl",
+      "sha256": "64e72027c989d6db8ecaa2f097592d3124b94f0362bde225d0c686a8a68d8d03",
+      "expected_sha256": "64e72027c989d6db8ecaa2f097592d3124b94f0362bde225d0c686a8a68d8d03",
+      "size_bytes": 4381
+    },
+    {
+      "model": "chords_cnn_feat",
+      "path": "/home/worzpro/.cache/madmom_infer/models/chords/2016/chords_cnnfeat.pkl",
+      "sha256": "59ac731a514880d7ec22ed9ee33935fc1683d2a03d8a7b4b81d26a3da944ce7d",
+      "expected_sha256": "59ac731a514880d7ec22ed9ee33935fc1683d2a03d8a7b4b81d26a3da944ce7d",
+      "size_bytes": 3880804
+    },
+    {
+      "model": "chords_cfcrf",
+      "path": "/home/worzpro/.cache/madmom_infer/models/chords/2016/chords_cnncrf.pkl",
+      "sha256": "4b8a63b4bb5bea076cf1babc76d5cb0a3618e6125d9a3a998f441d61308676af",
+      "expected_sha256": "4b8a63b4bb5bea076cf1babc76d5cb0a3618e6125d9a3a998f441d61308676af",
+      "size_bytes": 15981
+    },
+    {
+      "model": "notes_brnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/notes/2013/notes_brnn.pkl",
+      "sha256": "963cc5b21877d03a0a77636080fa62d6b66d7521ae0c90a6ad9f2f1923ac36ff",
+      "expected_sha256": "963cc5b21877d03a0a77636080fa62d6b66d7521ae0c90a6ad9f2f1923ac36ff",
+      "size_bytes": 838832
+    },
+    {
+      "model": "notes_cnn",
+      "path": "/home/worzpro/.cache/madmom_infer/models/notes/2019/notes_cnn.pkl",
+      "sha256": "48ac7581cf5bb7d205d47fdb5b819a163e23250c22de3de5287a78dce9581f5d",
+      "expected_sha256": "48ac7581cf5bb7d205d47fdb5b819a163e23250c22de3de5287a78dce9581f5d",
+      "size_bytes": 1976634
+    },
+    {
+      "model": "patterns_ballroom",
+      "path": "/home/worzpro/.cache/madmom_infer/models/patterns/2013/ballroom_pattern_3_4.pkl",
+      "sha256": "e4955a6b878be8226e5db860a2d1d3cd62db15c58f54dabff14f7e4564b3d9cb",
+      "expected_sha256": "e4955a6b878be8226e5db860a2d1d3cd62db15c58f54dabff14f7e4564b3d9cb",
+      "size_bytes": 13277
+    },
+    {
+      "model": "patterns_ballroom",
+      "path": "/home/worzpro/.cache/madmom_infer/models/patterns/2013/ballroom_pattern_4_4.pkl",
+      "sha256": "d16b5455f610bf5e68da48aef04a3882305e292a825a51c6f5d5a162c1f2ee28",
+      "expected_sha256": "d16b5455f610bf5e68da48aef04a3882305e292a825a51c6f5d5a162c1f2ee28",
+      "size_bytes": 17821
+    }
+  ],
+  "checkpoint_count": 62,
+  "runtime": {
+    "python": "3.11.13 (main, Jul  8 2025, 20:59:57) [Clang 20.1.4 ]",
+    "executable": "/home/worzpro/Desktop/dev/openmirlab/madmom-infer/.venv/bin/python",
+    "torch": "2.13.0+cu130",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "madmom_infer": "0.3.0",
+    "torch_config": "PyTorch built with:\n  - GCC 13.3\n  - C++ Version: 202002\n  - Intel(R) oneAPI Math Kernel Library Version 2024.2-Product Build 20240605 for Intel(R) 64 architecture applications\n  - Intel(R) MKL-DNN v3.12.0 (Git Hash 80afa71049cd69a3df32adcccb623b12cd7baa22)\n  - OpenMP 201511 (a.k.a. OpenMP 4.5)\n  - LAPACK is enabled (usually provided by MKL)\n  - NNPACK is enabled\n  - CPU capability usage: AVX2\n  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, COMMIT_SHA=cf30153c4c131c8164ee7798e5022d810682e2cb, CUDA_FLAGS= -DLIBCUDACXX_ENABLE_SIMPLIFIED_COMPLEX_OPERATIONS -Xfatbin -compress-all -DONNX_NAMESPACE=onnx_torch -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_100,code=sm_100 -gencode arch=compute_120,code=sm_120 -Xcudafe --diag_suppress=cc_clobber_ignored,--diag_suppress=field_without_dll_interface,--diag_suppress=base_class_has_different_dll_interface,--diag_suppress=dll_interface_conflict_none_assumed,--diag_suppress=dll_interface_conflict_dllexport_assumed,--diag_suppress=bad_friend_decl --expt-relaxed-constexpr --expt-extended-lambda -Xfatbin -compress-all --threads 2 -compress-mode=size -Wno-deprecated-gpu-targets --expt-extended-lambda -DCUB_WRAPPED_NAMESPACE=at_cuda_detail -DDISABLE_CUSPARSE_DEPRECATED -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -DC10_NODEPRECATED, CUDA_VERSION=13.0, CUDNN_VERSION=9.20.0, CXX_COMPILER=/opt/rh/gcc-toolset-13/root/usr/bin/c++, CXX_FLAGS= -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DHAS_CUPTI -DUSE_FBGEMM -DUSE_MSLK -DUSE_PYTORCH_QNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -DC10_NODEPRECATED -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-unknown-pragmas -Wno-unused-parameter -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wsuggest-override -Wno-psabi -Wno-error=old-style-cast -faligned-new -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-dangling-reference -Wno-error=dangling-reference -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, TORCH_VERSION=2.13.0, USE_CUDA=1, USE_CUDNN=ON, USE_CUSPARSELT=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, USE_XCCL=OFF, USE_XPU=OFF, \n",
+    "numpy_config": "{\n  \"Compilers\": {\n    \"c\": {\n      \"name\": \"gcc\",\n      \"linker\": \"ld.bfd\",\n      \"version\": \"14.2.1\",\n      \"commands\": \"cc\"\n    },\n    \"cython\": {\n      \"name\": \"cython\",\n      \"linker\": \"cython\",\n      \"version\": \"3.2.4\",\n      \"commands\": \"cython\"\n    },\n    \"c++\": {\n      \"name\": \"gcc\",\n      \"linker\": \"ld.bfd\",\n      \"version\": \"14.2.1\",\n      \"commands\": \"c++\"\n    }\n  },\n  \"Machine Information\": {\n    \"host\": {\n      \"cpu\": \"x86_64\",\n      \"family\": \"x86_64\",\n      \"endian\": \"little\",\n      \"system\": \"linux\"\n    },\n    \"build\": {\n      \"cpu\": \"x86_64\",\n      \"family\": \"x86_64\",\n      \"endian\": \"little\",\n      \"system\": \"linux\"\n    }\n  },\n  \"Build Dependencies\": {\n    \"blas\": {\n      \"name\": \"scipy-openblas\",\n      \"found\": true,\n      \"version\": \"0.3.31.188.0\",\n      \"detection method\": \"pkgconfig\",\n      \"include directory\": \"/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include\",\n      \"lib directory\": \"/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib\",\n      \"openblas configuration\": \"OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64\",\n      \"pc file directory\": \"/project/.openblas\"\n    },\n    \"lapack\": {\n      \"name\": \"scipy-openblas\",\n      \"found\": true,\n      \"version\": \"0.3.31.188.0\",\n      \"detection method\": \"pkgconfig\",\n      \"include directory\": \"/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include\",\n      \"lib directory\": \"/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib\",\n      \"openblas configuration\": \"OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64\",\n      \"pc file directory\": \"/project/.openblas\"\n    }\n  },\n  \"Python Information\": {\n    \"path\": \"/tmp/build-env-gjolnpt6/bin/python\",\n    \"version\": \"3.11\"\n  },\n  \"SIMD Extensions\": {\n    \"baseline\": [\n      \"X86_V2\"\n    ],\n    \"found\": [\n      \"X86_V3\"\n    ],\n    \"not found\": [\n      \"X86_V4\",\n      \"AVX512_ICL\",\n      \"AVX512_SPR\"\n    ]\n  }\n}\n",
+    "torch_threads": 4,
+    "torch_interop_threads": 14,
+    "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           46 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  20\nOn-line CPU(s) list:                     0-19\nVendor ID:                               GenuineIntel\nModel name:                              13th Gen Intel(R) Core(TM) i5-13600K\nCPU family:                              6\nModel:                                   183\nThread(s) per core:                      2\nCore(s) per socket:                      14\nSocket(s):                               1\nStepping:                                1\nCPU(s) scaling MHz:                      89%\nCPU max MHz:                             5100.0000\nCPU min MHz:                             800.0000\nBogoMIPS:                                6988.80\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb intel_pt sha_ni xsaveopt xsavec xgetbv1 xsaves split_lock_detect user_shstk avx_vnni dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req hfi vnmi umip pku ospke waitpkg gfni vaes vpclmulqdq rdpid movdiri movdir64b fsrm md_clear serialize pconfig arch_lbr ibt flush_l1d arch_capabilities\nVirtualization:                          VT-x\nL1d cache:                               544 KiB (14 instances)\nL1i cache:                               704 KiB (14 instances)\nL2 cache:                                20 MiB (8 instances)\nL3 cache:                                24 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-19\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Mitigation; Clear Register File\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+    "platform": "Linux-7.0.0-28-generic-x86_64-with-glibc2.39",
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "OMP_NUM_THREADS": "4",
+      "OPENBLAS_NUM_THREADS": "4"
+    },
+    "cuda_available": false,
+    "seed": 1234
+  },
+  "network": {
+    "urllib_urlopen_and_urlretrieve_blocked": true,
+    "download_attempts": []
+  },
+  "first": {
+    "common_beats__music": {
+      "shape": [
+        281
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "277f4f761c00601b56991fac657fa44fe4a4bba5ca540833443b9b77320d3b40",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.0623568575588575,
+      "peak": 0.2992560863494873,
+      "min": 0.0023515773937106133,
+      "max": 0.2992560863494873,
+      "std": 0.05272782039508506,
+      "activation_stats": {
+        "shape": [
+          281
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "277f4f761c00601b56991fac657fa44fe4a4bba5ca540833443b9b77320d3b40",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.0623568575588575,
+        "peak": 0.2992560863494873,
+        "min": 0.0023515773937106133,
+        "max": 0.2992560863494873,
+        "std": 0.05272782039508506
+      },
+      "elapsed_seconds": 0.1334986388683319,
+      "rms_peak_scope": "complete result"
+    },
+    "common_beats__silence": {
+      "shape": [
+        281
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "0dd68ea2d954d627cf24b064b13cbf023c0facf2df892682b6f97ee617d17a4b",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.0020360701112884377,
+      "peak": 0.023870760574936867,
+      "min": 0.0005672416882589459,
+      "max": 0.023870760574936867,
+      "std": 0.0015360207455579619,
+      "activation_stats": {
+        "shape": [
+          281
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "0dd68ea2d954d627cf24b064b13cbf023c0facf2df892682b6f97ee617d17a4b",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.0020360701112884377,
+        "peak": 0.023870760574936867,
+        "min": 0.0005672416882589459,
+        "max": 0.023870760574936867,
+        "std": 0.0015360207455579619
+      },
+      "elapsed_seconds": 0.028384344652295113,
+      "rms_peak_scope": "complete result"
+    },
+    "bar__music": {
+      "shape": [
+        6,
+        2
+      ],
+      "dtype": "float64",
+      "sha256_raw_c_order": "23dc31490e3be9600c9339cd959eee40c321189a8be03ec3da58645a4803d6c2",
+      "nan_count": 1,
+      "inf_count": 0,
+      "rms": 0.2533928693499486,
+      "peak": 0.3328513503074646,
+      "min": 0.15804755687713623,
+      "max": 2.75,
+      "std": 0.8885826793906867,
+      "activation_stats": {
+        "shape": [
+          5
+        ],
+        "dtype": "float64",
+        "sha256_raw_c_order": "efa2bb7077c9b55ca3a9de3d50c54eb45dd6cfecbc6abb95c19f8c6f1f6bc4d3",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.2533928693499486,
+        "peak": 0.3328513503074646,
+        "min": 0.15804755687713623,
+        "max": 0.3328513503074646,
+        "std": 0.06215128642320746
+      },
+      "elapsed_seconds": 0.1680514570325613,
+      "rms_peak_scope": "result[:-1, 1]; timestamps and final sentinel NaN excluded"
+    },
+    "bar__silence": {
+      "shape": [
+        6,
+        2
+      ],
+      "dtype": "float64",
+      "sha256_raw_c_order": "baf4b1a5ed4b4b0e2a97a91206a4e989d704b61473f1c111ace8df8b63f0d7fa",
+      "nan_count": 1,
+      "inf_count": 0,
+      "rms": 0.26686579804063826,
+      "peak": 0.35062170028686523,
+      "min": 0.22479750216007233,
+      "max": 2.75,
+      "std": 0.882088572145206,
+      "activation_stats": {
+        "shape": [
+          5
+        ],
+        "dtype": "float64",
+        "sha256_raw_c_order": "35ea17ba9a794356c51a1e379d1464bae22fff72c4b42bb24730a4318434a2b4",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.26686579804063826,
+        "peak": 0.35062170028686523,
+        "min": 0.22479750216007233,
+        "max": 0.35062170028686523,
+        "std": 0.04553844939480608
+      },
+      "elapsed_seconds": 0.16024013701826334,
+      "rms_peak_scope": "result[:-1, 1]; timestamps and final sentinel NaN excluded"
+    },
+    "direct_key__music": {
+      "shape": [
+        1,
+        24
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "b6fe379478845d9bd53ae6195738559aa7493d3782a1babb3451a8c62f4b3c5c",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.04523156544324333,
+      "peak": 0.0954582467675209,
+      "min": 0.021376989781856537,
+      "max": 0.0954582467675209,
+      "std": 0.017600664798106163,
+      "activation_stats": {
+        "shape": [
+          1,
+          24
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "b6fe379478845d9bd53ae6195738559aa7493d3782a1babb3451a8c62f4b3c5c",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.04523156544324333,
+        "peak": 0.0954582467675209,
+        "min": 0.021376989781856537,
+        "max": 0.0954582467675209,
+        "std": 0.017600664798106163
+      },
+      "elapsed_seconds": 0.09621688164770603,
+      "rms_peak_scope": "complete result"
+    },
+    "direct_key__silence": {
+      "shape": [
+        1,
+        24
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "40e3a53760547902a84fd4e340541ab3599726b16739f06f99e92befef5ab1da",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.04351913253141175,
+      "peak": 0.08316399902105331,
+      "min": 0.027925018221139908,
+      "max": 0.08316399902105331,
+      "std": 0.012561987876517834,
+      "activation_stats": {
+        "shape": [
+          1,
+          24
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "40e3a53760547902a84fd4e340541ab3599726b16739f06f99e92befef5ab1da",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.04351913253141175,
+        "peak": 0.08316399902105331,
+        "min": 0.027925018221139908,
+        "max": 0.08316399902105331,
+        "std": 0.012561987876517834
+      },
+      "elapsed_seconds": 0.0016322657465934753,
+      "rms_peak_scope": "complete result"
+    }
+  },
+  "second": {
+    "common_beats__music": {
+      "shape": [
+        281
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "277f4f761c00601b56991fac657fa44fe4a4bba5ca540833443b9b77320d3b40",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.0623568575588575,
+      "peak": 0.2992560863494873,
+      "min": 0.0023515773937106133,
+      "max": 0.2992560863494873,
+      "std": 0.05272782039508506,
+      "activation_stats": {
+        "shape": [
+          281
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "277f4f761c00601b56991fac657fa44fe4a4bba5ca540833443b9b77320d3b40",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.0623568575588575,
+        "peak": 0.2992560863494873,
+        "min": 0.0023515773937106133,
+        "max": 0.2992560863494873,
+        "std": 0.05272782039508506
+      },
+      "elapsed_seconds": 0.026311518624424934,
+      "rms_peak_scope": "complete result"
+    },
+    "common_beats__silence": {
+      "shape": [
+        281
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "0dd68ea2d954d627cf24b064b13cbf023c0facf2df892682b6f97ee617d17a4b",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.0020360701112884377,
+      "peak": 0.023870760574936867,
+      "min": 0.0005672416882589459,
+      "max": 0.023870760574936867,
+      "std": 0.0015360207455579619,
+      "activation_stats": {
+        "shape": [
+          281
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "0dd68ea2d954d627cf24b064b13cbf023c0facf2df892682b6f97ee617d17a4b",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.0020360701112884377,
+        "peak": 0.023870760574936867,
+        "min": 0.0005672416882589459,
+        "max": 0.023870760574936867,
+        "std": 0.0015360207455579619
+      },
+      "elapsed_seconds": 0.026016710326075554,
+      "rms_peak_scope": "complete result"
+    },
+    "bar__music": {
+      "shape": [
+        6,
+        2
+      ],
+      "dtype": "float64",
+      "sha256_raw_c_order": "23dc31490e3be9600c9339cd959eee40c321189a8be03ec3da58645a4803d6c2",
+      "nan_count": 1,
+      "inf_count": 0,
+      "rms": 0.2533928693499486,
+      "peak": 0.3328513503074646,
+      "min": 0.15804755687713623,
+      "max": 2.75,
+      "std": 0.8885826793906867,
+      "activation_stats": {
+        "shape": [
+          5
+        ],
+        "dtype": "float64",
+        "sha256_raw_c_order": "efa2bb7077c9b55ca3a9de3d50c54eb45dd6cfecbc6abb95c19f8c6f1f6bc4d3",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.2533928693499486,
+        "peak": 0.3328513503074646,
+        "min": 0.15804755687713623,
+        "max": 0.3328513503074646,
+        "std": 0.06215128642320746
+      },
+      "elapsed_seconds": 0.15050440933555365,
+      "rms_peak_scope": "result[:-1, 1]; timestamps and final sentinel NaN excluded"
+    },
+    "bar__silence": {
+      "shape": [
+        6,
+        2
+      ],
+      "dtype": "float64",
+      "sha256_raw_c_order": "baf4b1a5ed4b4b0e2a97a91206a4e989d704b61473f1c111ace8df8b63f0d7fa",
+      "nan_count": 1,
+      "inf_count": 0,
+      "rms": 0.26686579804063826,
+      "peak": 0.35062170028686523,
+      "min": 0.22479750216007233,
+      "max": 2.75,
+      "std": 0.882088572145206,
+      "activation_stats": {
+        "shape": [
+          5
+        ],
+        "dtype": "float64",
+        "sha256_raw_c_order": "35ea17ba9a794356c51a1e379d1464bae22fff72c4b42bb24730a4318434a2b4",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.26686579804063826,
+        "peak": 0.35062170028686523,
+        "min": 0.22479750216007233,
+        "max": 0.35062170028686523,
+        "std": 0.04553844939480608
+      },
+      "elapsed_seconds": 0.16975570376962423,
+      "rms_peak_scope": "result[:-1, 1]; timestamps and final sentinel NaN excluded"
+    },
+    "direct_key__music": {
+      "shape": [
+        1,
+        24
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "b6fe379478845d9bd53ae6195738559aa7493d3782a1babb3451a8c62f4b3c5c",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.04523156544324333,
+      "peak": 0.0954582467675209,
+      "min": 0.021376989781856537,
+      "max": 0.0954582467675209,
+      "std": 0.017600664798106163,
+      "activation_stats": {
+        "shape": [
+          1,
+          24
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "b6fe379478845d9bd53ae6195738559aa7493d3782a1babb3451a8c62f4b3c5c",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.04523156544324333,
+        "peak": 0.0954582467675209,
+        "min": 0.021376989781856537,
+        "max": 0.0954582467675209,
+        "std": 0.017600664798106163
+      },
+      "elapsed_seconds": 0.0018708454445004463,
+      "rms_peak_scope": "complete result"
+    },
+    "direct_key__silence": {
+      "shape": [
+        1,
+        24
+      ],
+      "dtype": "float32",
+      "sha256_raw_c_order": "40e3a53760547902a84fd4e340541ab3599726b16739f06f99e92befef5ab1da",
+      "nan_count": 0,
+      "inf_count": 0,
+      "rms": 0.04351913253141175,
+      "peak": 0.08316399902105331,
+      "min": 0.027925018221139908,
+      "max": 0.08316399902105331,
+      "std": 0.012561987876517834,
+      "activation_stats": {
+        "shape": [
+          1,
+          24
+        ],
+        "dtype": "float32",
+        "sha256_raw_c_order": "40e3a53760547902a84fd4e340541ab3599726b16739f06f99e92befef5ab1da",
+        "nan_count": 0,
+        "inf_count": 0,
+        "rms": 0.04351913253141175,
+        "peak": 0.08316399902105331,
+        "min": 0.027925018221139908,
+        "max": 0.08316399902105331,
+        "std": 0.012561987876517834
+      },
+      "elapsed_seconds": 0.0016452707350254059,
+      "rms_peak_scope": "complete result"
+    }
+  },
+  "repeat_array_equal_equal_nan": {
+    "common_beats__music": true,
+    "common_beats__silence": true,
+    "bar__music": true,
+    "bar__silence": true,
+    "direct_key__music": true,
+    "direct_key__silence": true
+  },
+  "artifact_sha256": {
+    "outputs.npz": "6d7017f4ecb1fd99b7841353aacd2e4766837cfd6789ffa6f946af712cd45d66",
+    "repeat_outputs.npz": "6d7017f4ecb1fd99b7841353aacd2e4766837cfd6789ffa6f946af712cd45d66",
+    "inputs.npz": "521cb0f18bcc2f1d9ebdfe090d5559bd70871ef935719b8ef95bbcfb0222dde9"
+  }
+}
