@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Torch-backed processors and the direct pipeline adapter now accept explicit
+  `device="auto"`, selecting CUDA when available and CPU otherwise. Device
+  validation rejects unavailable CUDA, invalid indices, and unsupported
+  devices before model lookup, including MPS supplied as `torch.device`.
+  Explicit adapter devices move the model and its inputs together; `None`
+  retains existing placement and `MadmomAnalyzer` retains lazy construction.
+  Automatic and bare CUDA selections retain their construction-time index
+  when a caller subsequently changes Torch's current CUDA device.
+  CPU music/silence outputs are unchanged against the committed pre-repair
+  current-port baseline; this does not claim new GPU numerical verification.
+
 ### Added
 
 - Opt-in `fast_viterbi=True` on the exact CPU HMM decoder,

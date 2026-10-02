@@ -8,6 +8,9 @@ Chained together (`RNNDownBeatProcessor()(wav_path)` ->
 `DBNDownBeatTrackingProcessor(...)`) these are the full audio-in,
 beat/downbeat-times-out Phase-2 acceptance target.
 
+Torch device policy, including RNNBarProcessor's separate GRU path, is owned
+by backends.resolve_torch_device; this module retains the feature algorithms.
+
 Phase-1 ported only `DBNDownBeatTrackingProcessor` (plus the one helper it
 needs, `threshold_activations` from madmom.features.beats) -- the RNN
 activation-function classes needed the NN runtime (madmom.ml.nn), out of
@@ -104,7 +107,7 @@ pre-processing cascade, incl. Wave 4f's MultiBandSpectrogram), madmom_infer/
 audio/chroma.py (CLPChromaProcessor, RNNBarProcessor's harmonic-feature
 branch, Wave 4d), madmom_infer/ml/nn/__init__.py (NeuralNetworkEnsemble),
 madmom_infer/models.py (DOWNBEATS_BLSTM/DOWNBEATS_BGRU/PATTERNS_BALLROOM
-download), madmom_infer/backends.py (validate_backend,
+download), madmom_infer/backends.py (validate_backend, resolve_torch_device,
 torch_pipeline_processor -- optional `backend="torch"` on
 RNNDownBeatProcessor/RNNBarProcessor, lazily imports madmom_infer.torch);
 read by: madmom_infer/features/tempo.py does NOT read this file
@@ -580,13 +583,13 @@ class RNNBarProcessor(Processor):
         from madmom_infer.audio.chroma import CLPChromaProcessor
         from madmom_infer.models import downbeats_bgru
 
-        from ..backends import validate_backend, validate_torch_device
+        from ..backends import resolve_torch_device, validate_backend
 
         validate_backend(backend)
         if backend == "numpy" and device is not None:
             raise ValueError("device is only used with backend='torch'")
         if backend == "torch":
-            validate_torch_device(device)
+            device = resolve_torch_device(device)
 
         sig = SignalProcessor(num_channels=1, sample_rate=44100)
         frames = FramedSignalProcessor(frame_size=2048, fps=fps)

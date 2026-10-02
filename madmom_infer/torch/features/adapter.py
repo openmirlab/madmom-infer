@@ -2,9 +2,8 @@
 wraps one of `pipelines.py`'s torch `nn.Module`s so it can be dropped in
 wherever a numpy processor is expected (a path, an already-loaded
 `madmom_infer.audio.signal.Signal`, or a raw ndarray in, a numpy array
-out) -- this is the numpy-facing boundary of the torch backend; wiring
-`backend="torch"` into the numpy processors themselves is a later step,
-not this one.
+out). This adapter places the module and inputs together for explicit
+devices; backends.resolve_torch_device owns CPU/CUDA selection and validation.
 
 **Int-PCM scaling convention (load-bearing, read before editing).** The
 numpy backend never rescales an integer-PCM `Signal` -- it keeps int16
@@ -34,7 +33,7 @@ case measured. Set the flags yourself before running on CUDA if you need
 the tighter tolerance (`tools/compare_torch_backend.py --allow-tf32`
 controls this for that tool specifically, default off).
 
-Reads: torch, numpy, madmom_infer.backends (validate_torch_device),
+Reads: torch, numpy, madmom_infer.backends (resolve_torch_device),
 madmom_infer.processors (Processor),
 madmom_infer.audio.signal (SignalProcessor, Signal); read by:
 madmom_infer/torch/features/__init__.py, madmom_infer/backends.py,
@@ -48,7 +47,7 @@ import numpy as np
 import torch
 
 from madmom_infer.audio.signal import Signal, SignalProcessor
-from madmom_infer.backends import validate_torch_device
+from madmom_infer.backends import resolve_torch_device
 from madmom_infer.processors import Processor
 
 
@@ -81,16 +80,19 @@ class TorchPipelineProcessor(Processor):
     I/O conversion and device placement, never model construction.
 
     `device=None` (default) runs on whatever device `module`'s own
-    parameters/buffers already live on (call `module.to(device)` first to
-    choose); `dtype` (default `torch.float32`) is the tensor precision fed
+    parameters/buffers already live on. An explicit device moves the module
+    and its inputs together; `"auto"` chooses CUDA when available, otherwise
+    CPU. `dtype` (default `torch.float32`) is the tensor precision fed
     into the module -- must match the dtype `module`'s own buffers were
     built with.
     """
 
     def __init__(self, module, device=None, dtype=torch.float32):
-        validate_torch_device(device)
+        device = resolve_torch_device(device)
+        if device is not None:
+            module = module.to(device)
         self.module = module.eval()
-        self.device = torch.device(device) if device is not None else _module_device(module)
+        self.device = device if device is not None else _module_device(module)
         self.dtype = dtype
         self._signal_processor = SignalProcessor(num_channels=1, sample_rate=44100)
 

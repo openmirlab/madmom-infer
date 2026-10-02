@@ -711,14 +711,22 @@ Every NN-backed processor (`RNNDownBeatProcessor`, `RNNBarProcessor`,
 `CNNChordFeatureProcessor`, `RNNPianoNoteProcessor`,
 `CNNPianoNoteProcessor`) and `MadmomAnalyzer` itself accept
 `backend="numpy"` (default, unchanged) or `backend="torch"` plus
-`device=`. The explicit device surface is CPU/CUDA (`None`, `"cpu"`,
-`"cuda"`, or `"cuda:*"`); Apple MPS (`"mps"`/`"mps:*"`) is out of scope
-and is rejected before torch device placement:
+`device=`. Use `"auto"` to select CUDA when available, otherwise CPU, or
+explicitly request `"cpu"`, `"cuda"`, or `"cuda:N"` (zero-based index).
+Equivalent `torch.device` objects are accepted. An unavailable CUDA device,
+invalid index, or unsupported device (including Apple MPS) raises `ValueError`
+before model lookup. Explicit CUDA never silently falls back to CPU.
+`device=None` keeps existing placement: normally CPU for newly built
+processors, or the supplied module's device for `TorchPipelineProcessor`.
+An explicit adapter device moves both its module and inputs together.
+Automatic and bare `"cuda"` choices retain the CUDA index selected at
+construction even if the caller later changes Torch's current device.
+`MadmomAnalyzer` remains lazy and resolves devices when it builds a processor:
 
 ```python
 from madmom_infer.features.beats import RNNBeatProcessor
 
-act = RNNBeatProcessor(backend="torch", device="cuda")("track.wav")
+act = RNNBeatProcessor(backend="torch", device="auto")("track.wav")
 ```
 
 ```python
@@ -811,6 +819,22 @@ tests/test_torch_pipelines.py tests/test_torch_backend.py -v` (NN forward
 pass, end-to-end pipelines, and `backend="torch"` on the numpy processors --
 needs downloaded weights). See CLAUDE.md for the full verification
 picture, including the reference-venv cross-BLAS proof.
+
+The committed CPU device-dispatch regression covers real music and exact
+silence through the beat processor, RNNBar, and direct key adapter. It records
+the original port's outputs, not upstream goldens, and preserves RNNBar's
+final NaN sentinel. Replay with cached weights and the recorded environment:
+
+```bash
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python tools/verify_device_baseline.py --device cpu
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python tools/verify_device_baseline.py --device auto
+```
+
+The corresponding offline tests skip explicitly on other CPU/build versions
+or missing cached weights; device-policy unit tests remain portable and need
+no weights. See [fixture provenance](tests/fixtures/device_dispatch/README.md).
 
 ---
 

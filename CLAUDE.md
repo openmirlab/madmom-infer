@@ -46,6 +46,20 @@ Internally, this file still tracks work by phase (matching test/script
 names like `tools/generate_phase2_fixtures.py`), since that's a stable way
 to refer to a specific chunk of already-shipped work:
 
+- **Explicit Torch device selection**: `backends.resolve_torch_device` owns
+  `"auto"` (CUDA if available, otherwise CPU), explicit CPU/CUDA strings and
+  `torch.device` objects, MPS rejection, and unavailable/out-of-range CUDA
+  errors before model lookup. Shared processors, RNNBar's separate GRU path,
+  and the direct adapter use it. Explicit adapter devices move module and
+  inputs together; auto/bare CUDA resolve to a fixed index so a later
+  `torch.cuda.set_device()` cannot redirect input placement. Keep `None`
+  placement and the analyzer's lazy forwarding;
+  core imports remain Torch/Numba-free. Original CPU outputs were committed
+  before repair in `tests/fixtures/device_dispatch`; exact music/silence
+  replay is guarded by recording build/CPU, and is current-port regression
+  evidence, not upstream golden accuracy. CUDA policy has mock coverage;
+  this repair's local verification does not establish real GPU parity.
+
 - **Opt-in fused CUDA LSTM inference** (complete, 2026-09-14):
   `fast_recurrent=True` retains cuBLAS recurrent projections and uses Triton
   to fuse the gate/peephole state update for eligible CUDA float32 no-grad
@@ -80,8 +94,9 @@ to refer to a specific chunk of already-shipped work:
   waveform-to-activation pipelines (`madmom_infer/torch/features/`), and
   `backend="torch", device=` on the ten NN processors + `MadmomAnalyzer`
   via `madmom_infer/backends.py`; decoders stay numpy. Explicit device
-  support is CPU/CUDA only; Apple MPS (`"mps"`/`"mps:*"`) is out of scope
-  and rejected before torch device placement. Acceptance = decoded results
+  support is CPU/CUDA only, with explicit `"auto"` selection; Apple MPS
+  strings and device objects are rejected before model lookup.
+  Acceptance = decoded results
   identical to the numpy backend on real music (CPU and CUDA), checked with
   `tools/compare_torch_backend.py`; speed via
   `tools/bench_torch_backend.py`. See `docs/blueprints/decisions.md`
@@ -1404,6 +1419,28 @@ opt-in boundary itself still holds -- both a torch-less venv (`import
 madmom_infer` works, `import madmom_infer.torch` raises a clear guarded
 `ImportError`) and the full non-network suite pass in both a torch-less and
 a torch-installed environment with identical non-torch test counts.
+
+## Device-dispatch verification
+
+Run portable device policy/import tests and the environment-guarded original
+CPU regression (no downloads; cached checkpoints required for the regression):
+
+```bash
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python -m pytest tests/test_torch_backend.py tests/test_backends_torch_free.py tests/test_device_baseline.py -q
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python tools/verify_device_baseline.py --device cpu
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python tools/verify_device_baseline.py --device auto
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python -m pytest -q -ra
+```
+
+Keep existing Torch-vs-NumPy tolerances in the network-marked tests; cached
+weights can satisfy them without downloading. Missing upstream reference
+venvs skip their separate cross-BLAS tests and do not prove upstream parity.
+The public `openmirlab-skills/plugins/mir/CLAUDE.md` Madmom entry was checked:
+it has no device-specific examples or claims requiring a simultaneous edit.
 
 ## Exact fast-Viterbi verification
 
