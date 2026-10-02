@@ -842,6 +842,18 @@ The corresponding offline tests skip explicitly on other CPU/build versions
 or missing cached weights; device-policy unit tests remain portable and need
 no weights. See [fixture provenance](tests/fixtures/device_dispatch/README.md).
 
+The same six music/silence cases were also checked on one RTX 4090: repaired
+`auto` and `cuda:0` outputs matched the original port's explicit-CUDA outputs
+exactly, with model placements verified as `cuda:0`. This is a single-GPU
+dispatch regression check, not full-model upstream accuracy verification.
+
+Two older floating goldens (GMM scores and framed SPL) require their separately
+verified reference environment: native math libraries and CPU dispatch can
+change the last bit. Portable analytic/discrete checks remain in every CI job;
+framed energy/RMS comparisons remain exact. The original NPZ files are unchanged.
+For strict replay without pytest, run `tests/_legacy_fixture_reference.py`
+with the recorded reference interpreter and four OpenMP/OpenBLAS threads.
+
 ---
 
 ## License

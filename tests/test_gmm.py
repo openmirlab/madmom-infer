@@ -13,6 +13,8 @@ Three independent things are verified here:
    unpickling needed. Both target pattern files use `covariance_type='full'`
    (confirmed empirically, see `madmom_infer/ml/gmm.py`'s module header),
    so this exercises `_log_multivariate_normal_density_full` specifically.
+   Floating goldens require the separately verified reference environment;
+   portable semantic checks below remain active on every build.
 2. **Unpickling correctness** (network): both `PATTERNS_BALLROOM` `.pkl`
    files, loaded via this project's own restricted `SafeUnpickler`, must
    structurally match real madmom's own bare `pickle.load` -- same
@@ -37,6 +39,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from tests._legacy_fixture_reference import assert_gmm_exact, gmm_cases, reference_mismatch
+
 from madmom_infer.ml.gmm import (
     GMM, log_multivariate_normal_density, logsumexp,
 )
@@ -57,44 +61,49 @@ def gmm_fixture():
     return np.load(FIXTURES_DIR / "gmm_scores.npz")
 
 
-def _iter_gmm_keys(fixture):
-    """Yield each `(pattern_idx, gmm_idx)` pair recorded in the fixture."""
-    seen = set()
-    for key in fixture.files:
-        if not key.startswith("pattern") or "_gmm" not in key:
-            continue
-        prefix = key.split("_")[0] + "_" + key.split("_")[1]
-        if prefix in seen:
-            continue
-        seen.add(prefix)
-        p_idx = int(prefix.split("_gmm")[0][len("pattern"):])
-        g_idx = int(prefix.split("_gmm")[1])
-        yield p_idx, g_idx
-
-
 # ---------------------------------------------------------------------------
 # 1. score/score_samples against real GMM parameters, offline
 # ---------------------------------------------------------------------------
 def test_gmm_score_matches_fixture_exact(gmm_fixture):
-    checked = 0
-    for p_idx, g_idx in _iter_gmm_keys(gmm_fixture):
-        key = f"pattern{p_idx}_gmm{g_idx}"
-        covariance_type = str(gmm_fixture[f"pattern{p_idx}_covariance_type"])
-        gmm = GMM(n_components=int(gmm_fixture[f"{key}_n_components"]),
-                 covariance_type=covariance_type)
-        gmm.means = gmm_fixture[f"{key}_means"]
-        gmm.covars = gmm_fixture[f"{key}_covars"]
-        gmm.weights = gmm_fixture[f"{key}_weights"]
+    reason = reference_mismatch()
+    if reason:
+        pytest.skip(reason)
+    assert_gmm_exact(gmm_fixture)
 
-        x = gmm_fixture[f"{key}_x"]
-        log_prob, responsibilities = gmm.score_samples(x)
-        np.testing.assert_array_equal(log_prob, gmm_fixture[f"{key}_log_prob"])
+
+def test_gmm_fixture_component_decisions_are_portable(gmm_fixture):
+    checked = 0
+    for key, gmm in gmm_cases(gmm_fixture):
+        log_prob, responsibilities = gmm.score_samples(gmm_fixture[key + "_x"])
+        assert np.isfinite(log_prob).all() and np.isfinite(responsibilities).all()
+        assert ((responsibilities >= 0) & (responsibilities <= 1)).all()
         np.testing.assert_array_equal(
-            responsibilities, gmm_fixture[f"{key}_responsibilities"])
-        # score() is score_samples()[0]
-        np.testing.assert_array_equal(gmm.score(x), gmm_fixture[f"{key}_log_prob"])
+            responsibilities.argmax(axis=1),
+            gmm_fixture[key + "_responsibilities"].argmax(axis=1))
         checked += 1
-    assert checked > 0
+    assert checked == 12
+
+
+def test_gmm_single_standard_normal_has_analytic_density():
+    gmm = GMM(n_components=1, covariance_type="full")
+    gmm.means = np.zeros((1, 1))
+    gmm.covars = np.ones((1, 1, 1))
+    gmm.weights = np.ones(1)
+    x = np.array([[0.], [1.], [-1.], [2.]])
+    log_prob, responsibilities = gmm.score_samples(x)
+    expected = -0.5 * (np.log(2 * np.pi) + np.array([0., 1., 1., 4.]))
+    np.testing.assert_array_equal(log_prob, expected)
+    np.testing.assert_array_equal(responsibilities, np.ones((4, 1)))
+
+
+def test_gmm_equal_gaussians_choose_nearest_mean_and_tie_at_midpoint():
+    gmm = GMM(n_components=2, covariance_type="full")
+    gmm.means = np.array([[-1.], [1.]])
+    gmm.covars = np.ones((2, 1, 1))
+    gmm.weights = np.array([0.5, 0.5])
+    _, responsibilities = gmm.score_samples(np.array([[-4.], [0.], [4.]]))
+    np.testing.assert_array_equal(responsibilities.argmax(axis=1), [0, 0, 1])
+    assert responsibilities[1, 0] == responsibilities[1, 1]
 
 
 def test_gmm_covariance_type_is_full_for_both_patterns(gmm_fixture):

@@ -18,7 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Automatic and bare CUDA selections retain their construction-time index
   when a caller subsequently changes Torch's current CUDA device.
   CPU music/silence outputs are unchanged against the committed pre-repair
-  current-port baseline; this does not claim new GPU numerical verification.
+  current-port baseline. On one RTX 4090, repaired `auto` and `cuda:0` also
+  match all six original explicit-CUDA outputs exactly, with verified model
+  placement. This checks device dispatch, not full-model upstream accuracy.
+
+- PR CI now guards legacy GMM/framed-SPL floating goldens against a separately
+  verified numerical environment, including native math libraries and CPU
+  dispatch. Original fixtures and exact assertions are preserved; portable
+  analytic/discrete tests and exact framed energy/RMS checks run across the
+  supported Python matrix. Production algorithms and tolerances are unchanged.
 
 ### Added
 
