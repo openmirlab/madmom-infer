@@ -301,13 +301,14 @@ def test_invalid_or_unavailable_device_fails_before_loading(entry, device, monke
             TorchPipelineProcessor(module, device=device)
 
 
-@pytest.mark.parametrize("device", ["cuda:2", torch.device("cuda:3")])
+@pytest.mark.parametrize("device", ["cuda:2", torch.device("cuda:3"), "cuda", "auto"])
 def test_cuda_index_validation_precedes_model_build(device, monkeypatch):
     from madmom_infer.backends import torch_pipeline_processor
     import madmom_infer.torch.features as features
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    monkeypatch.setattr(torch.cuda, "current_device", lambda: 2)
 
     def forbidden(*args, **kwargs):
         raise AssertionError("invalid CUDA index reached model construction")
@@ -319,13 +320,13 @@ def test_cuda_index_validation_precedes_model_build(device, monkeypatch):
 
 @pytest.mark.parametrize("entry", ["common", "bar", "adapter"])
 @pytest.mark.parametrize("requested,available,expected", [
-    ("auto", False, "cpu"), ("auto", True, "cuda"),
+    ("auto", False, "cpu"), ("auto", True, "cuda:0"),
     ("cpu", True, "cpu"), (torch.device("cpu"), True, "cpu"),
-    ("cuda", True, "cuda"), ("cuda:1", True, "cuda:1"),
+    ("cuda", True, "cuda:0"), ("cuda:1", True, "cuda:1"),
     (torch.device("cuda:1"), True, "cuda:1"),
 ])
 def test_device_dispatch_places_models_and_inputs_together(entry, requested, available, expected, monkeypatch):
-    """Fake placement checks requested devices without requiring a GPU."""
+    """Freeze paired placement even if the caller switches its current GPU."""
     from madmom_infer.audio.signal import Signal
     from madmom_infer.backends import torch_pipeline_processor
     from madmom_infer.features.downbeats import RNNBarProcessor
@@ -337,6 +338,8 @@ def test_device_dispatch_places_models_and_inputs_together(entry, requested, ava
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: available)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    current_device = [0]
+    monkeypatch.setattr(torch.cuda, "current_device", lambda: current_device[0])
     placements, tensor_devices = [], []
 
     class Module(torch.nn.Module):
@@ -365,6 +368,9 @@ def test_device_dispatch_places_models_and_inputs_together(entry, requested, ava
         processor = RNNBarProcessor(backend="torch", device=requested)
     else:
         processor = TorchPipelineProcessor(Module(), device=requested)
+    # A later torch.cuda.set_device(1) must not move inputs away from the
+    # model placed on GPU 0 when an auto/bare-CUDA processor was constructed.
+    current_device[0] = 1
     if entry == "bar":
         processor._run_nn(processor.perc_nn, np.ones((2, 3), dtype=np.float32))
         processor._run_nn(processor.harm_nn, np.ones((2, 3), dtype=np.float32))
