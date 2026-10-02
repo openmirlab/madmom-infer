@@ -232,7 +232,7 @@ def test_analyzer_device_with_numpy_backend_raises():
         MadmomAnalyzer(tasks=("beats",), backend="numpy", device="cpu")
 
 
-@pytest.mark.parametrize("device", ["mps", "mps:0"])
+@pytest.mark.parametrize("device", ["mps", "mps:0", torch.device("mps"), torch.device("mps:0")])
 def test_torch_pipeline_processor_rejects_mps_before_build(device, monkeypatch):
     from madmom_infer.backends import torch_pipeline_processor
     import madmom_infer.torch.features as torch_features
@@ -246,7 +246,7 @@ def test_torch_pipeline_processor_rejects_mps_before_build(device, monkeypatch):
         torch_pipeline_processor("beats", device=device)
 
 
-@pytest.mark.parametrize("device", ["mps", "mps:0"])
+@pytest.mark.parametrize("device", ["mps", "mps:0", torch.device("mps"), torch.device("mps:0")])
 def test_torch_pipeline_processor_adapter_rejects_mps(device):
     from madmom_infer.torch.features import TorchPipelineProcessor
 
@@ -254,7 +254,7 @@ def test_torch_pipeline_processor_adapter_rejects_mps(device):
         TorchPipelineProcessor(torch.nn.Identity(), device=device)
 
 
-@pytest.mark.parametrize("device", ["mps", "mps:0"])
+@pytest.mark.parametrize("device", ["mps", "mps:0", torch.device("mps"), torch.device("mps:0")])
 def test_rnn_bar_processor_rejects_mps_before_model_loading(device, monkeypatch):
     from madmom_infer.features.downbeats import RNNBarProcessor
     import madmom_infer.models as models
@@ -273,3 +273,134 @@ def test_model_file_override_with_torch_backend_raises():
 
     with pytest.raises(NotImplementedError):
         RNNBeatProcessor(backend="torch", nn_files=["not-a-real-file.pkl"])
+
+
+@pytest.mark.parametrize("entry", ["common", "bar", "adapter"])
+@pytest.mark.parametrize("device", ["cuda", "cuda:1", torch.device("cuda:0"), "garbage", "meta"])
+def test_invalid_or_unavailable_device_fails_before_loading(entry, device, monkeypatch):
+    from madmom_infer.backends import torch_pipeline_processor
+    from madmom_infer.features.downbeats import RNNBarProcessor
+    from madmom_infer.torch.features import TorchPipelineProcessor
+    import madmom_infer.models as models
+    import madmom_infer.torch.features as features
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("model construction or placement preceded device validation")
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(features, "build_pipeline", forbidden)
+    monkeypatch.setattr(models, "downbeats_bgru", forbidden)
+    module = torch.nn.Identity()
+    monkeypatch.setattr(module, "to", forbidden)
+    with pytest.raises(ValueError, match="device|CUDA|cuda"):
+        if entry == "common":
+            torch_pipeline_processor("beats", device=device)
+        elif entry == "bar":
+            RNNBarProcessor(backend="torch", device=device)
+        else:
+            TorchPipelineProcessor(module, device=device)
+
+
+@pytest.mark.parametrize("device", ["cuda:2", torch.device("cuda:3")])
+def test_cuda_index_validation_precedes_model_build(device, monkeypatch):
+    from madmom_infer.backends import torch_pipeline_processor
+    import madmom_infer.torch.features as features
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("invalid CUDA index reached model construction")
+
+    monkeypatch.setattr(features, "build_pipeline", forbidden)
+    with pytest.raises(ValueError, match="index|device"):
+        torch_pipeline_processor("beats", device=device)
+
+
+@pytest.mark.parametrize("entry", ["common", "bar", "adapter"])
+@pytest.mark.parametrize("requested,available,expected", [
+    ("auto", False, "cpu"), ("auto", True, "cuda"),
+    ("cpu", True, "cpu"), (torch.device("cpu"), True, "cpu"),
+    ("cuda", True, "cuda"), ("cuda:1", True, "cuda:1"),
+    (torch.device("cuda:1"), True, "cuda:1"),
+])
+def test_device_dispatch_places_models_and_inputs_together(entry, requested, available, expected, monkeypatch):
+    """Fake placement checks requested devices without requiring a GPU."""
+    from madmom_infer.audio.signal import Signal
+    from madmom_infer.backends import torch_pipeline_processor
+    from madmom_infer.features.downbeats import RNNBarProcessor
+    from madmom_infer.ml.nn import NeuralNetworkEnsemble
+    from madmom_infer.torch.features import TorchPipelineProcessor
+    import madmom_infer.models as models
+    import madmom_infer.torch.features as features
+    import madmom_infer.torch.ml.nn as nn
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: available)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    placements, tensor_devices = [], []
+
+    class Module(torch.nn.Module):
+        def to(self, device):
+            placements.append(str(device))
+            return self
+
+        def forward(self, tensor):
+            return tensor
+
+    monkeypatch.setattr(features, "build_pipeline", lambda *a, **k: Module())
+    monkeypatch.setattr(models, "downbeats_bgru", lambda: [[], []])
+    monkeypatch.setattr(NeuralNetworkEnsemble, "load", lambda *a, **k: object())
+    monkeypatch.setattr(nn, "to_torch", lambda value: Module())
+    original_as_tensor = torch.as_tensor
+
+    def as_tensor(data, **kwargs):
+        tensor_devices.append(str(kwargs.get("device")))
+        kwargs["device"] = "cpu"
+        return original_as_tensor(data, **kwargs)
+
+    monkeypatch.setattr(torch, "as_tensor", as_tensor)
+    if entry == "common":
+        processor = torch_pipeline_processor("beats", device=requested)
+    elif entry == "bar":
+        processor = RNNBarProcessor(backend="torch", device=requested)
+    else:
+        processor = TorchPipelineProcessor(Module(), device=requested)
+    if entry == "bar":
+        processor._run_nn(processor.perc_nn, np.ones((2, 3), dtype=np.float32))
+        processor._run_nn(processor.harm_nn, np.ones((2, 3), dtype=np.float32))
+        assert len(placements) == 2
+    else:
+        processor(Signal(np.ones(100, dtype=np.float32), sample_rate=44100))
+        assert placements
+    assert set(placements) == {expected}
+    assert tensor_devices and set(tensor_devices) == {expected}
+
+
+def test_adapter_none_preserves_existing_module_device():
+    from madmom_infer.torch.features import TorchPipelineProcessor
+
+    module = torch.nn.Linear(1, 1, device="meta")
+    processor = TorchPipelineProcessor(module, device=None)
+    assert processor.device == torch.device("meta")
+    assert processor.module.weight.device == torch.device("meta")
+
+
+def test_none_does_not_probe_cuda(monkeypatch):
+    from madmom_infer.backends import resolve_torch_device
+
+    def forbidden():
+        raise AssertionError("None must not select a new device")
+
+    monkeypatch.setattr(torch.cuda, "is_available", forbidden)
+    assert resolve_torch_device(None) is None
+
+
+def test_analyzer_keeps_device_selection_lazy(monkeypatch):
+    from madmom_infer.api import MadmomAnalyzer
+
+    def forbidden():
+        raise AssertionError("analyzer constructor must stay lazy")
+
+    monkeypatch.setattr(torch.cuda, "is_available", forbidden)
+    analyzer = MadmomAnalyzer(tasks=("beats",), backend="torch", device="auto")
+    assert analyzer.device == "auto"
