@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Torch-backed processors and the direct pipeline adapter now accept explicit
+  `device="auto"`, selecting CUDA when available and CPU otherwise. Device
+  validation rejects unavailable CUDA, invalid indices, and unsupported
+  devices before model lookup, including MPS supplied as `torch.device`.
+  Explicit adapter devices move the model and its inputs together; `None`
+  retains existing placement and `MadmomAnalyzer` retains lazy construction.
+  Automatic and bare CUDA selections retain their construction-time index
+  when a caller subsequently changes Torch's current CUDA device.
+  CPU music/silence outputs are unchanged against the committed pre-repair
+  current-port baseline. On one RTX 4090, repaired `auto` and `cuda:0` also
+  match all six original explicit-CUDA outputs exactly, with verified model
+  placement. This checks device dispatch, not full-model upstream accuracy.
+
+- PR CI now guards legacy GMM/framed-SPL floating goldens against a separately
+  verified numerical environment, including native math libraries and CPU
+  dispatch. Original fixtures and exact assertions are preserved; portable
+  analytic/discrete tests and exact framed energy/RMS checks run across the
+  supported Python matrix. Production algorithms and tolerances are unchanged.
+
 ### Added
 
 - Opt-in `fast_viterbi=True` on the exact CPU HMM decoder,

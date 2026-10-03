@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Python ${{ matrix.python-version }} / CPU Torch
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+    env:
+      CUDA_VISIBLE_DEVICES: ''
+      PYTHONDONTWRITEBYTECODE: '1'
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install CPU Torch, then project and test/build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.0.0' --index-url https://download.pytorch.org/whl/cpu
+          # No --upgrade here: the installed CPU wheel satisfies the extra.
+          python -m pip install '.[dev,torch]' build
+          python -c "import torch; assert torch.version.cuda is None, torch.__version__"
+      - name: Run offline suite, including device policy and optional-import tests
+        # pyproject.toml deselects all network-marked tests. Recorded CPU
+        # numerical fixtures skip on a different build or missing weights.
+        run: python -m pytest -q -ra
+      - name: Build wheel from sdist
+        run: python -m build
+      - name: Smoke-test installed wheel outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m pip install --no-deps --target "$RUNNER_TEMP/madmom-wheel" "$GITHUB_WORKSPACE"/dist/*.whl
+          PYTHONPATH="$RUNNER_TEMP/madmom-wheel" python - <<'PY'
+          import os
+          from pathlib import Path
+          import sys
+          import madmom_infer
+          from madmom_infer import MadmomAnalyzer
+          from madmom_infer.models import validate_checkpoint_config
+
+          installed = Path(os.environ["RUNNER_TEMP"]) / "madmom-wheel"
+          assert installed in Path(madmom_infer.__file__).parents
+          assert callable(MadmomAnalyzer)
+          assert validate_checkpoint_config()["models"]
+          assert "torch" not in sys.modules
+          assert "numba" not in sys.modules
+          print("Installed wheel: public API, checkpoint data, and optional imports OK")
+          PY

@@ -46,6 +46,24 @@ Internally, this file still tracks work by phase (matching test/script
 names like `tools/generate_phase2_fixtures.py`), since that's a stable way
 to refer to a specific chunk of already-shipped work:
 
+- **Explicit Torch device selection**: `backends.resolve_torch_device` owns
+  `"auto"` (CUDA if available, otherwise CPU), explicit CPU/CUDA strings and
+  `torch.device` objects, MPS rejection, and unavailable/out-of-range CUDA
+  errors before model lookup. Shared processors, RNNBar's separate GRU path,
+  and the direct adapter use it. Explicit adapter devices move module and
+  inputs together; auto/bare CUDA resolve to a fixed index so a later
+  `torch.cuda.set_device()` cannot redirect input placement. Keep `None`
+  placement and the analyzer's lazy forwarding;
+  core imports remain Torch/Numba-free. Original CPU outputs were committed
+  before repair in `tests/fixtures/device_dispatch`; exact music/silence
+  replay is guarded by recording build/CPU, and is current-port regression
+  evidence, not upstream golden accuracy. On one RTX 4090, all six original
+  explicit-CUDA outputs matched repaired `auto` and `cuda:0` exactly, with
+  module placement verified as `cuda:0`; the direct adapter began with a CPU
+  module and owned its move. Torch was 2.13.0+cu130, NumPy 2.4.6, TF32 matmul
+  off and cuDNN TF32 on for both sides. Multiple-GPU device switching has
+  mock coverage only; this is not full-model upstream accuracy verification.
+
 - **Opt-in fused CUDA LSTM inference** (complete, 2026-09-14):
   `fast_recurrent=True` retains cuBLAS recurrent projections and uses Triton
   to fuse the gate/peephole state update for eligible CUDA float32 no-grad
@@ -80,8 +98,9 @@ to refer to a specific chunk of already-shipped work:
   waveform-to-activation pipelines (`madmom_infer/torch/features/`), and
   `backend="torch", device=` on the ten NN processors + `MadmomAnalyzer`
   via `madmom_infer/backends.py`; decoders stay numpy. Explicit device
-  support is CPU/CUDA only; Apple MPS (`"mps"`/`"mps:*"`) is out of scope
-  and rejected before torch device placement. Acceptance = decoded results
+  support is CPU/CUDA only, with explicit `"auto"` selection; Apple MPS
+  strings and device objects are rejected before model lookup.
+  Acceptance = decoded results
   identical to the numpy backend on real music (CPU and CUDA), checked with
   `tools/compare_torch_backend.py`; speed via
   `tools/bench_torch_backend.py`. See `docs/blueprints/decisions.md`
@@ -914,12 +933,14 @@ to refer to a specific chunk of already-shipped work:
       elements** -- `viterbi()` touches no BLAS at all (pure
       elementwise/reduction numpy), so bit-identity, not ULP-closeness, is
       the expected and verified claim, same precedent as 4c's comb
-      filters. `tests/test_gmm.py`'s cross-BLAS test reproduces real
+      filters. In the recorded 2026-07-13 environments,
+      `tests/test_gmm.py`'s cross-BLAS test reproduced real
       madmom's `GMM.score`/`score_samples` with **zero differing
       elements** for every GMM in both pattern files (despite
       `score_samples` calling `scipy.linalg.cholesky`/`solve_triangular`,
-      genuinely BLAS/LAPACK-backed -- a non-free claim, verified rather
-      than assumed). `tests/test_beats.py`'s and `tests/test_patterns.py`'s
+      genuinely BLAS/LAPACK-backed). This measured result is not a universal
+      native-math guarantee; see Device-dispatch verification for the later
+      GMM float-fixture environment guard. `tests/test_beats.py`'s and `tests/test_patterns.py`'s
       cross-BLAS tests reproduce real madmom's `BeatTrackingProcessor`/
       `BeatDetectionProcessor`/`CRFBeatDetectionProcessor` decoded beat
       times AND `PatternTrackingProcessor`'s decoded (down-)beat
@@ -1026,8 +1047,10 @@ to refer to a specific chunk of already-shipped work:
       deprecated-since-0.16 shims delegating to `madmom.io.audio.*`
       (confirmed by reading `signal.py:442-493` directly) -- `io/*` is this
       project's own separate, already-documented permanent EXCLUDE.
-      **Faithfulness proof**: all 6 bit-identical to real madmom, both
-      in-process and cross-BLAS (pure numpy, no BLAS at all). Found and
+      **Faithfulness proof**: all 6 were bit-identical to real madmom
+      in the measured 2026-07-13 environments. Framed SPL is now guarded
+      against native-math/CPU dispatch differences; see Device-dispatch
+      verification. Found and
       fixed a real bug in this wave's OWN first draft of `rescale()`: a
       bare `signal.astype(dtype)` call assumed ndarray semantics this
       project's own composition `Signal` class doesn't have (no `.astype`
@@ -1101,7 +1124,7 @@ EXCLUDE (why).
 | `audio/signal.py` | `Signal`, `SignalProcessor`, `FramedSignal`, `FramedSignalProcessor`, `remix`, `normalize`, `adjust_gain`, `signal_frame` | PORTED | -- | Phase 1, complete |
 | `audio/signal.py` | `smooth` | PORTED (4b) | -- | needed by `features/onsets.py`'s `peak_picking`; this row previously (Phase 1) claimed it as already PORTED -- it was not actually present in the module until this wave, correcting that overstatement here |
 | `audio/signal.py` | `resample` | PORTED (4d) -- **policy correction**: the "no ffmpeg dependency" Phase-1 exclusion (below) does not survive `SemitoneBandpassFilterbank`'s unconditional, load-bearing need for it; narrow ffmpeg-subprocess port, bit-identical to real madmom's own `resample()` (both invoke the literal same system `ffmpeg` binary), see 4d status | -- | feeds `audio/spectrogram.py`'s `SemitoneBandpassSpectrogram` |
-| `audio/signal.py` | `attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`, `sound_pressure_level` | PORTED (4g) | -- | resolves the 4b TO-VERIFY flag; 6 verbatim ports, bit-identical to real madmom both in-process and cross-BLAS (pure numpy, no BLAS) -- confirmed by re-grepping `../madmom-upstream/madmom/audio/signal.py`'s actual `^def \|^class ` surface, not re-trusting the old Phase-1 claim |
+| `audio/signal.py` | `attenuate`, `rescale`, `trim`, `energy`, `root_mean_square`, `sound_pressure_level` | PORTED (4g) | -- | resolves the 4b TO-VERIFY flag; 6 verbatim ports; exact in the measured 2026-07-13 environments, with framed SPL now protected by the verified-environment guard (see Device-dispatch verification) -- confirmed by re-grepping `../madmom-upstream/madmom/audio/signal.py`'s actual `^def \|^class ` surface, not re-trusting the old Phase-1 claim |
 | `audio/signal.py` | `Stream`, `LoadAudioFileError`, `load_audio_file`, `load_wave_file` (public), `write_wave_file` | EXCLUDE (4g, resolves the rest of the 4b TO-VERIFY flag) | -- | `Stream` is madmom's online/live-audio (PyAudio) class, already covered by this project's permanent online-processing exclusion; the other four are themselves nothing but upstream's own deprecated-since-0.16 shims that `warnings.warn()` and delegate to `madmom.io.audio.*` (confirmed by reading `signal.py:442-493` directly) -- `io/*` is this project's own separate, already-documented permanent EXCLUDE (see the `io/*`/`utils/*` row below), so porting these 4 would mean porting `io.audio` under a different name; none referenced by any `../madmom-upstream/madmom/{audio,features,ml}/*` file this project ports from |
 | `audio/filters.py` | `Filterbank`, `LogarithmicFilterbank`, `log_frequencies`, `frequencies2bins`, `bins2frequencies`, freq-conversion helpers (`hz2mel` etc.) | PORTED | -- | Phase 1 |
 | `audio/filters.py` | `MelFilterbank` | PORTED (4b) | -- | originally slotted for 4g (`cepstrogram.py` MFCC), pulled forward -- also feeds `CNNOnsetProcessor`'s 80-band mel input, which is in 4b's own scope; 4g's MFCC work reuses this instead of re-porting |
@@ -1124,7 +1147,7 @@ EXCLUDE (why).
 | `audio/hpss.py` | `HPSS`/`HarmonicPercussiveSourceSeparation` | PORTED (4g) | -- | standalone preprocessing utility, not consumed by any other processor in this project; `slices()`/`masks()` bit-identical to real madmom (in-process and cross-BLAS) -- **fixed in place 2026-07-13** (previously reproduced a confirmed upstream bug bug-for-bug: real madmom's `process()` unconditionally raised `AttributeError` or `UnboundLocalError` for EVERY call; see `docs/blueprints/decisions.md`'s "Fix inherited defects after migration"): `process()` now normalizes any 2-D spectrogram-like input via `np.asarray`, composes `slices()`/`masks()`, and raises a clear `ValueError` for non-2-D input, satisfying the `Processor` contract for every valid call |
 | `ml/hmm.py` | `TransitionModel`, `ObservationModel`, `DiscreteObservationModel`, `HiddenMarkovModel`/`HMM` | PORTED | -- | Phase 1 |
 | `ml/crf.py` | `ConditionalRandomField` | PORTED (4d) -- cross-BLAS-proven exact | -- | chord decoding (`CRFChordRecognitionProcessor`, `DeepChromaChordRecognitionProcessor`); added a `.load()` classmethod (not in upstream) delegating to the restricted unpickler, matching `NeuralNetwork.load` |
-| `ml/gmm.py` | `GMM`, `log_multivariate_normal_density`, `logsumexp`, `pinvh` | PORTED (4f) -- cross-BLAS-proven exact | -- | backs `GMMPatternTrackingObservationModel`; forward-inference only, no `fit()` (permanent scope); `GMM.__setstate__`'s legacy rename branch is load-bearing -- both target `PATTERNS_BALLROOM` files are old-format pickles |
+| `ml/gmm.py` | `GMM`, `log_multivariate_normal_density`, `logsumexp`, `pinvh` | PORTED (4f) -- exact in recorded reference environments; float goldens now environment-guarded | -- | backs `GMMPatternTrackingObservationModel`; forward-inference only, no `fit()` (permanent scope); `GMM.__setstate__`'s legacy rename branch is load-bearing -- both target `PATTERNS_BALLROOM` files are old-format pickles |
 | `ml/nn/__init__.py` | `NeuralNetwork`, `NeuralNetworkEnsemble`, `average_predictions` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `Layer`, `FeedForwardLayer`, `RecurrentLayer`, `BidirectionalLayer`, `Gate`, `Cell`, `LSTMLayer` | PORTED | -- | Phase 2 |
 | `ml/nn/layers.py` | `ConvolutionalLayer`, `MaxPoolLayer`, `BatchNormLayer`, `PadLayer`, `AverageLayer` | PORTED (4a) | -- | confirmed pickletools-walked as exactly what `key_cnn.pkl` (`AverageLayer`,`BatchNormLayer`,`ConvolutionalLayer`,`MaxPoolLayer`,`PadLayer`,`elu`,`linear`) references; `onsets_cnn.pkl`, `notes_cnn*.pkl`, `chords_cnnfeat.pkl` also need this same set (reused by 4b/4d/4e, not re-ported) |
@@ -1404,6 +1427,62 @@ opt-in boundary itself still holds -- both a torch-less venv (`import
 madmom_infer` works, `import madmom_infer.torch` raises a clear guarded
 `ImportError`) and the full non-network suite pass in both a torch-less and
 a torch-installed environment with identical non-torch test counts.
+
+## Device-dispatch verification
+
+`.github/workflows/tests.yml` provides PR and `main`-push CI on every claimed
+Python version, 3.9–3.13. It installs a compatible CPU Torch wheel from the
+official CPU index first, then `.[dev,torch]` without `--upgrade`, runs the
+full offline suite (including the focused device cases), builds from sdist,
+and smoke-tests the wheel in an isolated target outside the checkout. Core
+imports and packaged checkpoint metadata are checked there too. This workflow
+has read-only permissions and never publishes; `publish.yml` is the separate
+release/manual publishing workflow and must not be dispatched just to test a PR.
+
+Run portable device policy/import tests and the environment-guarded original
+CPU regression (no downloads; cached checkpoints required for the regression):
+
+```bash
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python -m pytest tests/test_torch_backend.py tests/test_backends_torch_free.py tests/test_device_baseline.py -q
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python tools/verify_device_baseline.py --device cpu
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python tools/verify_device_baseline.py --device auto
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+python -m pytest -q -ra
+```
+
+Keep existing Torch-vs-NumPy tolerances in the network-marked tests; cached
+weights can satisfy them without downloading. Missing upstream reference
+venvs skip their separate cross-BLAS tests and do not prove upstream parity.
+The public `openmirlab-skills/plugins/mir/CLAUDE.md` Madmom entry was checked:
+it has no device-specific examples or claims requiring a simultaneous edit.
+
+Two legacy exact float tests now distinguish reference replay from portable
+semantics. `tests/fixtures/legacy_reference_replay.json` is a separately dated
+verified replay fingerprint, not historical metadata fabricated for the old
+NPZ files. It includes Python/NumPy/SciPy versions and build configurations,
+native NumPy/SciPy/BLAS/libc/libm hashes, CPU features, and dispatch/thread
+environment. Original arrays and exact assertions are unchanged. Mismatches
+skip those exact float checks explicitly; analytic GMM/SPL cases, recorded
+component decisions/loudness ordering, and exact framed energy/RMS still run.
+
+The preserved reference venv has moved under `references/`. Its strict replay
+does not require pytest or new dependencies:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 \
+/home/worzpro/Desktop/dev/openmirlab/references/madmom-reference/.venv/bin/python \
+tests/_legacy_fixture_reference.py
+python -m pytest tests/test_gmm.py tests/test_signal_leftovers.py tests/test_fixture_environment.py -q -ra
+```
+
+Do not update this sidecar merely to admit a failing environment. The explicit
+`--record-environment` option requires the documented original versions and
+successful exact replay first; it never rewrites the NPZ fixtures. The current
+record verifies all 12 GMM cases and framed energy/RMS/SPL. CPU-dispatch changes
+can invalidate exact floats even on the same package versions.
 
 ## Exact fast-Viterbi verification
 

@@ -1,0 +1,122 @@
+{
+  "verified_at_utc": "2026-10-02T15:11:01.229597+00:00",
+  "scope": "Later verified replay environment; original fixture CPU/build metadata was not recorded",
+  "original_version_evidence": [
+    "tools/generate_crf_pattern_fixtures.py",
+    "tools/generate_leftovers_fixtures.py"
+  ],
+  "fixture_sha256": {
+    "gmm_scores.npz": "465547b5474533a5f214ad5b7b119ba4e35f8736d08f2fc3da028e9eb54f9229",
+    "signal_leftovers.npz": "8fa7aff50c56acc3147a588a0b0cc0867245b198cbf7f65edf29798051a5ec03",
+    "wavs/mono_44100.wav": "457f95b72657f319f35986faf21ca84f4a21806ddcf1811179f1ea84652e26a1"
+  },
+  "verified_environment": {
+    "python": "3.10.18 (main, Jul  8 2025, 20:59:20) [Clang 20.1.4 ]",
+    "numpy": "1.23.5",
+    "scipy": "1.15.3",
+    "system": "Linux",
+    "machine": "x86_64",
+    "libc": [
+      "glibc",
+      "2.39"
+    ],
+    "cpu": {
+      "vendor_id": "GenuineIntel",
+      "cpu family": "6",
+      "model": "183",
+      "model name": "13th Gen Intel(R) Core(TM) i5-13600K",
+      "stepping": "1",
+      "microcode": "0x133",
+      "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb intel_pt sha_ni xsaveopt xsavec xgetbv1 xsaves split_lock_detect user_shstk avx_vnni dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req hfi vnmi umip pku ospke waitpkg gfni vaes vpclmulqdq rdpid movdiri movdir64b fsrm md_clear serialize pconfig arch_lbr ibt flush_l1d arch_capabilities"
+    },
+    "numpy_cpu_features": {
+      "MMX": true,
+      "SSE": true,
+      "SSE2": true,
+      "SSE3": true,
+      "SSSE3": true,
+      "SSE41": true,
+      "POPCNT": true,
+      "SSE42": true,
+      "AVX": true,
+      "F16C": true,
+      "XOP": false,
+      "FMA4": false,
+      "FMA3": true,
+      "AVX2": true,
+      "AVX512F": false,
+      "AVX512CD": false,
+      "AVX512ER": false,
+      "AVX512PF": false,
+      "AVX5124FMAPS": false,
+      "AVX5124VNNIW": false,
+      "AVX512VPOPCNTDQ": false,
+      "AVX512VL": false,
+      "AVX512BW": false,
+      "AVX512DQ": false,
+      "AVX512VNNI": false,
+      "AVX512IFMA": false,
+      "AVX512VBMI": false,
+      "AVX512VBMI2": false,
+      "AVX512BITALG": false,
+      "AVX512_KNL": false,
+      "AVX512_KNM": false,
+      "AVX512_SKX": false,
+      "AVX512_CLX": false,
+      "AVX512_CNL": false,
+      "AVX512_ICL": false,
+      "VSX": false,
+      "VSX2": false,
+      "VSX3": false,
+      "VSX4": false,
+      "VX": false,
+      "VXE": false,
+      "VXE2": false,
+      "NEON": false,
+      "NEON_FP16": false,
+      "NEON_VFPV4": false,
+      "ASIMD": false,
+      "FPHP": false,
+      "ASIMDHP": false,
+      "ASIMDDP": false,
+      "ASIMDFHM": false
+    },
+    "native_sha256": {
+      "numpy_core": "c535a00761735b19153a71e1702f66482838421c78f96ecc3fe2c8d060662fd9",
+      "scipy.linalg._fblas": "d2bc0b8127ab14cf1df3ae8fe4242829830ef54cc00ceafd720e68ef7e67f495",
+      "scipy.linalg._flapack": "11742f3f308733322369de8ef867af6aaf8c3b001d61005632dff37b3a4161ee",
+      "numpy.libs/libgfortran-040039e1.so.5.0.0": "47ab3b68295b0a3ce8990a448de7fab11abddbc160f8895972ca9aa712cf86d0",
+      "numpy.libs/libopenblas64_p-r0-742d56dc.3.20.so": "38e7298921fb5c867349724aa21e45d2b6f51f166adb4d38ab4016aafc4b0e9e",
+      "numpy.libs/libquadmath-96973f99.so.0.0.0": "97cda85ddb5163e2da6e1edb4e1d6b557833a99a40eda079ae37e5039465b65d",
+      "scipy.libs/libgfortran-040039e1-0352e75f.so.5.0.0": "c6090048eccc763522c12ef016f81da6b627cb3a044f55cf0479a839c41c0980",
+      "scipy.libs/libgfortran-040039e1.so.5.0.0": "14afb3129b1a8b50bc40a3b0820c7f1152ea9bc10121aab152943f7057472886",
+      "scipy.libs/libquadmath-96973f99-934c22de.so.0.0.0": "6ed5137f412781ad7863439fb543613f620b43c32b63292a0029246162f5bbc6",
+      "scipy.libs/libquadmath-96973f99.so.0.0.0": "934c22ded0e7d169c4d4678876c96051adf3d94545da962f60b41659b075da3b",
+      "scipy.libs/libscipy_openblas-68440149.so": "3e739a2435af49d2d938749f316aa338c65f41c9ae6615406e7cf83feb662f46",
+      "libc.so.6": "3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf",
+      "libm.so.6": "fce00b6f25f459cf4ae0b7fae4257909a1a8a86f9149e7c029a5d617baf1ccd0"
+    },
+    "build_configs": {
+      "numpy": "openblas64__info:\n    libraries = ['openblas64_', 'openblas64_']\n    library_dirs = ['/usr/local/lib']\n    language = c\n    define_macros = [('HAVE_CBLAS', None), ('BLAS_SYMBOL_SUFFIX', '64_'), ('HAVE_BLAS_ILP64', None)]\n    runtime_library_dirs = ['/usr/local/lib']\nblas_ilp64_opt_info:\n    libraries = ['openblas64_', 'openblas64_']\n    library_dirs = ['/usr/local/lib']\n    language = c\n    define_macros = [('HAVE_CBLAS', None), ('BLAS_SYMBOL_SUFFIX', '64_'), ('HAVE_BLAS_ILP64', None)]\n    runtime_library_dirs = ['/usr/local/lib']\nopenblas64__lapack_info:\n    libraries = ['openblas64_', 'openblas64_']\n    library_dirs = ['/usr/local/lib']\n    language = c\n    define_macros = [('HAVE_CBLAS', None), ('BLAS_SYMBOL_SUFFIX', '64_'), ('HAVE_BLAS_ILP64', None), ('HAVE_LAPACKE', None)]\n    runtime_library_dirs = ['/usr/local/lib']\nlapack_ilp64_opt_info:\n    libraries = ['openblas64_', 'openblas64_']\n    library_dirs = ['/usr/local/lib']\n    language = c\n    define_macros = [('HAVE_CBLAS', None), ('BLAS_SYMBOL_SUFFIX', '64_'), ('HAVE_BLAS_ILP64', None), ('HAVE_LAPACKE', None)]\n    runtime_library_dirs = ['/usr/local/lib']\nSupported SIMD extensions in this NumPy install:\n    baseline = SSE,SSE2,SSE3\n    found = SSSE3,SSE41,POPCNT,SSE42,AVX,F16C,FMA3,AVX2\n    not found = AVX512F,AVX512CD,AVX512_KNL,AVX512_KNM,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL\n",
+      "scipy": "{\n  \"Compilers\": {\n    \"c\": {\n      \"name\": \"gcc\",\n      \"linker\": \"ld.bfd\",\n      \"version\": \"10.2.1\",\n      \"commands\": \"cc\"\n    },\n    \"cython\": {\n      \"name\": \"cython\",\n      \"linker\": \"cython\",\n      \"version\": \"3.0.12\",\n      \"commands\": \"cython\"\n    },\n    \"c++\": {\n      \"name\": \"gcc\",\n      \"linker\": \"ld.bfd\",\n      \"version\": \"10.2.1\",\n      \"commands\": \"c++\"\n    },\n    \"fortran\": {\n      \"name\": \"gcc\",\n      \"linker\": \"ld.bfd\",\n      \"version\": \"10.2.1\",\n      \"commands\": \"gfortran\"\n    },\n    \"pythran\": {\n      \"version\": \"0.17.0\",\n      \"include directory\": \"../../tmp/pip-build-env-jujiy7q_/overlay/lib/python3.10/site-packages/pythran\"\n    }\n  },\n  \"Machine Information\": {\n    \"host\": {\n      \"cpu\": \"x86_64\",\n      \"family\": \"x86_64\",\n      \"endian\": \"little\",\n      \"system\": \"linux\"\n    },\n    \"build\": {\n      \"cpu\": \"x86_64\",\n      \"family\": \"x86_64\",\n      \"endian\": \"little\",\n      \"system\": \"linux\"\n    },\n    \"cross-compiled\": false\n  },\n  \"Build Dependencies\": {\n    \"blas\": {\n      \"name\": \"scipy-openblas\",\n      \"found\": true,\n      \"version\": \"0.3.28\",\n      \"detection method\": \"pkgconfig\",\n      \"include directory\": \"/opt/_internal/cpython-3.10.15/lib/python3.10/site-packages/scipy_openblas32/include\",\n      \"lib directory\": \"/opt/_internal/cpython-3.10.15/lib/python3.10/site-packages/scipy_openblas32/lib\",\n      \"openblas configuration\": \"OpenBLAS 0.3.28 DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64\",\n      \"pc file directory\": \"/project\"\n    },\n    \"lapack\": {\n      \"name\": \"scipy-openblas\",\n      \"found\": true,\n      \"version\": \"0.3.28\",\n      \"detection method\": \"pkgconfig\",\n      \"include directory\": \"/opt/_internal/cpython-3.10.15/lib/python3.10/site-packages/scipy_openblas32/include\",\n      \"lib directory\": \"/opt/_internal/cpython-3.10.15/lib/python3.10/site-packages/scipy_openblas32/lib\",\n      \"openblas configuration\": \"OpenBLAS 0.3.28 DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64\",\n      \"pc file directory\": \"/project\"\n    },\n    \"pybind11\": {\n      \"name\": \"pybind11\",\n      \"version\": \"2.13.6\",\n      \"detection method\": \"config-tool\",\n      \"include directory\": \"unknown\"\n    }\n  },\n  \"Python Information\": {\n    \"path\": \"/opt/python/cp310-cp310/bin/python\",\n    \"version\": \"3.10\"\n  }\n}\n"
+    },
+    "dispatch_environment": {
+      "GLIBC_TUNABLES": null,
+      "LD_PRELOAD": null,
+      "LD_LIBRARY_PATH": null,
+      "LD_HWCAP_MASK": null,
+      "NPY_DISABLE_CPU_FEATURES": null,
+      "NPY_ENABLE_CPU_FEATURES": null,
+      "OPENBLAS_CORETYPE": null,
+      "OPENBLAS_NUM_THREADS": "4",
+      "OMP_NUM_THREADS": "4",
+      "MKL_NUM_THREADS": null,
+      "MKL_CBWR": null,
+      "BLIS_NUM_THREADS": null
+    }
+  },
+  "verification": {
+    "gmm_models_exact": 12,
+    "framed_energy_rms_spl_exact": true
+  }
+}
