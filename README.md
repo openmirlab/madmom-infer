@@ -188,7 +188,7 @@ path without requiring independent chunk decoding.
 pip install "madmom-infer @ git+https://github.com/openmirlab/madmom-infer.git"
 
 # with the optional torch backend
-pip install "madmom-infer[torch]"
+pip install "madmom-infer[torch] @ git+https://github.com/openmirlab/madmom-infer.git"
 ```
 
 ---
@@ -278,7 +278,7 @@ The same CPU decoder can use an exact, runtime-compiled recurrence when the
 optional Numba extra is installed:
 
 ```bash
-pip install "madmom-infer[numba]"
+pip install "madmom-infer[numba] @ git+https://github.com/openmirlab/madmom-infer.git"
 ```
 
 ```python
@@ -606,7 +606,7 @@ returns the harmonic and percussive spectrograms directly.
 
 ### Torch backend (optional)
 
-Install the extra first: `pip install "madmom-infer[torch]"` (or `uv sync
+Install the extra first: `pip install "madmom-infer[torch] @ git+https://github.com/openmirlab/madmom-infer.git"` (or `uv sync
 --extra dev --extra torch` for development).
 
 #### Differentiable frontend
