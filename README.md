@@ -1,8 +1,10 @@
 # madmom-infer
 
+> **Current installation:** `pip install "madmom-infer @ git+https://github.com/openmirlab/madmom-infer.git"`
+> OpenMIRLab no longer publishes new versions to PyPI. Any existing PyPI releases are historical snapshots.
+
 **A from-scratch, modernized reimplementation of [madmom](https://github.com/CPJKU/madmom)'s inference-relevant algorithms**
 
-[![PyPI](https://img.shields.io/pypi/v/madmom-infer.svg)](https://pypi.org/project/madmom-infer/)
 [![License: BSD-2-Clause](https://img.shields.io/badge/License-BSD--2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
@@ -183,7 +185,7 @@ path without requiring independent chunk decoding.
 ## Install
 
 ```bash
-pip install madmom-infer
+pip install "madmom-infer @ git+https://github.com/openmirlab/madmom-infer.git"
 
 # with the optional torch backend
 pip install "madmom-infer[torch]"
