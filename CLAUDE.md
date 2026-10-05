@@ -1526,3 +1526,7 @@ fused CUDA frontend and three decoder threads, the interleaved median moved
 from 10.27 to 4.28 seconds and task hashes plus 1864 MiB incremental VRAM
 stayed unchanged. Treat these as fixed-input evidence, not a universal speed
 guarantee.
+
+## Distribution policy (2026-10-05)
+
+Install the current source from `https://github.com/openmirlab/madmom-infer`. GitHub release workflows verify and build distributions but do not upload to PyPI. Existing PyPI versions, where any exist, are historical snapshots. Update installation examples to use Git when changing this package.
